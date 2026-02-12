@@ -31,6 +31,27 @@ if "NEON_DATABASE_URL" not in st.secrets:
 def get_connection():
     return psycopg2.connect(st.secrets["NEON_DATABASE_URL"])
 
+# --- DATABASE INITIALIZATION ---
+def init_db():
+    try:
+        conn = get_connection()
+        with conn.cursor() as cur:
+            queries = [
+                "CREATE TABLE IF NOT EXISTS chapters (id TEXT PRIMARY KEY, name TEXT UNIQUE, admin_password TEXT, created_at TEXT, config TEXT, sport TEXT, title_image_url TEXT)",
+                "CREATE TABLE IF NOT EXISTS players (name TEXT, profile_image_url TEXT, birthday TEXT, chapter_id TEXT, password TEXT, gender TEXT)",
+                "CREATE TABLE IF NOT EXISTS matches (match_id TEXT PRIMARY KEY, date TEXT, match_type TEXT, team1_player1 TEXT, team1_player2 TEXT, team2_player1 TEXT, team2_player2 TEXT, set1 TEXT, set2 TEXT, set3 TEXT, winner TEXT, match_image_url TEXT, chapter_id TEXT)",
+                "CREATE TABLE IF NOT EXISTS bookings (booking_id TEXT PRIMARY KEY, date TEXT, time TEXT, match_type TEXT, court_name TEXT, player1 TEXT, player2 TEXT, player3 TEXT, player4 TEXT, standby_player TEXT, screenshot_url TEXT, chapter_id TEXT)",
+                "CREATE TABLE IF NOT EXISTS courts (chapter_id TEXT, name TEXT, url TEXT)"
+            ]
+            for q in queries:
+                cur.execute(q)
+        conn.commit()
+        conn.close()
+    except Exception:
+        pass
+
+init_db()
+
 # --- Custom CSS ---
 st.markdown("""
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -881,7 +902,10 @@ if st.session_state.is_master_admin and st.session_state.current_chapter is None
     if st.button("Logout Master Admin"): st.session_state.is_master_admin = False; st.rerun()
     
     conn = get_connection()
-    chapters = pd.read_sql("SELECT * FROM chapters", conn)
+    try:
+        chapters = pd.read_sql("SELECT * FROM chapters", conn)
+    except:
+        chapters = pd.DataFrame()
     conn.close()
     
     c1, c2, c3 = st.columns(3)
