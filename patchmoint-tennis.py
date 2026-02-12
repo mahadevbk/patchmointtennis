@@ -369,12 +369,14 @@ def save_remote_image(uploaded_file, file_id, image_type="match"):
     branch = st.secrets.get("GITHUB_BRANCH", "main")
     
     if not token or not repo:
-        st.error("GitHub secrets missing")
+        st.error("GitHub secrets missing. Please check your secrets.toml file.")
         return ""
 
+    # Clean file extension
     file_ext = uploaded_file.name.split('.')[-1] if '.' in uploaded_file.name else 'jpg'
     file_path = f"assets/{image_type}s/{file_id}.{file_ext}" # e.g. assets/matches/123.jpg
     
+    # API URL
     url = f"https://api.github.com/repos/{repo}/contents/{file_path}"
     headers = {"Authorization": f"token {token}", "Accept": "application/vnd.github.v3+json"}
     
@@ -382,19 +384,28 @@ def save_remote_image(uploaded_file, file_id, image_type="match"):
     r = requests.get(url, headers=headers)
     sha = r.json().get("sha") if r.status_code == 200 else None
     
-    content_b64 = base64.b64encode(uploaded_file.getvalue()).decode("utf-8")
-    data = {
-        "message": f"Upload {file_path}",
-        "content": content_b64,
-        "branch": branch
-    }
-    if sha: data["sha"] = sha
-    
-    resp = requests.put(url, headers=headers, json=data)
-    if resp.status_code in [200, 201]:
-        return f"https://raw.githubusercontent.com/{repo}/{branch}/{file_path}"
-    else:
-        st.error(f"GitHub Upload Failed: {resp.text}")
+    # Encode content
+    try:
+        content_b64 = base64.b64encode(uploaded_file.getvalue()).decode("utf-8")
+        data = {
+            "message": f"Upload {file_path}",
+            "content": content_b64,
+            "branch": branch
+        }
+        if sha: data["sha"] = sha
+        
+        # Upload
+        resp = requests.put(url, headers=headers, json=data)
+        
+        if resp.status_code in [200, 201]:
+            st.toast(f"Image uploaded successfully!", icon="✅")
+            # Return raw URL (MUST BE PUBLIC REPO)
+            return f"https://raw.githubusercontent.com/{repo}/{branch}/{file_path}"
+        else:
+            st.error(f"GitHub Upload Failed ({resp.status_code}): {resp.json().get('message')}")
+            return ""
+    except Exception as e:
+        st.error(f"Upload Logic Error: {e}")
         return ""
 
 def get_img_src(path_or_url):
