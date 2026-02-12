@@ -735,11 +735,6 @@ if not check_chapter_selected():
                 st.session_state.can_write = True
                 del st.session_state.new_chapter_created
                 st.rerun()
-    #else:
-    #    if os.path.exists("logo.png"): 
-    #        st.markdown(f'<div style="text-align: left;"><img src="{get_img_src("logo.png")}" style="height:150px; margin-bottom: 10px;"></div>', unsafe_allow_html=True)
-    #    else:
-    #        st.title(f"🎾 Patch Moint {SPORT_TYPE} League")
 
     st.markdown(
         f'<div style="text-align: left;">'
