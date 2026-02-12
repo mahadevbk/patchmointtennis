@@ -869,7 +869,8 @@ if not check_chapter_selected():
                             st.warning("Hint: If you see an error about 'column sport does not exist', please run the migration script in Neon.")
         
         with st.expander("Master Admin Login", expanded=False, icon="➡️"):
-            if st.button("Login Master") and st.text_input("Master Password", type="password", key="ma_pass") == "magic1":
+            m_pass = st.text_input("Master Password", type="password", key="ma_pass")
+            if st.button("Login Master") and m_pass == st.secrets.get("madminpwd", "magic1"):
                 st.session_state.is_master_admin = True; st.rerun()
     render_footer()
     st.stop()
