@@ -4,3 +4,4 @@ numpy
 plotly
 requests
 psycopg2-binary
+sqlalchemy
