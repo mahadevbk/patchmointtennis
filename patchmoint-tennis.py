@@ -14,19 +14,13 @@ import psycopg2
 from psycopg2.extras import RealDictCursor, execute_values
 from datetime import datetime, timedelta
 from collections import defaultdict
-from sqlalchemy import create_engine
 
 # --- Configuration & Setup ---
 SPORT_TYPE = st.secrets.get("SPORT_TYPE", "Tennis")
-st.set_page_config(page_title=f"Patch Moint {SPORT_TYPE} League", layout="centered")
-os.environ["STREAMLIT_SERVER_FILE_WATCHER_TYPE"] = "none"
-
-
-# Define the direct link to your logo on GitHub
 LOGO_URL = "https://raw.githubusercontent.com/mahadevbk/patchmointtennis/main/logo.png"
 
-
-
+st.set_page_config(page_title=f"Patch Moint {SPORT_TYPE} League", layout="centered")
+os.environ["STREAMLIT_SERVER_FILE_WATCHER_TYPE"] = "none"
 
 # --- CHECK SECRETS ---
 if "NEON_DATABASE_URL" not in st.secrets:
@@ -35,9 +29,7 @@ if "NEON_DATABASE_URL" not in st.secrets:
 
 # --- REMOTE CONNECTION SETUP ---
 def get_connection():
-    # Create a SQLAlchemy engine
-    engine = create_engine(st.secrets["NEON_DATABASE_URL"])
-    return engine.connect()
+    return psycopg2.connect(st.secrets["NEON_DATABASE_URL"])
 
 # --- Custom CSS ---
 st.markdown("""
@@ -735,15 +727,11 @@ if not check_chapter_selected():
                 st.session_state.can_write = True
                 del st.session_state.new_chapter_created
                 st.rerun()
-
-    st.markdown(
-        f'<div style="text-align: left;">'
-        f'<img src="{LOGO_URL}" style="height:150px; margin-bottom: 10px;">'
-        f'</div>', 
-        unsafe_allow_html=True
-    )
-        
-        
+    else:
+        # Use the LOGO_URL directly
+        st.markdown(f'<div style="text-align: left;"><img src="{LOGO_URL}" style="height:150px; margin-bottom: 10px;"></div>', unsafe_allow_html=True)
+            
+        import streamlit as st
 
         # Custom CSS for a clean look
         st.markdown("""
@@ -945,8 +933,8 @@ try:
     chap_data = pd.DataFrame([data]) if data else pd.DataFrame()
 except: chap_data = pd.DataFrame()
 
-if os.path.exists("logo.png"): 
-    st.markdown(f'<div style="text-align: left;"><img src="{get_img_src("logo.png")}" style="height:50px; margin-bottom: 10px;"></div>', unsafe_allow_html=True)
+# Use the LOGO_URL directly in main app
+st.markdown(f'<div style="text-align: left;"><img src="{LOGO_URL}" style="height:50px; margin-bottom: 10px;"></div>', unsafe_allow_html=True)
 
 if not chap_data.empty and chap_data.iloc[0]['title_image_url']:
     img_path = chap_data.iloc[0]['title_image_url']
