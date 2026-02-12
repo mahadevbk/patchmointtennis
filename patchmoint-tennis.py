@@ -14,6 +14,8 @@ import psycopg2
 from psycopg2.extras import RealDictCursor, execute_values
 from datetime import datetime, timedelta
 from collections import defaultdict
+import warnings
+warnings.filterwarnings("ignore", category=UserWarning, module='pandas')
 
 # --- Configuration & Setup ---
 SPORT_TYPE = st.secrets.get("SPORT_TYPE", "Tennis")
