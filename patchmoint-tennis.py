@@ -14,6 +14,7 @@ import psycopg2
 from psycopg2.extras import RealDictCursor, execute_values
 from datetime import datetime, timedelta
 from collections import defaultdict
+from sqlalchemy import create_engine
 
 # --- Configuration & Setup ---
 SPORT_TYPE = st.secrets.get("SPORT_TYPE", "Tennis")
@@ -27,7 +28,9 @@ if "NEON_DATABASE_URL" not in st.secrets:
 
 # --- REMOTE CONNECTION SETUP ---
 def get_connection():
-    return psycopg2.connect(st.secrets["NEON_DATABASE_URL"])
+    # Create a SQLAlchemy engine
+    engine = create_engine(st.secrets["NEON_DATABASE_URL"])
+    return engine.connect()
 
 # --- Custom CSS ---
 st.markdown("""
