@@ -21,6 +21,13 @@ SPORT_TYPE = st.secrets.get("SPORT_TYPE", "Tennis")
 st.set_page_config(page_title=f"Patch Moint {SPORT_TYPE} League", layout="centered")
 os.environ["STREAMLIT_SERVER_FILE_WATCHER_TYPE"] = "none"
 
+
+# Define the direct link to your logo on GitHub
+LOGO_URL = "https://raw.githubusercontent.com/mahadevbk/patchmointtennis/main/logo.png"
+
+
+
+
 # --- CHECK SECRETS ---
 if "NEON_DATABASE_URL" not in st.secrets:
     st.error("Missing secrets! Please configure NEON_DATABASE_URL, GITHUB_TOKEN, and GITHUB_REPO in .streamlit/secrets.toml")
