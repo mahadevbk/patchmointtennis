@@ -743,7 +743,7 @@ if not check_chapter_selected():
         unsafe_allow_html=True
     )
         
-        import streamlit as st
+        
 
         # Custom CSS for a clean look
         st.markdown("""
