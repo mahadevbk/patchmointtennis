@@ -784,7 +784,7 @@ if not check_chapter_selected():
         st.write("Welcome! Select an active chapter or create a new one.")
         st.caption("Free and Open Source • Create your league and push yourself to get better.")
 
-        with st.expander("Explore Ranking Systems", expanded=True,icon="🏆"):
+        with st.expander("Explore Ranking Systems", expanded=False,icon="🏆"):
             st.markdown("""
             * **🏆 ELO Hybrid:** Best for highly competitive groups.
             * **📈 UTR System:** For serious club-level play—the punishing standard.
@@ -1024,7 +1024,7 @@ with tabs[0]:
     
     current_desc = ranking_descriptions.get(view_system, {"desc": "Custom ranking system.", "scenario": "General usage."})
     
-    with st.expander(f"ℹ️ About {view_system}", expanded=False):
+    with st.expander(f"About {view_system}", expanded=False, icon="ℹ️"):
         st.markdown(f"**How it works:** {current_desc['desc']}")
         st.markdown(f"**Best for:** *{current_desc['scenario']}*")
     # ------------------------------------------
