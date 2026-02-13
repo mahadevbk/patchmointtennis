@@ -789,11 +789,25 @@ if not check_chapter_selected():
         # --- LOAD CHAPTERS FROM NEON ---
         try:
             conn = get_connection()
-            query = "SELECT * FROM chapters"
-            chap_df = pd.read_sql(query, conn)
+            # Fetch all chapters, players, and matches to calculate stats
+            chap_df = pd.read_sql("SELECT * FROM chapters", conn)
+            all_players = pd.read_sql("SELECT chapter_id FROM players", conn)
+            all_matches = pd.read_sql("SELECT chapter_id FROM matches", conn)
             conn.close()
-        except:
+            
+            # Calculate stats
+            player_counts = all_players.groupby('chapter_id').size().to_dict()
+            match_counts = all_matches.groupby('chapter_id').size().to_dict()
+            
+            # Convert created_at to datetime for sorting
+            if 'created_at' in chap_df.columns and not chap_df['created_at'].isnull().all():
+                chap_df['created_at'] = pd.to_datetime(chap_df['created_at'])
+                chap_df = chap_df.sort_values('created_at', ascending=False)
+
+        except Exception as e:
             chap_df = pd.DataFrame()
+            player_counts = {}
+            match_counts = {}
         
         if not chap_df.empty:
             # Filter chapters by current sport
@@ -812,13 +826,15 @@ if not check_chapter_selected():
                     with cols[idx % 3]:
                         with st.container(border=True):
                             if row.get('title_image_url'):
-                                 st.image(get_img_src(row['title_image_url']), width='stretch')
+                                 st.image(get_img_src(row['title_image_url']), use_column_width='always')
                             else:
                                  st.markdown(f"### {row['name']}")
                             
-                            st.caption("Join to view stats")
+                            num_players = player_counts.get(row['id'], 0)
+                            num_matches = match_counts.get(row['id'], 0)
+                            st.caption(f"{num_players} players / {num_matches} games")
                             
-                            if st.button(f"Enter {row['name']}", key=f"ent_btn_{row['id']}", width='stretch'):
+                            if st.button(f"Enter {row['name']}", key=f"ent_btn_{row['id']}", use_column_width=True):
                                 st.session_state.temp_selected_chapter = row.to_dict()
                                 st.rerun()
             else:
