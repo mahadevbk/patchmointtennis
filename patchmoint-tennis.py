@@ -846,14 +846,14 @@ if not check_chapter_selected():
                         stats_html = f'<p style="margin: 10px 0; color: #aaa; font-size: 0.9em;">{num_players} players / {num_matches} games</p>'
                         button_html = f'<a href="?select_chapter={row["id"]}" target="_self" class="enter-button">Enter</a>'
                         
-                        card_html = f"""
-                            <div class="chapter-card">
-                                {img_html}
-                                {title_html}
-                                {stats_html}
-                                {button_html}
-                            </div>
-                        """
+                        card_html = (
+                            '<div class="chapter-card">'
+                            f'{img_html}'
+                            f'{title_html}'
+                            f'{stats_html}'
+                            f'{button_html}'
+                            '</div>'
+                        )
                         st.markdown(card_html, unsafe_allow_html=True)
             else:
                 st.info(f"No active {SPORT_TYPE} chapters found. Create one below!")
