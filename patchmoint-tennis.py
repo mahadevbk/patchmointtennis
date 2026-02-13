@@ -41,13 +41,22 @@ def init_db():
         with conn.cursor() as cur:
             queries = [
                 "CREATE TABLE IF NOT EXISTS chapters (id TEXT PRIMARY KEY, name TEXT UNIQUE, admin_password TEXT, created_at TEXT, config TEXT, sport TEXT, title_image_url TEXT, last_active_date TEXT)",
-                "CREATE TABLE IF NOT EXISTS players (name TEXT, profile_image_url TEXT, birthday TEXT, chapter_id TEXT, password TEXT, gender TEXT, is_admin BOOLEAN DEFAULT FALSE)",
+                "CREATE TABLE IF NOT EXISTS players (name TEXT, profile_image_url TEXT, birthday TEXT, chapter_id TEXT, password TEXT, gender TEXT, is_admin BOOLEAN DEFAULT FALSE, initial_utr NUMERIC DEFAULT NULL)",
                 "CREATE TABLE IF NOT EXISTS matches (match_id TEXT PRIMARY KEY, date TEXT, match_type TEXT, team1_player1 TEXT, team1_player2 TEXT, team2_player1 TEXT, team2_player2 TEXT, set1 TEXT, set2 TEXT, set3 TEXT, winner TEXT, match_image_url TEXT, chapter_id TEXT)",
                 "CREATE TABLE IF NOT EXISTS bookings (booking_id TEXT PRIMARY KEY, date TEXT, time TEXT, match_type TEXT, court_name TEXT, player1 TEXT, player2 TEXT, player3 TEXT, player4 TEXT, standby_player TEXT, screenshot_url TEXT, chapter_id TEXT)",
                 "CREATE TABLE IF NOT EXISTS courts (chapter_id TEXT, name TEXT, url TEXT)"
             ]
             for q in queries:
                 cur.execute(q)
+            # Add new column if it doesn't exist
+            try:
+                cur.execute("ALTER TABLE players ADD COLUMN initial_utr NUMERIC DEFAULT NULL")
+                conn.commit()
+            except psycopg2.ProgrammingError as e:
+                if "column \"initial_utr\" already exists" in str(e):
+                    conn.rollback() # Rollback the failed ALTER TABLE transaction
+                else:
+                    raise e
         conn.commit()
         conn.close()
     except Exception:
@@ -546,14 +555,39 @@ def calculate_rankings(matches_to_rank):
     stats = defaultdict(get_player_stats_template)
     current_streaks = defaultdict(int)
     last_active_dates = {}
-    elo_ratings = defaultdict(lambda: 1200.0)
+    elo_ratings = {} # Initialize as a regular dict first
+    utr_ratings = {} # Initialize UTR ratings
     last_elo_changes = defaultdict(float) 
     K_FACTOR = 32 
+    
+    # UTR Constants
+    UTR_DEFAULT_RATING = 4.0
+    UTR_K_FACTOR = 0.05 # How much UTR changes per match (smaller for slower change)
+    UTR_SCALE = 3.0   # Factor to convert UTR difference to expected game win percentage
+    UTR_MIN = 1.0
+    UTR_MAX = 16.5
+
     players_df = st.session_state.players_df
     config = st.session_state.chapter_config
     ranking_systems = config.get("ranking_systems", ["Elo (Hybrid)"])
     pts_win = config.get("points_win", 3)
     pts_loss = config.get("points_loss", 1)
+
+    # Initialize ELO and UTR ratings for all players based on initial_utr or default
+    for _, player_row in players_df.iterrows():
+        player_name = player_row['name']
+        initial_utr = player_row.get('initial_utr')
+        if pd.notna(initial_utr) and initial_utr is not None:
+            starting_elo = (initial_utr - 4.0) * 110.0 + 1200.0 # Inverse of original UTR mapping
+            elo_ratings[player_name] = float(starting_elo)
+            utr_ratings[player_name] = float(initial_utr)
+        else:
+            elo_ratings[player_name] = 1200.0 # Default ELO
+            utr_ratings[player_name] = UTR_DEFAULT_RATING # Default UTR
+
+    # Convert to defaultdict after initial population
+    elo_ratings = defaultdict(lambda: 1200.0, elo_ratings) 
+    utr_ratings = defaultdict(lambda: UTR_DEFAULT_RATING, utr_ratings)
 
     if not matches_to_rank.empty: 
         matches_to_rank = matches_to_rank.sort_values('date')
@@ -594,12 +628,36 @@ def calculate_rankings(matches_to_rank):
             t1_total_games += t1_g
             t2_total_games += t2_g
 
+        total_match_games = t1_total_games + t2_total_games
+        if total_match_games == 0: continue # Avoid division by zero
+
         t1_elo_avg = sum(elo_ratings[p] for p in t1) / len(t1)
         t2_elo_avg = sum(elo_ratings[p] for p in t2) / len(t2)
-        total_match_games = t1_total_games + t2_total_games
+        t1_utr_avg = sum(utr_ratings[p] for p in t1) / len(t1)
+        t2_utr_avg = sum(utr_ratings[p] for p in t2) / len(t2)
+
         t1_won = row.winner == "Team 1"
 
-        def update_metrics(players, games_won, total_games, own_elo_avg, opp_elo_avg, is_winner):
+        # ELO Calculation
+        def update_elo(players, own_elo_avg, opp_elo_avg, actual_score, is_winner):
+            expected = 1 / (1 + 10 ** ((opp_elo_avg - own_elo_avg) / 400))
+            elo_change = K_FACTOR * (actual_score - expected)
+            for p in players:
+                elo_ratings[p] += elo_change
+                last_elo_changes[p] = round(elo_change, 1)
+        
+        # UTR Calculation
+        def update_utr(players, own_utr_avg, opp_utr_avg, actual_gwp):
+            utr_diff = own_utr_avg - opp_utr_avg
+            expected_gwp = 1 / (1 + np.exp(-utr_diff / UTR_SCALE)) # Logistic function
+            utr_change = UTR_K_FACTOR * (actual_gwp - expected_gwp)
+
+            for p in players:
+                utr_ratings[p] += utr_change
+                utr_ratings[p] = max(UTR_MIN, min(UTR_MAX, utr_ratings[p])) # Clamp UTR
+        
+        # Update stats common to both ELO and UTR
+        def update_common_stats(players, games_won, total_games, is_winner):
             for p in players:
                 stats[p]['matches'] += 1
                 stats[p]['games_won'] += games_won
@@ -615,16 +673,26 @@ def calculate_rankings(matches_to_rank):
                     stats[p]['losses'] += 1
                     current_streaks[p] = min(0, current_streaks[p]) - 1
                     stats[p]['points'] += pts_loss
-            
-            actual_score = games_won / total_games if total_games > 0 else 0.5
-            expected = 1 / (1 + 10 ** ((opp_elo_avg - own_elo_avg) / 400))
-            elo_change = K_FACTOR * (actual_score - expected)
-            for p in players:
-                elo_ratings[p] += elo_change
-                last_elo_changes[p] = round(elo_change, 1)
 
-        update_metrics(t1, t1_total_games, total_match_games, t1_elo_avg, t2_elo_avg, t1_won)
-        update_metrics(t2, t2_total_games, total_match_games, t2_elo_avg, t1_elo_avg, not t1_won)
+        # Apply updates
+        if t1_won:
+            update_common_stats(t1, t1_total_games, total_match_games, True)
+            update_common_stats(t2, t2_total_games, total_match_games, False)
+            
+            update_elo(t1, t1_elo_avg, t2_elo_avg, 1.0, True) # Elo uses win/loss (1.0 for win)
+            update_elo(t2, t2_elo_avg, t1_elo_avg, 0.0, False) # (0.0 for loss)
+
+            update_utr(t1, t1_utr_avg, t2_utr_avg, t1_total_games / total_match_games)
+            update_utr(t2, t2_utr_avg, t1_utr_avg, t2_total_games / total_match_games)
+        else: # Team 2 won
+            update_common_stats(t1, t1_total_games, total_match_games, False)
+            update_common_stats(t2, t2_total_games, total_match_games, True)
+
+            update_elo(t1, t1_elo_avg, t2_elo_avg, 0.0, False) # Elo uses win/loss (0.0 for loss)
+            update_elo(t2, t2_elo_avg, t1_elo_avg, 1.0, True) # (1.0 for win)
+            
+            update_utr(t1, t1_utr_avg, t2_utr_avg, t1_total_games / total_match_games)
+            update_utr(t2, t2_utr_avg, t1_utr_avg, t2_total_games / total_match_games)
 
     rank_data = []
     for p, s in stats.items():
@@ -647,15 +715,12 @@ def calculate_rankings(matches_to_rank):
             if (s['wins']/m_played) > 0.75: badges.append("🦁 Dominant")
 
         score_elo = round(elo_ratings[p], 1)
-        
-        # Real-World UTR Mapping
-        real_world_utr = 4.0 + (score_elo - 1200.0) / 110.0
-        real_world_utr = round(min(16.5, max(1.0, real_world_utr)), 2)
+        current_utr = round(utr_ratings[p], 2) # Use the newly calculated UTR
 
         rank_data.append({
             "Player": p, "Score": score_elo, "Label": "Elo", "Elo": score_elo, 
             "Score_Elo (Hybrid)": score_elo, "Score_Points": s['points'], 
-            "Score_UTR": real_world_utr, "Last Change": last_elo_changes.get(p, 0),
+            "Score_UTR": current_utr, "Last Change": last_elo_changes.get(p, 0),
             "Wins": s['wins'], "Losses": s['losses'], "Games Won": s['games_won'],
             "Win %": round((s['wins']/m_played)*100, 1), "Matches": m_played, 
             "Game Diff Avg": round(s['gd_sum']/m_played, 2), "Clutch Factor": round(clutch_pct, 1), 
@@ -1269,16 +1334,47 @@ with tabs[2]:
     if st.session_state.is_admin:
         with st.expander("Manage Players", expanded=False, icon="➡️"):
             new_p = st.text_input("New Name")
-            # Changed from ["Male", "Female", "Other"] to optional select
             gend = st.selectbox("Gender (Optional)", ["", "Male", "Female"])
+            
+            # Check if new_p already exists to determine if it's a new player or a potential duplicate check for the UI
+            # For the purpose of this form, we assume 'new_p' is a new player until added
+            
+            initial_utr_input = st.number_input("Initial UTR (Optional, for new players)", min_value=1.0, max_value=16.5, value=None, format="%.2f", help="Enter UTR if player has not played any games yet. Max 16.5, Min 1.0. This can only be set when the player has not played any matches.")
+            
             if st.button("Add", key="add_player_btn"):
                 if new_p:
-                    pw = str(uuid.uuid4().hex)[:8]
-                    # If empty string selected, save as None
-                    final_gender = gend if gend else None
-                    st.session_state.players_df = pd.concat([st.session_state.players_df, pd.DataFrame([{"name": new_p, "profile_image_url": "", "birthday": "", "chapter_id": st.session_state.current_chapter['id'], "password": pw, "gender": final_gender}])], ignore_index=True)
-                    save_players(st.session_state.players_df); load_players()
-                    st.success(f"Added! Pass: {pw}"); st.rerun()
+                    # Check if player already exists in the current chapter
+                    if new_p in st.session_state.players_df['name'].tolist():
+                        st.error(f"Player '{new_p}' already exists in this chapter.")
+                    else:
+                        # Check if the player name has played any matches globally (across chapters, or just within this chapter for a robust check)
+                        # For simplicity, we'll check against current chapter's matches_df
+                        player_has_played = (
+                            (st.session_state.matches_df['team1_player1'] == new_p) |
+                            (st.session_state.matches_df['team1_player2'] == new_p) |
+                            (st.session_state.matches_df['team2_player1'] == new_p) |
+                            (st.session_state.matches_df['team2_player2'] == new_p)
+                        ).any()
+                        
+                        if initial_utr_input is not None and player_has_played:
+                            st.warning(f"Initial UTR can only be set for players who have not played any matches. '{new_p}' has played matches.")
+                        else:
+                            pw = str(uuid.uuid4().hex)[:8]
+                            final_gender = gend if gend else None
+                            new_player_data = {
+                                "name": new_p,
+                                "profile_image_url": "",
+                                "birthday": "",
+                                "chapter_id": st.session_state.current_chapter['id'],
+                                "password": pw,
+                                "gender": final_gender,
+                                "initial_utr": initial_utr_input if initial_utr_input is not None else None
+                            }
+                            st.session_state.players_df = pd.concat([st.session_state.players_df, pd.DataFrame([new_player_data])], ignore_index=True)
+                            save_players(st.session_state.players_df); load_players()
+                            st.success(f"Added '{new_p}'! Password: {pw}" + (f" (Initial UTR: {initial_utr_input})" if initial_utr_input is not None else ""))
+                            st.session_state.form_key_suffix += 1 # Increment to reset form state
+                            st.rerun()
             st.markdown("---")
             if not st.session_state.players_df.empty:
                 sel = st.selectbox("Edit Player", st.session_state.players_df['name'].tolist())
