@@ -83,11 +83,30 @@ html, body, [class*="st-"], .stApp, h1, h2, h3, h4, h5, h6 {
 .trend-dot {
     height: 10px; width: 10px; border-radius: 50%; display: inline-block; margin-right: 3px;
 }
-.dot-w { background-color: #00ff88; box-shadow: 0 0 5px #00ff88; }
-.dot-l { background-color: #ff4b4b; }
-.stApp {
-  background: linear-gradient(to bottom, #0b0c1f, #01010f);
+/* Your Status Dots */
+.dot-w { 
+  background-color: #00ff88; 
+  box-shadow: 0 0 10px #00ff88; /* Increased glow for better contrast */
 }
+
+.dot-l { 
+  background-color: #ff4b4b; 
+  box-shadow: 0 0 5px rgba(255, 75, 75, 0.3); /* Added a subtle glow here too */
+}
+
+/* The Main App Container */
+.stApp {
+  background: 
+    /* Texture Layer: Subtle Noise */
+    url("data:image/svg+xml,%3Csvg viewBox='0 0 250 250' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.6' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.08'/%3E%3C/svg%3E"),
+    /* Your Original Dark Gradient */
+    linear-gradient(to bottom, #0b0c1f, #01010f);
+  
+  background-color: #01010f;
+  background-repeat: repeat;
+  background-blend-mode: soft-light; /* Makes the texture "melt" into the gradient */
+}
+
 @media print {
   html, body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
   body { background-color: #041136 !important; height: 100vh; margin: 0; padding: 0; }
