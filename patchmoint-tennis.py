@@ -39,6 +39,7 @@ def init_db():
     try:
         conn = get_connection()
         with conn.cursor() as cur:
+            # 1. Create tables if they don't exist
             queries = [
                 "CREATE TABLE IF NOT EXISTS chapters (id TEXT PRIMARY KEY, name TEXT UNIQUE, admin_password TEXT, created_at TEXT, config TEXT, sport TEXT, title_image_url TEXT, last_active_date TEXT)",
                 "CREATE TABLE IF NOT EXISTS players (name TEXT, profile_image_url TEXT, birthday TEXT, chapter_id TEXT, password TEXT, gender TEXT, is_admin BOOLEAN DEFAULT FALSE, initial_utr NUMERIC DEFAULT NULL)",
@@ -48,43 +49,29 @@ def init_db():
             ]
             for q in queries:
                 cur.execute(q)
-            conn.commit() # Commit table creation/existence checks
+            conn.commit()
 
-            # Now, apply ALTER TABLE statements for columns that might be missing in existing tables
-            # Ensure each ALTER TABLE has its own try/except and commit to isolate failures
+            # 2. Run Migrations (Add columns if they are missing from existing tables)
+            # using IF NOT EXISTS which is supported in Neon/Postgres
+            migrations = [
+                "ALTER TABLE players ADD COLUMN IF NOT EXISTS initial_utr NUMERIC DEFAULT NULL",
+                "ALTER TABLE players ADD COLUMN IF NOT EXISTS is_admin BOOLEAN DEFAULT FALSE",
+                "ALTER TABLE chapters ADD COLUMN IF NOT EXISTS sport TEXT DEFAULT 'Tennis'",
+                "ALTER TABLE chapters ADD COLUMN IF NOT EXISTS last_active_date TEXT DEFAULT ''",
+                "ALTER TABLE chapters ADD COLUMN IF NOT EXISTS title_image_url TEXT DEFAULT ''"
+            ]
             
-            # Add initial_utr to players table
-            try:
-                cur.execute("ALTER TABLE players ADD COLUMN initial_utr NUMERIC DEFAULT NULL")
-                conn.commit()
-            except psycopg2.ProgrammingError as e:
-                if "column \"initial_utr\" already exists" in str(e):
+            for migration in migrations:
+                try:
+                    cur.execute(migration)
+                    conn.commit()
+                except Exception as e:
                     conn.rollback()
-                else:
-                    raise e
-            
-            # Add sport to chapters table
-            try:
-                cur.execute("ALTER TABLE chapters ADD COLUMN sport TEXT DEFAULT 'Tennis'") # Add a default value
-                conn.commit()
-            except psycopg2.ProgrammingError as e:
-                if "column \"sport\" already exists" in str(e):
-                    conn.rollback()
-                else:
-                    raise e
+                    # print(f"Migration skipped or failed: {e}") 
 
-            # Add last_active_date to chapters table
-            try:
-                cur.execute("ALTER TABLE chapters ADD COLUMN last_active_date TEXT DEFAULT ''") # Add a default value
-                conn.commit()
-            except psycopg2.ProgrammingError as e:
-                if "column \"last_active_date\" already exists" in str(e):
-                    conn.rollback()
-                else:
-                    raise e
         conn.close()
-    except Exception:
-        pass
+    except Exception as e:
+        st.error(f"Database Initialization Error: {e}")
 
 init_db()
 
@@ -1100,6 +1087,7 @@ if not check_chapter_selected():
                         nid = str(uuid.uuid4()); npass = str(uuid.uuid4().hex)[:8]
                         conn = get_connection()
                         try:
+                            # Try insert, assuming init_db fixed columns
                             with conn.cursor() as cur:
                                 cur.execute("INSERT INTO chapters (id, name, admin_password, created_at, config, sport, last_active_date) VALUES (%s, %s, %s, %s, %s, %s, %s)",
                                             (nid, new_chap_name, npass, datetime.now().isoformat(), json.dumps(get_default_config()), SPORT_TYPE, datetime.now().isoformat()))
@@ -1109,7 +1097,7 @@ if not check_chapter_selected():
                             st.rerun()
                         except Exception as e:
                             st.error(f"Error creating chapter: {e}")
-                            st.warning("Hint: If you see an error about 'column sport does not exist', please run the migration script in Neon.")
+                            st.warning("If this persists, please refresh the page to ensure database migrations have run.")
         
         with st.expander("Master Admin Login", expanded=False, icon="➡️"):
             m_pass = st.text_input("Master Password", type="password", key="ma_pass")
