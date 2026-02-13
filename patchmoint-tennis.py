@@ -48,13 +48,31 @@ def init_db():
             ]
             for q in queries:
                 cur.execute(q)
-            # Add new column if it doesn't exist
+            # Add new column if it doesn't exist - for existing players table
             try:
                 cur.execute("ALTER TABLE players ADD COLUMN initial_utr NUMERIC DEFAULT NULL")
                 conn.commit()
             except psycopg2.ProgrammingError as e:
                 if "column \"initial_utr\" already exists" in str(e):
                     conn.rollback() # Rollback the failed ALTER TABLE transaction
+                else:
+                    raise e
+            # Add new column if it doesn't exist - for existing chapters table (sport)
+            try:
+                cur.execute("ALTER TABLE chapters ADD COLUMN sport TEXT")
+                conn.commit()
+            except psycopg2.ProgrammingError as e:
+                if "column \"sport\" already exists" in str(e):
+                    conn.rollback()
+                else:
+                    raise e
+            # Add new column if it doesn't exist - for existing chapters table (last_active_date)
+            try:
+                cur.execute("ALTER TABLE chapters ADD COLUMN last_active_date TEXT")
+                conn.commit()
+            except psycopg2.ProgrammingError as e:
+                if "column \"last_active_date\" already exists" in str(e):
+                    conn.rollback()
                 else:
                     raise e
         conn.commit()
