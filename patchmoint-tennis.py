@@ -139,16 +139,18 @@ h3 { font-size: 16px !important; }
 [data-testid="stHorizontalBlock"] { flex: 1 1 100% !important; margin: 10px 0; }
 .chapter-card {
     background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
-    border: 1px solid rgba(255, 245, 0, 0.3);
+    border: 2px solid #fff500;
     border-radius: 12px;
     padding: 20px;
     text-align: center;
-    transition: transform 0.2s;
+    transition: transform 0.2s, box-shadow 0.2s;
     height: 100%;
+    box-shadow: 0 0 10px #fff500;
 }
 .chapter-card:hover {
     transform: translateY(-5px);
     border-color: #fff500;
+    box-shadow: 0 0 20px #fff500;
 }
 </style>
 """, unsafe_allow_html=True)
