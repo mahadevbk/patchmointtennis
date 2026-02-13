@@ -1353,7 +1353,7 @@ with tabs[2]:
                     """, unsafe_allow_html=True)
                 else: st.info("No stats")
             with c3: # Radar Chart (kept from patchmoint-tennis.py)
-                if has_stats and s: 
+                if has_stats: 
                     st.plotly_chart(create_radar_chart(s), width=300, config={'displayModeBar': False}, key=f"rp_{idx}")
         st.divider()
 
