@@ -555,7 +555,8 @@ def calculate_rankings(matches_to_rank):
     pts_win = config.get("points_win", 3)
     pts_loss = config.get("points_loss", 1)
 
-    if not matches_to_rank.empty: matches_to_rank = matches_to_rank.sort_values('date')
+    if not matches_to_rank.empty: 
+        matches_to_rank = matches_to_rank.sort_values('date')
 
     for row in matches_to_rank.itertuples(index=False):
         t1 = [p for p in [row.team1_player1, row.team1_player2] if p and str(p).strip() and str(p).upper() != "VISITOR"]
@@ -563,7 +564,8 @@ def calculate_rankings(matches_to_rank):
         if not t1 or not t2: continue
 
         current_match_date = row.date
-        for p in t1 + t2: last_active_dates[p] = current_match_date
+        for p in t1 + t2: 
+            last_active_dates[p] = current_match_date
 
         is_clutch = False
         t1_total_games, t2_total_games = 0, 0
@@ -573,7 +575,6 @@ def calculate_rankings(matches_to_rank):
             s_str = str(s)
             t1_g, t2_g = 0, 0
             
-            # Logic for Tennis/Padel
             if "Tie Break" in s_str:
                 is_clutch = True
                 nums = [int(x) for x in re.findall(r'\d+', s_str)]
@@ -581,18 +582,17 @@ def calculate_rankings(matches_to_rank):
                     if nums[0] > nums[1]: t1_g, t2_g = 7, 6
                     else: t1_g, t2_g = 6, 7
             elif '-' in s_str:
-                try: p = s_str.split('-'); t1_g, t2_g = int(p[0]), int(p[1])
+                try: 
+                    p_score = s_str.split('-')
+                    t1_g, t2_g = int(p_score[0]), int(p_score[1])
                 except: continue
             
-            # Additional Logic for Pickleball (simple point diff)
             if SPORT_TYPE == "Pickleball" and not is_clutch:
-                # If score is like 11-5, standard parsing works above.
-                # Just need to check clutch conditions if needed.
-                # For now, treat close games (diff 2) as clutch? 
                 if abs(t1_g - t2_g) <= 2 and max(t1_g, t2_g) >= 10:
                     is_clutch = True
 
-            t1_total_games += t1_g; t2_total_games += t2_g
+            t1_total_games += t1_g
+            t2_total_games += t2_g
 
         t1_elo_avg = sum(elo_ratings[p] for p in t1) / len(t1)
         t2_elo_avg = sum(elo_ratings[p] for p in t2) / len(t2)
@@ -636,6 +636,7 @@ def calculate_rankings(matches_to_rank):
         if l_date:
             try: l_date = pd.to_datetime(l_date).strftime("%d %b %y")
             except: pass
+        
         badges = []
         streak = current_streaks[p]
         if streak >= 3: badges.append("🔥 Hot Hand")
@@ -646,14 +647,21 @@ def calculate_rankings(matches_to_rank):
             if (s['wins']/m_played) > 0.75: badges.append("🦁 Dominant")
 
         score_elo = round(elo_ratings[p], 1)
+        
+        # Real-World UTR Mapping
+        real_world_utr = 4.0 + (score_elo - 1200.0) / 110.0
+        real_world_utr = round(min(16.5, max(1.0, real_world_utr)), 2)
+
         rank_data.append({
-            "Player": p, "Score": score_elo, "Label": "Elo", "Elo": score_elo, "Score_Elo (Hybrid)": score_elo,
-            "Score_Points": s['points'], "Score_UTR": score_elo, "Last Change": last_elo_changes.get(p, 0),
+            "Player": p, "Score": score_elo, "Label": "Elo", "Elo": score_elo, 
+            "Score_Elo (Hybrid)": score_elo, "Score_Points": s['points'], 
+            "Score_UTR": real_world_utr, "Last Change": last_elo_changes.get(p, 0),
             "Wins": s['wins'], "Losses": s['losses'], "Games Won": s['games_won'],
             "Win %": round((s['wins']/m_played)*100, 1), "Matches": m_played, 
             "Game Diff Avg": round(s['gd_sum']/m_played, 2), "Clutch Factor": round(clutch_pct, 1), 
             "Consistency Index": round(consistency, 2), "Last Active": l_date if l_date else "N/A",
-            "Badges": badges, "Profile": pd.Series(players_df.profile_image_url.values, index=players_df.name).to_dict().get(p, "")
+            "Badges": badges, 
+            "Profile": pd.Series(players_df.profile_image_url.values, index=players_df.name).to_dict().get(p, "")
         })
         
     df = pd.DataFrame(rank_data)
@@ -668,6 +676,7 @@ def calculate_rankings(matches_to_rank):
         df = df.sort_values(by=["Score_Elo (Hybrid)", "Win %"], ascending=[False, False]).reset_index(drop=True)
         df["Rank"] = [f"🏆 {i+1}" for i in df.index]
     return df
+
 
 @st.cache_data(ttl=300)
 def plot_player_performance(player_name, matches_df):
