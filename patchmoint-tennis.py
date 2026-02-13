@@ -11,6 +11,7 @@ import base64
 import json
 import requests
 import psycopg2
+from sqlalchemy import create_engine, text
 from psycopg2.extras import RealDictCursor, execute_values
 from datetime import datetime, timedelta
 from collections import defaultdict
@@ -238,17 +239,25 @@ if 'match_post_key' not in st.session_state:
 
 # --- Helper Functions ---
 
+@st.cache_resource
+def get_sqlalchemy_engine():
+    db_url = st.secrets["NEON_DATABASE_URL"]
+    if db_url.startswith("postgres://"):
+        db_url = db_url.replace("postgres://", "postgresql://", 1)
+    return create_engine(db_url)
+
 def fetch_data(table_name, chapter_id=None):
     try:
-        conn = get_connection()
+        engine = get_sqlalchemy_engine()
         query = f"SELECT * FROM {table_name}"
-        params = []
+        params = {}
         if chapter_id:
-            query += " WHERE chapter_id = %s"
-            params.append(chapter_id)
-        df = pd.read_sql(query, conn, params=params)
-        conn.close()
+            query += " WHERE chapter_id = :chapter_id"
+            params = {"chapter_id": chapter_id}
         
+        with engine.connect() as conn:
+            df = pd.read_sql(text(query), conn, params=params)
+
         # Ensure columns exist if empty
         if df.empty:
             if table_name == "players": return pd.DataFrame(columns=["name", "profile_image_url", "birthday", "chapter_id", "password", "gender"])
@@ -832,12 +841,12 @@ if not check_chapter_selected():
 
         # --- LOAD CHAPTERS FROM NEON ---
         try:
-            conn = get_connection()
-            # Fetch all chapters, players, and matches to calculate stats
-            chap_df = pd.read_sql("SELECT * FROM chapters", conn)
-            all_players = pd.read_sql("SELECT chapter_id FROM players", conn)
-            all_matches = pd.read_sql("SELECT chapter_id FROM matches", conn)
-            conn.close()
+            engine = get_sqlalchemy_engine()
+            with engine.connect() as conn:
+                # Fetch all chapters, players, and matches to calculate stats
+                chap_df = pd.read_sql(text("SELECT * FROM chapters"), conn)
+                all_players = pd.read_sql(text("SELECT chapter_id FROM players"), conn)
+                all_matches = pd.read_sql(text("SELECT chapter_id FROM matches"), conn)
             
             player_counts = all_players.groupby('chapter_id').size().to_dict()
             match_counts = all_matches.groupby('chapter_id').size().to_dict()
