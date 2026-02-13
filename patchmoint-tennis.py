@@ -144,13 +144,33 @@ h3 { font-size: 16px !important; }
     padding: 20px;
     text-align: center;
     transition: transform 0.2s, box-shadow 0.2s;
-    height: 100%;
     box-shadow: 0 0 10px #fff500;
 }
 .chapter-card:hover {
     transform: translateY(-5px);
     border-color: #fff500;
     box-shadow: 0 0 20px #fff500;
+}
+.chapter-card h3 {
+    color: #fff500;
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
+.enter-button {
+    background-color: #fff500;
+    color: #031827;
+    padding: 8px 16px;
+    border-radius: 5px;
+    text-decoration: none;
+    font-weight: bold;
+    display: block;
+    margin-top: 15px;
+    transition: background-color 0.2s;
+    width: 100%;
+    box-sizing: border-box;
+}
+.enter-button:hover {
+    background-color: #ffd700;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -767,11 +787,24 @@ if not check_chapter_selected():
     else:
         # Use the LOGO_URL directly
         st.markdown(f'<div style="text-align: left;"><img src="{LOGO_URL}" style="height:150px; margin-bottom: 10px;"></div>', unsafe_allow_html=True)
-            
-
-
+        
         st.write("Welcome! Select an active chapter or create a new one.")
         st.caption("Free and Open Source • Create your league and push yourself to get better.")
+
+        # Handle chapter selection from query_params
+        if 'select_chapter' in st.query_params:
+            chap_id = st.query_params['select_chapter']
+            if not st.session_state.get('temp_selected_chapter'):
+                try:
+                    conn = get_connection()
+                    chap_df_query = pd.read_sql("SELECT * FROM chapters WHERE id = %s", conn, params=[chap_id])
+                    conn.close()
+                    if not chap_df_query.empty:
+                        st.session_state.temp_selected_chapter = chap_df_query.iloc[0].to_dict()
+                        st.query_params.clear()
+                        st.rerun()
+                except Exception as e:
+                    pass # Silently fail
 
         # --- LOAD CHAPTERS FROM NEON ---
         try:
@@ -782,11 +815,9 @@ if not check_chapter_selected():
             all_matches = pd.read_sql("SELECT chapter_id FROM matches", conn)
             conn.close()
             
-            # Calculate stats
             player_counts = all_players.groupby('chapter_id').size().to_dict()
             match_counts = all_matches.groupby('chapter_id').size().to_dict()
             
-            # Convert created_at to datetime for sorting
             if 'created_at' in chap_df.columns and not chap_df['created_at'].isnull().all():
                 chap_df['created_at'] = pd.to_datetime(chap_df['created_at'])
                 chap_df = chap_df.sort_values('created_at', ascending=False)
@@ -797,12 +828,9 @@ if not check_chapter_selected():
             match_counts = {}
         
         if not chap_df.empty:
-            # Filter chapters by current sport
             if 'sport' in chap_df.columns:
                 chap_df = chap_df[chap_df['sport'] == SPORT_TYPE]
             else:
-                # Fallback: If no sport column, assume existing data is Tennis.
-                # Only show if current app config is Tennis.
                 if SPORT_TYPE != "Tennis":
                     chap_df = pd.DataFrame()
 
@@ -811,21 +839,22 @@ if not check_chapter_selected():
                 cols = st.columns(3)
                 for idx, row in chap_df.iterrows():
                     with cols[idx % 3]:
-                        st.markdown('<div class="chapter-card">', unsafe_allow_html=True)
-                        with st.container(border=False):
-                            if row.get('title_image_url'):
-                                 st.image(get_img_src(row['title_image_url']), use_column_width='always')
-                            else:
-                                 st.markdown(f"### {row['name']}")
-                            
-                            num_players = player_counts.get(row['id'], 0)
-                            num_matches = match_counts.get(row['id'], 0)
-                            st.caption(f"{num_players} players / {num_matches} games")
-                            
-                            if st.button(f"Enter {row['name']}", key=f"ent_btn_{row['id']}", use_container_width=True):
-                                st.session_state.temp_selected_chapter = row.to_dict()
-                                st.rerun()
-                        st.markdown('</div>', unsafe_allow_html=True)
+                        img_html = f'<img src="{get_img_src(row.get("title_image_url"))}" style="width:100%; border-radius: 8px 8px 0 0;">' if row.get("title_image_url") else ''
+                        title_html = f'<h3>{row["name"]}</h3>'
+                        num_players = player_counts.get(row['id'], 0)
+                        num_matches = match_counts.get(row['id'], 0)
+                        stats_html = f'<p style="margin: 10px 0; color: #aaa; font-size: 0.9em;">{num_players} players / {num_matches} games</p>'
+                        button_html = f'<a href="?select_chapter={row["id"]}" target="_self" class="enter-button">Enter</a>'
+                        
+                        card_html = f"""
+                            <div class="chapter-card">
+                                {img_html}
+                                {title_html}
+                                {stats_html}
+                                {button_html}
+                            </div>
+                        """
+                        st.markdown(card_html, unsafe_allow_html=True)
             else:
                 st.info(f"No active {SPORT_TYPE} chapters found. Create one below!")
         
@@ -856,13 +885,11 @@ if not check_chapter_selected():
                         st.success("Admin Login Success")
                         time.sleep(0.5); st.rerun()
                     elif user:
-                        # Check player credentials
                         conn = get_connection()
                         with conn.cursor(cursor_factory=RealDictCursor) as cur:
                             cur.execute("SELECT name FROM players WHERE chapter_id = %s AND name = %s AND password = %s", (target['id'], user, pw))
                             res = cur.fetchone()
                         conn.close()
-                        
                         if res:
                             st.session_state.current_chapter = {'id': target['id'], 'name': target['name']}
                             st.session_state.is_admin = False
@@ -894,14 +921,12 @@ if not check_chapter_selected():
                     else:
                         nid = str(uuid.uuid4()); npass = str(uuid.uuid4().hex)[:8]
                         conn = get_connection()
-                        # NOTE: This query assumes the 'sport' column has been added to the database.
                         try:
                             with conn.cursor() as cur:
                                 cur.execute("INSERT INTO chapters (id, name, admin_password, created_at, config, sport) VALUES (%s, %s, %s, %s, %s, %s)",
                                             (nid, new_chap_name, npass, datetime.now().isoformat(), json.dumps(get_default_config()), SPORT_TYPE))
                             conn.commit()
                             conn.close()
-                            
                             st.session_state.new_chapter_created = {'name': new_chap_name, 'id': nid, 'password': npass}
                             st.rerun()
                         except Exception as e:
