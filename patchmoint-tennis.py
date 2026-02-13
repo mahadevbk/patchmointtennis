@@ -768,22 +768,7 @@ if not check_chapter_selected():
         # Use the LOGO_URL directly
         st.markdown(f'<div style="text-align: left;"><img src="{LOGO_URL}" style="height:150px; margin-bottom: 10px;"></div>', unsafe_allow_html=True)
             
-        import streamlit as st
 
-        # Custom CSS for a clean look
-        st.markdown("""
-            <style>
-            .main-title { font-size: 28px; font-weight: bold; color: #FFFFFF; margin-bottom: 20px; }
-            .feature-card {
-                background-color: rgba(255, 255, 255, 0.05);
-                padding: 20px;
-                border-radius: 10px;
-                border-left: 5px solid #007BFF;
-                margin-bottom: 10px;
-            }
-            .feature-header { color: #00d4ff; font-weight: bold; }
-            </style>
-            """, unsafe_allow_html=True)
 
         st.write("Welcome! Select an active chapter or create a new one.")
         st.caption("Free and Open Source • Create your league and push yourself to get better.")
@@ -826,7 +811,8 @@ if not check_chapter_selected():
                 cols = st.columns(3)
                 for idx, row in chap_df.iterrows():
                     with cols[idx % 3]:
-                        with st.container(border=True):
+                        st.markdown('<div class="chapter-card">', unsafe_allow_html=True)
+                        with st.container(border=False):
                             if row.get('title_image_url'):
                                  st.image(get_img_src(row['title_image_url']), use_column_width='always')
                             else:
@@ -839,6 +825,7 @@ if not check_chapter_selected():
                             if st.button(f"Enter {row['name']}", key=f"ent_btn_{row['id']}", use_container_width=True):
                                 st.session_state.temp_selected_chapter = row.to_dict()
                                 st.rerun()
+                        st.markdown('</div>', unsafe_allow_html=True)
             else:
                 st.info(f"No active {SPORT_TYPE} chapters found. Create one below!")
         
