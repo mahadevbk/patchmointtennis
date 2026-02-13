@@ -141,15 +141,39 @@ h3 { font-size: 16px !important; }
     background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
     border: 2px solid #fff500;
     border-radius: 12px;
-    padding: 20px;
     text-align: center;
     transition: transform 0.2s, box-shadow 0.2s;
     box-shadow: 0 0 10px #fff500;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding: 0;
+    overflow: hidden;
 }
 .chapter-card:hover {
     transform: translateY(-5px);
     border-color: #fff500;
     box-shadow: 0 0 20px #fff500;
+}
+.card-content {
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+}
+.card-image-container {
+    height: 150px;
+    width: 100%;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(255, 255, 255, 0.05);
+}
+.card-image-container img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
 }
 .chapter-card h3 {
     color: #fff500;
@@ -164,7 +188,7 @@ h3 { font-size: 16px !important; }
     text-decoration: none;
     font-weight: bold;
     display: block;
-    margin-top: 15px;
+    margin-top: auto; /* Pushes button to the bottom */
     transition: background-color 0.2s;
     width: 100%;
     box-sizing: border-box;
@@ -839,19 +863,30 @@ if not check_chapter_selected():
                 cols = st.columns(3)
                 for idx, row in chap_df.iterrows():
                     with cols[idx % 3]:
-                        img_html = f'<img src="{get_img_src(row.get("title_image_url"))}" style="width:100%; border-radius: 8px 8px 0 0;">' if row.get("title_image_url") else ''
+                        img_container_content = ''
+                        if row.get("title_image_url"):
+                            img_src = get_img_src(row.get("title_image_url"))
+                            img_container_content = f'<img src="{img_src}">'
+                        
+                        img_html = (
+                            '<div class="card-image-container">'
+                            f'{img_container_content}'
+                            '</div>'
+                        )
                         title_html = f'<h3>{row["name"]}</h3>'
                         num_players = player_counts.get(row['id'], 0)
                         num_matches = match_counts.get(row['id'], 0)
                         stats_html = f'<p style="margin: 10px 0; color: #aaa; font-size: 0.9em;">{num_players} players / {num_matches} games</p>'
                         button_html = f'<a href="?select_chapter={row["id"]}" target="_self" class="enter-button">Enter</a>'
-                        
+
                         card_html = (
                             '<div class="chapter-card">'
                             f'{img_html}'
+                            '<div class="card-content">'
                             f'{title_html}'
                             f'{stats_html}'
                             f'{button_html}'
+                            '</div>'
                             '</div>'
                         )
                         st.markdown(card_html, unsafe_allow_html=True)
