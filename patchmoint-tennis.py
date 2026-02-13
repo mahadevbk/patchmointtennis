@@ -59,9 +59,12 @@ init_db()
 st.markdown("""
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Turret+Road:wght@200;300;400;500;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;600&family=Turret+Road:wght@200;300;400;500;700;800&display=swap" rel="stylesheet">
 <style>
-html, body, [class*="st-"], .stApp, h1, h2, h3, h4, h5, h6 {
+html, body, [class*="st-"], .stApp {
+    font-family: 'Open Sans', sans-serif !important;
+}
+h1, h2, h3, h4, h5, h6 {
     font-family: 'Turret Road', sans-serif !important;
 }
 .mobile-card {
