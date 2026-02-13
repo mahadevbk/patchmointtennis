@@ -1093,18 +1093,7 @@ if not chap_data.empty and chap_data.iloc[0]['title_image_url']:
 else:
     st.title(f"{st.session_state.current_chapter['name']}")
 
-st.sidebar.markdown(f"**Chapter:** {st.session_state.current_chapter['name']}")
-if st.session_state.is_admin: st.sidebar.success("Logged in as Admin")
-elif st.session_state.can_write: st.sidebar.info("Logged in as Member")
-else: st.sidebar.info("Logged in as Guest")
 
-if st.sidebar.button("Switch Chapter" if not st.session_state.is_master_admin else "Return Master"):
-    st.session_state.current_chapter = None
-    st.session_state.chapter_config = {}
-    if not st.session_state.is_master_admin: st.session_state.is_admin = False
-    st.session_state.can_write = False
-    st.session_state.temp_selected_chapter = None
-    st.rerun()
 
 tab_names = ["Rankings", "Matches", "Player Profile", "Court Locations", "Bookings", "Hall of Fame"]
 if st.session_state.is_admin: tab_names.append("Chapter Settings")
@@ -1433,6 +1422,13 @@ if st.session_state.is_admin:
         else:
             st.info("No players to manage yet.")
 
+if st.button("Switch Chapter" if not st.session_state.is_master_admin else "Return Master"):
+    st.session_state.current_chapter = None
+    st.session_state.chapter_config = {}
+    if not st.session_state.is_master_admin: st.session_state.is_admin = False
+    st.session_state.can_write = False
+    st.session_state.temp_selected_chapter = None
+    st.rerun()
 st.markdown("----")
 st.info("Cloud Version running with Neon (PostgreSQL) & GitHub.")
 render_footer()
