@@ -222,6 +222,8 @@ if 'chapter_config' not in st.session_state:
     st.session_state.chapter_config = {}
 if 'temp_selected_chapter' not in st.session_state:
     st.session_state.temp_selected_chapter = None
+if 'logged_in_player' not in st.session_state:
+    st.session_state.logged_in_player = None
 
 # Stats DFs
 if 'players_df' not in st.session_state:
@@ -917,40 +919,50 @@ if not check_chapter_selected():
             st.divider()
             with st.container(border=True):
                 st.markdown(f"### Login to: {target['name']}")
+                
+                # Fetch players for this chapter to check passwords
+                chapter_players_df = fetch_data("players", chapter_id=target['id'])
+                
+                pw = st.text_input("Password", type="password", key="login_pw")
+                
                 c1, c2 = st.columns([2,1])
-                user = c1.text_input("Username (Optional)", key="login_user")
-                pw = c1.text_input("Password", type="password", key="login_pw")
+
                 if c1.button("Login"):
-                    if pw == target['admin_password']:
+                    # 1. Check for empty password (Guest)
+                    if not pw:
+                        st.session_state.current_chapter = {'id': target['id'], 'name': target['name']}
+                        st.session_state.is_admin = False
+                        st.session_state.can_write = False # Guests can't write
+                        st.session_state.logged_in_player = None
+                        st.session_state.chapter_config = load_chapter_config(target['id'])
+                        st.info("Guest Login")
+                        time.sleep(0.5); st.rerun()
+
+                    # 2. Check for Admin password
+                    elif pw == target['admin_password']:
                         st.session_state.current_chapter = {'id': target['id'], 'name': target['name']}
                         st.session_state.is_admin = True
                         st.session_state.can_write = True
+                        st.session_state.logged_in_player = None
                         st.session_state.chapter_config = load_chapter_config(target['id'])
                         st.success("Admin Login Success")
                         time.sleep(0.5); st.rerun()
-                    elif user:
-                        conn = get_connection()
-                        with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                            cur.execute("SELECT name FROM players WHERE chapter_id = %s AND name = %s AND password = %s", (target['id'], user, pw))
-                            res = cur.fetchone()
-                        conn.close()
-                        if res:
-                            st.session_state.current_chapter = {'id': target['id'], 'name': target['name']}
-                            st.session_state.is_admin = False
-                            st.session_state.can_write = True
-                            st.session_state.chapter_config = load_chapter_config(target['id'])
-                            st.success(f"Welcome {res['name']}!")
-                            time.sleep(0.5); st.rerun()
-                        else: st.error("Invalid Credentials")
+
+                    # 3. Check for Player password
                     else:
-                        if pw == "":
+                        player_match = chapter_players_df[chapter_players_df['password'] == pw]
+                        if not player_match.empty:
+                            player_name = player_match.iloc[0]['name']
                             st.session_state.current_chapter = {'id': target['id'], 'name': target['name']}
                             st.session_state.is_admin = False
-                            st.session_state.can_write = False
+                            st.session_state.can_write = True # Players can write
+                            st.session_state.logged_in_player = player_name # Store logged in player
                             st.session_state.chapter_config = load_chapter_config(target['id'])
-                            st.info("Guest Login")
+                            st.success(f"Welcome {player_name}!") # Welcome message
                             time.sleep(0.5); st.rerun()
-                        else: st.error("Invalid Credentials")
+                        else:
+                            st.error("Invalid Credentials")
+
                 if c2.button("Cancel Selection"):
                     st.session_state.temp_selected_chapter = None
                     st.rerun()
@@ -1218,7 +1230,15 @@ with tabs[1]:
             scores = " | ".join([s for s in [row.set1, row.set2, row.set3] if s])
             img_h = f'<div style="display:flex; justify-content:center;"><img src="{get_img_src(row.match_image_url)}" style="max-height:400px; width:100%; object-fit:contain;"></div>' if row.match_image_url else ""
             st.markdown(f"""<div style="background:rgba(255,255,255,0.05); border-radius:12px; margin-bottom:20px; border:1px solid rgba(255,255,255,0.1); overflow:hidden;">{img_h}<div style="padding:15px; text-align:center;"><div style="color:#888;">{row.date.strftime('%d %b %Y')}</div><div style="font-size:1.1em; margin:5px 0;">{t1} vs {t2}</div><div style="font-size:0.9em; color:#CCFF00; margin-bottom:5px; font-weight:bold; letter-spacing:1px; text-transform:uppercase;">{row.match_type}</div><div style="color:#FF7518; font-weight:bold;">{scores}</div><div style="margin-top:5px; font-weight:bold; color:#fff500;">Winner: {row.winner}</div></div></div>""", unsafe_allow_html=True)
-            if st.session_state.is_admin:
+            can_edit_match = False
+            if st.session_state.is_admin or st.session_state.is_master_admin:
+                can_edit_match = True
+            elif st.session_state.get('logged_in_player'):
+                player_name = st.session_state.logged_in_player
+                if player_name in [row.team1_player1, row.team1_player2, row.team2_player1, row.team2_player2]:
+                    can_edit_match = True
+            
+            if can_edit_match:
                 with st.expander(f"Edit {row.match_id}", expanded=False, icon="➡️"):
                     if st.button("Delete", key=f"del_{row.match_id}"): delete_match_from_db(row.match_id); st.rerun()
 
