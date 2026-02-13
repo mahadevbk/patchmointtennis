@@ -85,7 +85,7 @@ html, body, [class*="st-"], .stApp, h1, h2, h3, h4, h5, h6 {
 .dot-w { background-color: #00ff88; box-shadow: 0 0 5px #00ff88; }
 .dot-l { background-color: #ff4b4b; }
 .stApp {
-  background-color: #041136;
+  background: linear-gradient(to bottom, #0b0c1f, #01010f);
 }
 @media print {
   html, body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
