@@ -834,7 +834,7 @@ if not check_chapter_selected():
                             num_matches = match_counts.get(row['id'], 0)
                             st.caption(f"{num_players} players / {num_matches} games")
                             
-                            if st.button(f"Enter {row['name']}", key=f"ent_btn_{row['id']}", use_column_width=True):
+                            if st.button(f"Enter {row['name']}", key=f"ent_btn_{row['id']}", use_container_width=True):
                                 st.session_state.temp_selected_chapter = row.to_dict()
                                 st.rerun()
             else:
