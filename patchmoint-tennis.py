@@ -48,34 +48,40 @@ def init_db():
             ]
             for q in queries:
                 cur.execute(q)
-            # Add new column if it doesn't exist - for existing players table
+            conn.commit() # Commit table creation/existence checks
+
+            # Now, apply ALTER TABLE statements for columns that might be missing in existing tables
+            # Ensure each ALTER TABLE has its own try/except and commit to isolate failures
+            
+            # Add initial_utr to players table
             try:
                 cur.execute("ALTER TABLE players ADD COLUMN initial_utr NUMERIC DEFAULT NULL")
                 conn.commit()
             except psycopg2.ProgrammingError as e:
                 if "column \"initial_utr\" already exists" in str(e):
-                    conn.rollback() # Rollback the failed ALTER TABLE transaction
+                    conn.rollback()
                 else:
                     raise e
-            # Add new column if it doesn't exist - for existing chapters table (sport)
+            
+            # Add sport to chapters table
             try:
-                cur.execute("ALTER TABLE chapters ADD COLUMN sport TEXT")
+                cur.execute("ALTER TABLE chapters ADD COLUMN sport TEXT DEFAULT 'Tennis'") # Add a default value
                 conn.commit()
             except psycopg2.ProgrammingError as e:
                 if "column \"sport\" already exists" in str(e):
                     conn.rollback()
                 else:
                     raise e
-            # Add new column if it doesn't exist - for existing chapters table (last_active_date)
+
+            # Add last_active_date to chapters table
             try:
-                cur.execute("ALTER TABLE chapters ADD COLUMN last_active_date TEXT")
+                cur.execute("ALTER TABLE chapters ADD COLUMN last_active_date TEXT DEFAULT ''") # Add a default value
                 conn.commit()
             except psycopg2.ProgrammingError as e:
                 if "column \"last_active_date\" already exists" in str(e):
                     conn.rollback()
                 else:
                     raise e
-        conn.commit()
         conn.close()
     except Exception:
         pass
