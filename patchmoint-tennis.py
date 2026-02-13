@@ -936,6 +936,7 @@ if not check_chapter_selected():
                 chapter_players_df = fetch_data("players", chapter_id=target['id'])
                 
                 pw = st.text_input("Password", type="password", key="login_pw")
+                st.caption("Hint: Leave password blank for Guest Login")
                 
                 c1, c2 = st.columns([2,1])
 
