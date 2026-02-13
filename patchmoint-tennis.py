@@ -41,7 +41,7 @@ def init_db():
         with conn.cursor() as cur:
             queries = [
                 "CREATE TABLE IF NOT EXISTS chapters (id TEXT PRIMARY KEY, name TEXT UNIQUE, admin_password TEXT, created_at TEXT, config TEXT, sport TEXT, title_image_url TEXT)",
-                "CREATE TABLE IF NOT EXISTS players (name TEXT, profile_image_url TEXT, birthday TEXT, chapter_id TEXT, password TEXT, gender TEXT)",
+                "CREATE TABLE IF NOT EXISTS players (name TEXT, profile_image_url TEXT, birthday TEXT, chapter_id TEXT, password TEXT, gender TEXT, is_admin BOOLEAN DEFAULT FALSE)",
                 "CREATE TABLE IF NOT EXISTS matches (match_id TEXT PRIMARY KEY, date TEXT, match_type TEXT, team1_player1 TEXT, team1_player2 TEXT, team2_player1 TEXT, team2_player2 TEXT, set1 TEXT, set2 TEXT, set3 TEXT, winner TEXT, match_image_url TEXT, chapter_id TEXT)",
                 "CREATE TABLE IF NOT EXISTS bookings (booking_id TEXT PRIMARY KEY, date TEXT, time TEXT, match_type TEXT, court_name TEXT, player1 TEXT, player2 TEXT, player3 TEXT, player4 TEXT, standby_player TEXT, screenshot_url TEXT, chapter_id TEXT)",
                 "CREATE TABLE IF NOT EXISTS courts (chapter_id TEXT, name TEXT, url TEXT)"
@@ -952,13 +952,20 @@ if not check_chapter_selected():
                     else:
                         player_match = chapter_players_df[chapter_players_df['password'] == pw]
                         if not player_match.empty:
-                            player_name = player_match.iloc[0]['name']
+                            player_row = player_match.iloc[0]
+                            player_name = player_row['name']
+                            is_player_admin = player_row.get('is_admin', False)
+
                             st.session_state.current_chapter = {'id': target['id'], 'name': target['name']}
-                            st.session_state.is_admin = False
-                            st.session_state.can_write = True # Players can write
-                            st.session_state.logged_in_player = player_name # Store logged in player
+                            st.session_state.is_admin = is_player_admin
+                            st.session_state.can_write = True 
+                            st.session_state.logged_in_player = player_name
                             st.session_state.chapter_config = load_chapter_config(target['id'])
-                            st.success(f"Welcome {player_name}!") # Welcome message
+                            
+                            if is_player_admin:
+                                st.success(f"Welcome Admin {player_name}!")
+                            else:
+                                st.success(f"Welcome {player_name}!")
                             time.sleep(0.5); st.rerun()
                         else:
                             st.error("Invalid Credentials")
@@ -1341,9 +1348,27 @@ if st.session_state.is_admin:
             conn.close()
             st.success("Updated"); st.rerun()
         
+        
         st.subheader("Passwords")
         for i, r in st.session_state.players_df.iterrows():
             st.code(f"{r['name']}: {r['password']}")
+
+        st.subheader("Manage Player Roles")
+        if not st.session_state.players_df.empty:
+            for idx, player in st.session_state.players_df.iterrows():
+                # Ensure 'is_admin' column exists and has boolean type
+                is_player_admin = player.get('is_admin', False)
+                new_status = st.toggle(f"Promote {player['name']} to Admin", value=is_player_admin, key=f"admin_toggle_{player['name']}")
+                
+                if new_status != is_player_admin:
+                    # Update the dataframe
+                    st.session_state.players_df.loc[idx, 'is_admin'] = new_status
+                    # Save the updated dataframe to the database
+                    save_players(st.session_state.players_df)
+                    st.success(f"{player['name']}'s admin status updated.")
+                    st.rerun()
+        else:
+            st.info("No players to manage yet.")
 
 st.markdown("----")
 st.info("Cloud Version running with Neon (PostgreSQL) & GitHub.")
