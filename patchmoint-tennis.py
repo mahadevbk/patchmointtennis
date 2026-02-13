@@ -40,7 +40,7 @@ def init_db():
         conn = get_connection()
         with conn.cursor() as cur:
             queries = [
-                "CREATE TABLE IF NOT EXISTS chapters (id TEXT PRIMARY KEY, name TEXT UNIQUE, admin_password TEXT, created_at TEXT, config TEXT, sport TEXT, title_image_url TEXT)",
+                "CREATE TABLE IF NOT EXISTS chapters (id TEXT PRIMARY KEY, name TEXT UNIQUE, admin_password TEXT, created_at TEXT, config TEXT, sport TEXT, title_image_url TEXT, last_active_date TEXT)",
                 "CREATE TABLE IF NOT EXISTS players (name TEXT, profile_image_url TEXT, birthday TEXT, chapter_id TEXT, password TEXT, gender TEXT, is_admin BOOLEAN DEFAULT FALSE)",
                 "CREATE TABLE IF NOT EXISTS matches (match_id TEXT PRIMARY KEY, date TEXT, match_type TEXT, team1_player1 TEXT, team1_player2 TEXT, team2_player1 TEXT, team2_player2 TEXT, set1 TEXT, set2 TEXT, set3 TEXT, winner TEXT, match_image_url TEXT, chapter_id TEXT)",
                 "CREATE TABLE IF NOT EXISTS bookings (booking_id TEXT PRIMARY KEY, date TEXT, time TEXT, match_type TEXT, court_name TEXT, player1 TEXT, player2 TEXT, player3 TEXT, player4 TEXT, standby_player TEXT, screenshot_url TEXT, chapter_id TEXT)",
@@ -340,6 +340,9 @@ def save_matches(df):
                 if records:
                     query = f"INSERT INTO matches ({cols}) VALUES %s"
                     execute_values(cur, query, records)
+                
+                # NEW: Update last_active_date for the chapter
+                cur.execute("UPDATE chapters SET last_active_date = %s WHERE id = %s", (datetime.now().isoformat(), cid))
             conn.commit()
         except Exception as e:
             st.error(f"Save matches error: {e}")
@@ -853,9 +856,18 @@ if not check_chapter_selected():
             player_counts = all_players.groupby('chapter_id').size().to_dict()
             match_counts = all_matches.groupby('chapter_id').size().to_dict()
             
-            if 'created_at' in chap_df.columns and not chap_df['created_at'].isnull().all():
-                chap_df['created_at'] = pd.to_datetime(chap_df['created_at'])
-                chap_df = chap_df.sort_values('created_at', ascending=False)
+            if 'last_active_date' in chap_df.columns:
+                chap_df['last_active_date'] = pd.to_datetime(chap_df['last_active_date'], errors='coerce')
+                chap_df['last_active_date'] = chap_df['last_active_date'].fillna(pd.Timestamp.min)
+            else:
+                chap_df['last_active_date'] = pd.Timestamp.min # Add column if not exists, fill with min date
+
+            if 'created_at' in chap_df.columns:
+                chap_df['created_at'] = pd.to_datetime(chap_df['created_at'], errors='coerce')
+            else:
+                chap_df['created_at'] = pd.Timestamp.min # Add column if not exists, fill with min date
+
+            chap_df = chap_df.sort_values(by=['last_active_date', 'created_at'], ascending=[False, False])
 
         except Exception as e:
             chap_df = pd.DataFrame()
@@ -986,8 +998,8 @@ if not check_chapter_selected():
                         conn = get_connection()
                         try:
                             with conn.cursor() as cur:
-                                cur.execute("INSERT INTO chapters (id, name, admin_password, created_at, config, sport) VALUES (%s, %s, %s, %s, %s, %s)",
-                                            (nid, new_chap_name, npass, datetime.now().isoformat(), json.dumps(get_default_config()), SPORT_TYPE))
+                                cur.execute("INSERT INTO chapters (id, name, admin_password, created_at, config, sport, last_active_date) VALUES (%s, %s, %s, %s, %s, %s, %s)",
+                                            (nid, new_chap_name, npass, datetime.now().isoformat(), json.dumps(get_default_config()), SPORT_TYPE, datetime.now().isoformat()))
                             conn.commit()
                             conn.close()
                             st.session_state.new_chapter_created = {'name': new_chap_name, 'id': nid, 'password': npass}
