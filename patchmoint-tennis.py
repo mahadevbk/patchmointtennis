@@ -173,7 +173,7 @@ h3 { font-size: 16px !important; }
 .card-image-container img {
     width: 100%;
     height: 100%;
-    object-fit: cover;
+    object-fit: contain;
 }
 .chapter-card h3 {
     color: #fff500;
