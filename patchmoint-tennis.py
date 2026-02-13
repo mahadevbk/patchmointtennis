@@ -786,16 +786,6 @@ if not check_chapter_selected():
         st.write("Welcome! Select an active chapter or create a new one.")
         st.caption("Free and Open Source • Create your league and push yourself to get better.")
 
-        with st.expander("Explore Ranking Systems", expanded=False,icon="🏆"):
-            st.markdown("""
-            * **🏆 ELO Hybrid:** Best for highly competitive groups.
-            * **📈 UTR System:** For serious club-level play—the punishing standard.
-            * **🤝 Points Per Game:** For social games where grinders are rewarded!
-            * **🔥 The Trifecta:** Go wild and use all three to measure your tribe.
-            """)
-
-        st.info("🔑 **Note:** Use the admin-provided password to log in to your Chapter.")
-
         # --- LOAD CHAPTERS FROM NEON ---
         try:
             conn = get_connection()
@@ -833,6 +823,16 @@ if not check_chapter_selected():
                                 st.rerun()
             else:
                 st.info(f"No active {SPORT_TYPE} chapters found. Create one below!")
+        
+        with st.expander("Explore Ranking Systems", expanded=False,icon="🏆"):
+            st.markdown("""
+            * **🏆 ELO Hybrid:** Best for highly competitive groups.
+            * **📈 UTR System:** For serious club-level play—the punishing standard.
+            * **🤝 Points Per Game:** For social games where grinders are rewarded!
+            * **🔥 The Trifecta:** Go wild and use all three to measure your tribe.
+            """)
+
+        st.info("🔑 **Note:** Use the admin-provided password to log in to your Chapter.")
         
         if st.session_state.temp_selected_chapter:
             target = st.session_state.temp_selected_chapter
