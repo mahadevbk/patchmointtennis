@@ -730,7 +730,7 @@ def calculate_rankings(matches_to_rank):
 
         rank_data.append({
             "Player": p, "Score": score_elo, "Label": "Elo", "Elo": score_elo, 
-            "Score_Elo (Hybrid)": score_elo, "Score_Points": s['points'], 
+            "Score_Elo (Hybrid):": score_elo, "Score_Points": s['points'], 
             "Score_UTR": current_utr, "Last Change": last_elo_changes.get(p, 0),
             "Wins": s['wins'], "Losses": s['losses'], "Games Won": s['games_won'],
             "Win %": round((s['wins']/m_played)*100, 1), "Matches": m_played, 
@@ -1037,6 +1037,7 @@ if not check_chapter_selected():
                         st.session_state.can_write = False # Guests can't write
                         st.session_state.logged_in_player = None
                         st.session_state.chapter_config = load_chapter_config(target['id'])
+                        st.session_state.temp_selected_chapter = None
                         st.info("Guest Login")
                         time.sleep(0.5); st.rerun()
 
@@ -1047,6 +1048,7 @@ if not check_chapter_selected():
                         st.session_state.can_write = True
                         st.session_state.logged_in_player = None
                         st.session_state.chapter_config = load_chapter_config(target['id'])
+                        st.session_state.temp_selected_chapter = None
                         st.success("Admin Login Success")
                         time.sleep(0.5); st.rerun()
 
@@ -1063,6 +1065,7 @@ if not check_chapter_selected():
                             st.session_state.can_write = True 
                             st.session_state.logged_in_player = player_name
                             st.session_state.chapter_config = load_chapter_config(target['id'])
+                            st.session_state.temp_selected_chapter = None
                             
                             if is_player_admin:
                                 st.success(f"Welcome Admin {player_name}!")
@@ -1264,7 +1267,17 @@ with tabs[1]:
             else:
                 pk = st.session_state.match_post_key
                 pnames = sorted([p for p in st.session_state.players_df["name"].dropna().tolist() if p != "Visitor"])
-                mt = st.radio("Type", ["Doubles", "Singles"], horizontal=True, key=f"mt_{pk}")
+                
+                # --- START OF CHANGE ---
+                allowed_raw = config.get("match_types", ["Doubles", "Singles"])
+                ui_opts = []
+                if "Doubles" in allowed_raw or "Mixed Doubles" in allowed_raw: ui_opts.append("Doubles")
+                if "Singles" in allowed_raw: ui_opts.append("Singles")
+                if not ui_opts: ui_opts = ["Doubles", "Singles"]
+                
+                mt = st.radio("Type", ui_opts, horizontal=True, key=f"mt_{pk}")
+                # --- END OF CHANGE ---
+
                 md = st.date_input("Date", datetime.now(), key=f"md_{pk}")
                 c1, c2 = st.columns(2)
                 if mt == "Doubles":
@@ -1544,6 +1557,7 @@ if st.button("Switch Chapter" if not st.session_state.is_master_admin else "Retu
     if not st.session_state.is_master_admin: st.session_state.is_admin = False
     st.session_state.can_write = False
     st.session_state.temp_selected_chapter = None
+    st.query_params.clear()
     st.rerun()
 st.markdown("----")
 st.info("Cloud Version running with Neon (PostgreSQL) & GitHub.")
