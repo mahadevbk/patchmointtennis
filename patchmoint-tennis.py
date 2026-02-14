@@ -77,20 +77,27 @@ init_db()
 
 st.markdown("""
 <style>
-/* 1. FORCE METRIC TEXT TO BLACK */
-[data-testid="stMetricValue"], [data-testid="stMetricLabel"] {
+/* 1. FORCE BLACK TEXT ON ALL METRICS */
+[data-testid="stMetricValue"] div, 
+[data-testid="stMetricLabel"] div,
+[data-testid="stMetricLabel"] p {
     color: #000000 !important;
-}
-[data-testid="stMetricValue"] *, [data-testid="stMetricLabel"] * {
-    color: #000000 !important;
+    -webkit-text-fill-color: #000000 !important;
 }
 
-/* 2. BASE APP STYLES */
+/* 2. RE-APPLY THE CORE APP STYLES */
 .stApp {
     background: linear-gradient(to bottom, #0b0c1f, #01010f);
 }
 
-/* 3. CHAPTER CARDS */
+.rank-badge {
+    background: #fff500;
+    color: #041136;
+    font-weight: bold;
+    border-radius: 5px;
+    padding: 2px 8px;
+}
+
 .chapter-card {
     background: #222222;
     border: 2px solid #fff500;
@@ -98,27 +105,10 @@ st.markdown("""
     text-align: center;
     padding: 10px;
 }
-
-.enter-button {
-    background-color: #fff500;
-    color: #031827;
-    padding: 8px;
-    border-radius: 5px;
-    text-decoration: none;
-    font-weight: bold;
-    display: block;
-}
-
-/* 4. RANKING ROWS */
-.ranking-row {
-    padding: 15px;
-    margin-bottom: 10px;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 12px;
-    background: rgba(255, 255, 255, 0.05);
-}
 </style>
 """, unsafe_allow_html=True)
+
+
 
 # --- Constants ---
 PLAYERS_TABLE = "players"
