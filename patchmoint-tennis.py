@@ -144,7 +144,7 @@ h3 { font-size: 16px !important; }
 .ranking-row {
     display: block; padding: 15px; margin-bottom: 15px; border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.01) 100%);
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.30) 0%, rgba(255, 255, 255, 0.26) 100%);
     overflow: visible; transition: transform 0.2s;
 }
 .ranking-row:hover { transform: translateY(-2px); border-color: rgba(255, 245, 0, 0.5); }
@@ -155,7 +155,7 @@ h3 { font-size: 16px !important; }
     border-radius: 10px; font-size: 0.75em; font-weight: bold; margin-left: 5px;
 }
 .stat-box {
-    background: rgba(255,255,255,0.05); padding: 15px; border-radius: 10px; 
+    background: rgba(255,255,255,0.30); padding: 15px; border-radius: 10px; 
     border-left: 4px solid #fff500; margin-bottom: 10px;
 }
 .stat-label { font-size: 0.7em; color: #aaa; text-transform: uppercase; }
@@ -197,7 +197,7 @@ h3 { font-size: 16px !important; }
     display: flex;
     align-items: center;
     justify-content: center;
-    background-color: rgba(255, 255, 255, 0.05);
+    background-color: rgba(255, 255, 255, 0.30);
 }
 .card-image-container img {
     width: 100%;
@@ -1250,7 +1250,7 @@ with tabs[0]:
                 html = ""
                 for i in podium:
                     p = i["p"]; ch = p.get('Last Change', 0); cc = "#00ff88" if ch >= 0 else "#ff4b4b"; ct = f"({'+' if ch > 0 else ''}{ch})" if p.get('Label') != 'Points' else ""
-                    html += f"""<div style="flex:1; margin-top:{i['m']}; text-align:center; background:rgba(255,255,255,0.05); border-radius:12px; border:1px solid {i['c']}; padding:8px;"><div style="color:{i['c']}; font-weight:bold;">{p['Rank']}</div><img src="{get_img_src(p['Profile'])}" style="width:60px; height:60px; border-radius:50%; object-fit:cover; border:2px solid {i['c']};"><div style="color:#fff500; font-size:0.8em; margin-top:5px;">{p['Player']}</div><div style="color:white; font-weight:bold;">{p['Score']:.1f}</div><div style="color:{cc}; font-size:10px;">{ct}</div></div>"""
+                    html += f"""<div style="flex:1; margin-top:{i['m']}; text-align:center; background:rgba(255,255,255,0.30); border-radius:12px; border:1px solid {i['c']}; padding:8px;"><div style="color:{i['c']}; font-weight:bold;">{p['Rank']}</div><img src="{get_img_src(p['Profile'])}" style="width:60px; height:60px; border-radius:50%; object-fit:cover; border:2px solid {i['c']};"><div style="color:#fff500; font-size:0.8em; margin-top:5px;">{p['Player']}</div><div style="color:white; font-weight:bold;">{p['Score']:.1f}</div><div style="color:{cc}; font-size:10px;">{ct}</div></div>"""
                 st.markdown(f'<div style="display:flex; gap:8px; margin-bottom:30px;">{html}</div>', unsafe_allow_html=True)
 
             for idx, row in display_rank_df.iterrows():
@@ -1259,7 +1259,7 @@ with tabs[0]:
                     ch = row.get('Last Change', 0); cc = "#00ff88" if ch >= 0 else "#ff4b4b"; cd = f"<span style='color:{cc};'>({'+' if ch > 0 else ''}{ch})</span>" if row['Label'] != 'Points' else ""
                     badges = "".join([f"<span class='badge'>{b}</span>" for b in row.get('Badges', [])])
                     with c1: st.markdown(f"""<div style="text-align:center;"><img src="{get_img_src(row['Profile'])}" style="width:80px; height:80px; border-radius:50%; border:3px solid #CCFF00; object-fit:cover; margin-bottom:10px;"><div style="font-size:1.5em; font-weight:bold; color:#CCFF00;">{row['Rank']}</div><div style="font-size:1.2em; font-weight:bold; color:white;">{row['Player']}</div><div style="font-size:0.8em; color:#aaa;">{row['Label']}: {row['Score']:.1f} {cd}</div><div>{badges}</div></div>""", unsafe_allow_html=True)
-                    with c2: st.markdown(f"""<div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; text-align:center;"><div style="background:rgba(255,255,255,0.05); padding:8px; border-radius:8px;"><div class="stat-label">Win %</div><div style="color:#00ff88;">{row['Win %']}%</div></div><div style="background:rgba(255,255,255,0.05); padding:8px; border-radius:8px;"><div class="stat-label">Record</div><div>{row['Wins']}W - {row['Losses']}L</div></div><div style="background:rgba(255,255,255,0.05); padding:8px; border-radius:8px;"><div class="stat-label">GDA</div><div>{row.get('Game Diff Avg', 0):+.2f}</div></div><div style="background:rgba(255,255,255,0.05); padding:8px; border-radius:8px;"><div class="stat-label">Clutch</div><div>{row.get('Clutch Factor', 0)}%</div></div></div>""", unsafe_allow_html=True)
+                    with c2: st.markdown(f"""<div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; text-align:center;"><div style="background:rgba(255,255,255,0.30); padding:8px; border-radius:8px;"><div class="stat-label">Win %</div><div style="color:#00ff88;">{row['Win %']}%</div></div><div style="background:rgba(255,255,255,0.30); padding:8px; border-radius:8px;"><div class="stat-label">Record</div><div>{row['Wins']}W - {row['Losses']}L</div></div><div style="background:rgba(255,255,255,0.30); padding:8px; border-radius:8px;"><div class="stat-label">GDA</div><div>{row.get('Game Diff Avg', 0):+.2f}</div></div><div style="background:rgba(255,255,255,0.30); padding:8px; border-radius:8px;"><div class="stat-label">Clutch</div><div>{row.get('Clutch Factor', 0)}%</div></div></div>""", unsafe_allow_html=True)
                     with c3: st.plotly_chart(create_radar_chart(row), width=300, config={'displayModeBar': False}, key=f"rd_{idx}")
                     with st.expander("📈 Trend", expanded=False, icon="➡️"): st.plotly_chart(plot_player_performance(row['Player'], st.session_state.matches_df), width=600, key=f"tr_{idx}")
 
@@ -1359,7 +1359,7 @@ with tabs[1]:
                 else: # It's a singles match
                     winner_text = row.team2_player1
 
-            st.markdown(f"""<div style="background:rgba(255,255,255,0.05); border-radius:12px; margin-bottom:20px; border:1px solid rgba(255,255,255,0.1); overflow:hidden;">{img_h}<div style="padding:15px; text-align:center;"><div style="color:#888;">{row.date.strftime('%d %b %Y')}</div><div style="font-size:1.1em; margin:5px 0;">{t1} vs {t2}</div><div style="font-size:0.9em; color:#CCFF00; margin-bottom:5px; font-weight:bold; letter-spacing:1px; text-transform:uppercase;">{row.match_type}</div><div style="color:#FF7518; font-weight:bold;">{scores}</div><div style="margin-top:5px; font-weight:bold; color:#fff500;">Winner: {winner_text}</div></div></div>""", unsafe_allow_html=True)
+            st.markdown(f"""<div style="background:rgba(255,255,255,0.30); border-radius:12px; margin-bottom:20px; border:1px solid rgba(255,255,255,0.1); overflow:hidden;">{img_h}<div style="padding:15px; text-align:center;"><div style="color:#888;">{row.date.strftime('%d %b %Y')}</div><div style="font-size:1.1em; margin:5px 0;">{t1} vs {t2}</div><div style="font-size:0.9em; color:#CCFF00; margin-bottom:5px; font-weight:bold; letter-spacing:1px; text-transform:uppercase;">{row.match_type}</div><div style="color:#FF7518; font-weight:bold;">{scores}</div><div style="margin-top:5px; font-weight:bold; color:#fff500;">Winner: {winner_text}</div></div></div>""", unsafe_allow_html=True)
             can_edit_match = False
             if st.session_state.is_admin or st.session_state.is_master_admin:
                 can_edit_match = True
