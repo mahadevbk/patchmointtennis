@@ -1319,30 +1319,34 @@ with tabs[1]:
 
                 
    		        
+                
                 if st.button("Post Match", key=f"bp_{pk}"):
                     if s1 and (img or not is_img_required):
                         # 1. Get the Chapter ID
                         cid = st.session_state.current_chapter['id']
                         
-                        # 2. Pull latest matches
+                        # 2. Pull latest matches from DB
                         st.session_state.matches_df = fetch_data("matches", cid)
                         
-                        # 3. Generate ID
-                        mid = generate_match_id(st.session_state.matches_df, datetime.combine(md, datetime.min.time()))                        
+                        # 3. Generate ID using fresh data
+                        mid = generate_match_id(st.session_state.matches_df, datetime.combine(md, datetime.min.time()))
+                        
                         path = save_remote_image(img, mid, "match") if img else ""
                         
                         final_mt = mt
+                        if mt == "Doubles":
                             # Auto-detect Mixed Doubles
                             def get_gender_val(pname):
-                                if not pname or pname == "Visitor": return None
+                                if not pname or pname == "Visitor": 
+                                    return None
                                 try:
                                     g_row = st.session_state.players_df[st.session_state.players_df['name'] == pname]
                                     if not g_row.empty:
                                         g = g_row.iloc[0]['gender']
                                         return str(g).lower().strip() if g else None
-                                except: return None
+                                except: 
+                                    return None
                                 return None
-
                             g1, g2 = get_gender_val(t1p1), get_gender_val(t1p2)
                             g3, g4 = get_gender_val(t2p1), get_gender_val(t2p2)
 
