@@ -361,8 +361,14 @@ def update_chapter_admin_password(chapter_id, new_pass):
     except: return False
 
 def load_matches():
+    # 1. First, get the latest data from the database
     cid = st.session_state.current_chapter['id'] if st.session_state.current_chapter else None
     st.session_state.matches_df = fetch_data("matches", cid)
+    
+    # 2. Now generate the ID based on the fresh data
+    new_id = generate_match_id(st.session_state.matches_df, datetime.now())
+    
+    return new_id
 
 def save_matches(df):
     cid = st.session_state.current_chapter['id']
