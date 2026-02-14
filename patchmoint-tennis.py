@@ -83,15 +83,18 @@ st.markdown("""
 html, body, [class*="st-"], .stApp, h1, h2, h3, h4, h5, h6 {
     font-family: 'Turret Road', sans-serif !important;
 }
+
+/* HIGH PRIORITY READABILITY FIX */
+div[data-testid="stMetricValue"] > div {
+    color: #000000 !important;
+}
+div[data-testid="stMetricLabel"] > div > p {
+    color: #000000 !important;
+}
 [data-testid="stMetricLabel"] {
     color: #000000 !important;
 }
-[data-testid="stMetricValue"] {
-    color: #000000 !important;
-}
-[data-testid="stMetricDelta"] {
-    color: #1a1a1a !important; 
-}
+
 .mobile-card {
     background: linear-gradient(135deg, #071a3d 0%, #0c0014 100%);
     border: 1px solid rgba(255, 245, 0, 0.2);
@@ -168,7 +171,6 @@ h3 { font-size: 16px !important; }
 .stat-label { font-size: 0.7em; color: #aaa; text-transform: uppercase; }
 .metric-value { font-size: 1.1em; font-weight: bold; }
 .stat-highlight { color: #fff500; }
-[data-testid="stMetric"] > div:nth-of-type(1) { color: #FF7518 !important; }
 .block-container { display: flex; flex-wrap: wrap; justify-content: center; }
 [data-testid="stHorizontalBlock"] { flex: 1 1 100% !important; margin: 10px 0; }
 .chapter-card {
@@ -232,6 +234,8 @@ h3 { font-size: 16px !important; }
 }
 </style>
 """, unsafe_allow_html=True)
+
+
 
 # --- Constants ---
 PLAYERS_TABLE = "players"
