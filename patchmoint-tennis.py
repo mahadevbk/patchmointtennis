@@ -162,26 +162,30 @@ h3 { font-size: 16px !important; }
 [data-testid="stMetric"] > div:nth-of-type(1) { color: #FF7518 !important; }
 .block-container { display: flex; flex-wrap: wrap; justify-content: center; }
 [data-testid="stHorizontalBlock"] { flex: 1 1 100% !important; margin: 10px 0; }
-
-.chapter-card-style, [data-testid="stVerticalBlockBorderWrapper"] {
-    background: #222222 !important; 
-    border: 2px solid #fff500 !important;
-    border-radius: 12px !important;
+.chapter-card {
+    background: #222222; /* Solid dark gray background */
+    border: 2px solid #fff500;
+    border-radius: 12px;
     text-align: center;
     transition: transform 0.2s, box-shadow 0.2s;
     box-shadow: 0 0 10px #fff500;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding: 0;
     overflow: hidden;
-    padding: 0 !important;
 }
-[data-testid="stVerticalBlockBorderWrapper"]:hover {
+.chapter-card:hover {
     transform: translateY(-5px);
     border-color: #fff500;
     box-shadow: 0 0 20px #fff500;
 }
-[data-testid="stVerticalBlockBorderWrapper"] > div {
+.card-content {
     padding: 15px;
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
 }
-
 .card-image-container {
     height: 150px;
     width: 100%;
@@ -190,18 +194,32 @@ h3 { font-size: 16px !important; }
     align-items: center;
     justify-content: center;
     background-color: rgba(255, 255, 255, 0.05);
-    margin: -15px -15px 10px -15px; 
-    width: calc(100% + 30px);
 }
 .card-image-container img {
     width: 100%;
     height: 100%;
     object-fit: contain;
 }
-.card-content h3 {
+.chapter-card h3 {
     color: #fff500;
     margin-top: 10px;
     margin-bottom: 10px;
+}
+.enter-button {
+    background-color: #fff500;
+    color: #031827;
+    padding: 8px 16px;
+    border-radius: 5px;
+    text-decoration: none;
+    font-weight: bold;
+    display: block;
+    margin-top: auto; /* Pushes button to the bottom */
+    transition: background-color 0.2s;
+    width: 100%;
+    box-sizing: border-box;
+}
+.enter-button:hover {
+    background-color: #ffd700;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -915,7 +933,88 @@ if not check_chapter_selected():
                 except Exception as e:
                     pass # Silently fail
 
-        # --- LOGIN BLOCK (Moved Up for Mobile Visibility) ---
+        # --- LOAD CHAPTERS FROM NEON ---
+        try:
+            engine = get_sqlalchemy_engine()
+            with engine.connect() as conn:
+                # Fetch all chapters, players, and matches to calculate stats
+                chap_df = pd.read_sql(text("SELECT * FROM chapters"), conn)
+                all_players = pd.read_sql(text("SELECT chapter_id FROM players"), conn)
+                all_matches = pd.read_sql(text("SELECT chapter_id FROM matches"), conn)
+            
+            player_counts = all_players.groupby('chapter_id').size().to_dict()
+            match_counts = all_matches.groupby('chapter_id').size().to_dict()
+            
+            if 'last_active_date' in chap_df.columns:
+                chap_df['last_active_date'] = pd.to_datetime(chap_df['last_active_date'], errors='coerce')
+                chap_df['last_active_date'] = chap_df['last_active_date'].fillna(pd.Timestamp.min)
+            else:
+                chap_df['last_active_date'] = pd.Timestamp.min # Add column if not exists, fill with min date
+
+            if 'created_at' in chap_df.columns:
+                chap_df['created_at'] = pd.to_datetime(chap_df['created_at'], errors='coerce')
+            else:
+                chap_df['created_at'] = pd.Timestamp.min # Add column if not exists, fill with min date
+
+            chap_df = chap_df.sort_values(by=['last_active_date', 'created_at'], ascending=[False, False])
+
+        except Exception as e:
+            chap_df = pd.DataFrame()
+            player_counts = {}
+            match_counts = {}
+        
+        if not chap_df.empty:
+            if 'sport' in chap_df.columns:
+                chap_df = chap_df[chap_df['sport'] == SPORT_TYPE]
+            else:
+                if SPORT_TYPE != "Tennis":
+                    chap_df = pd.DataFrame()
+
+            if not chap_df.empty:
+                st.subheader("Active Chapters")
+                cols = st.columns(3)
+                for idx, row in chap_df.iterrows():
+                    with cols[idx % 3]:
+                        img_container_content = ''
+                        if row.get("title_image_url"):
+                            img_src = get_img_src(row.get("title_image_url"))
+                            img_container_content = f'<img src="{img_src}">'
+                        
+                        img_html = (
+                            '<div class="card-image-container">'
+                            f'{img_container_content}'
+                            '</div>'
+                        )
+                        title_html = f'<h3>{row["name"]}</h3>'
+                        num_players = player_counts.get(row['id'], 0)
+                        num_matches = match_counts.get(row['id'], 0)
+                        stats_html = f'<p style="margin: 10px 0; color: #aaa; font-size: 0.9em;">{num_players} players / {num_matches} games</p>'
+                        button_html = f'<a href="?select_chapter={row["id"]}" target="_self" class="enter-button">Enter</a>'
+
+                        card_html = (
+                            '<div class="chapter-card">'
+                            f'{img_html}'
+                            '<div class="card-content">'
+                            f'{title_html}'
+                            f'{stats_html}'
+                            f'{button_html}'
+                            '</div>'
+                            '</div>'
+                        )
+                        st.markdown(card_html, unsafe_allow_html=True)
+            else:
+                st.info(f"No active {SPORT_TYPE} chapters found. Create one below!")
+        
+        with st.expander("Explore Ranking Systems", expanded=False,icon="🏆"):
+            st.markdown("""
+            * **🏆 ELO Hybrid:** Best for highly competitive groups.
+            * **📈 UTR System:** For serious club-level play—the punishing standard.
+            * **🤝 Points Per Game:** For social games where grinders are rewarded!
+            * **🔥 The Trifecta:** Go wild and use all three to measure your tribe.
+            """)
+
+        st.info("🔑 **Note:** Use the admin-provided password to log in to your Chapter.")
+        
         if st.session_state.temp_selected_chapter:
             target = st.session_state.temp_selected_chapter
             st.divider()
@@ -979,93 +1078,8 @@ if not check_chapter_selected():
                 if c2.button("Cancel Selection"):
                     st.session_state.temp_selected_chapter = None
                     st.rerun()
-        # ----------------------------------------------------
 
         st.divider()
-
-        # --- LOAD CHAPTERS FROM NEON ---
-        try:
-            engine = get_sqlalchemy_engine()
-            with engine.connect() as conn:
-                # Fetch all chapters, players, and matches to calculate stats
-                chap_df = pd.read_sql(text("SELECT * FROM chapters"), conn)
-                all_players = pd.read_sql(text("SELECT chapter_id FROM players"), conn)
-                all_matches = pd.read_sql(text("SELECT chapter_id FROM matches"), conn)
-            
-            player_counts = all_players.groupby('chapter_id').size().to_dict()
-            match_counts = all_matches.groupby('chapter_id').size().to_dict()
-            
-            if 'last_active_date' in chap_df.columns:
-                chap_df['last_active_date'] = pd.to_datetime(chap_df['last_active_date'], errors='coerce')
-                chap_df['last_active_date'] = chap_df['last_active_date'].fillna(pd.Timestamp.min)
-            else:
-                chap_df['last_active_date'] = pd.Timestamp.min # Add column if not exists, fill with min date
-
-            if 'created_at' in chap_df.columns:
-                chap_df['created_at'] = pd.to_datetime(chap_df['created_at'], errors='coerce')
-            else:
-                chap_df['created_at'] = pd.Timestamp.min # Add column if not exists, fill with min date
-
-            chap_df = chap_df.sort_values(by=['last_active_date', 'created_at'], ascending=[False, False])
-
-        except Exception as e:
-            chap_df = pd.DataFrame()
-            player_counts = {}
-            match_counts = {}
-        
-        if not chap_df.empty:
-            if 'sport' in chap_df.columns:
-                chap_df = chap_df[chap_df['sport'] == SPORT_TYPE]
-            else:
-                if SPORT_TYPE != "Tennis":
-                    chap_df = pd.DataFrame()
-
-            if not chap_df.empty:
-                st.subheader("Active Chapters")
-                cols = st.columns(3)
-                for idx, row in chap_df.iterrows():
-                    with cols[idx % 3]:
-                        # The container will now pick up the div[data-testid="stVerticalBlockBorderWrapper"] styles from CSS
-                        with st.container(border=True):
-                            # Image Area
-                            img_url = row.get("title_image_url")
-                            src = get_img_src(img_url) if img_url else ""
-                            
-                            img_html = f'<img src="{src}">' if img_url else '<span style="font-size: 3em; opacity: 0.3;">🎾</span>'
-                            
-                            st.markdown(f"""
-                            <div class="card-image-container">
-                                {img_html}
-                            </div>
-                            """, unsafe_allow_html=True)
-                            
-                            # Content Area (Title + Stats) using card-content styling
-                            st.markdown(f"""
-                            <div class="card-content">
-                                <div style="min-height: 50px; display: flex; align-items: center; justify-content: center; margin-bottom: 5px;">
-                                    <h3 style="margin: 0; text-align: center; color: #fff500; line-height: 1.2;">{row['name']}</h3>
-                                </div>
-                                <div style='text-align: center; color: #aaa; font-size: 0.8em; margin-bottom: 15px;'>{player_counts.get(row['id'], 0)} players / {match_counts.get(row['id'], 0)} games</div>
-                            </div>
-                            """, unsafe_allow_html=True)
-                            
-                            # Button
-                            if st.button("Enter", key=f"ent_{row['id']}", use_container_width=True):
-                                st.session_state.temp_selected_chapter = row.to_dict()
-                                st.rerun()
-            else:
-                st.info(f"No active {SPORT_TYPE} chapters found. Create one below!")
-        
-        with st.expander("Explore Ranking Systems", expanded=False,icon="🏆"):
-            st.markdown("""
-            * **🏆 ELO Hybrid:** Best for highly competitive groups.
-            * **📈 UTR System:** For serious club-level play—the punishing standard.
-            * **🤝 Points Per Game:** For social games where grinders are rewarded!
-            * **🔥 The Trifecta:** Go wild and use all three to measure your tribe.
-            """)
-
-        st.info("🔑 **Note:** Use the admin-provided password to log in to your Chapter.")
-        
         with st.expander("Create New Chapter", expanded=False, icon="➡️"):
             new_chap_name = st.text_input("New Chapter Name")
             if st.button("Create Chapter"):
