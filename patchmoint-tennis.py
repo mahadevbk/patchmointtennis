@@ -1318,18 +1318,17 @@ with tabs[1]:
                     st.caption("Photo is optional for this chapter.")
 
                 
-   		        if st.button("Post Match", key=f"bp_{pk}"):
+   		        
+                if st.button("Post Match", key=f"bp_{pk}"):
                     if s1 and (img or not is_img_required):
                         # 1. Get the Chapter ID
                         cid = st.session_state.current_chapter['id']
                         
-                        # 2. IMPORTANT: Pull the latest matches from the DB right now!
-                        # This prevents the duplicate MMDQ12026-01 error
+                        # 2. Pull latest matches
                         st.session_state.matches_df = fetch_data("matches", cid)
                         
-                        # 3. Now generate the ID using the updated dataframe
-                        mid = generate_match_id(st.session_state.matches_df, datetime.combine(md, datetime.min.time()))
-                        
+                        # 3. Generate ID
+                        mid = generate_match_id(st.session_state.matches_df, datetime.combine(md, datetime.min.time()))                        
                         path = save_remote_image(img, mid, "match") if img else ""
                         
                         final_mt = mt
