@@ -80,23 +80,22 @@ st.markdown("""
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Turret+Road:wght@200;300;400;500;700;800&display=swap" rel="stylesheet">
 <style>
-/* Base Font Styles */
 html, body, [class*="st-"], .stApp, h1, h2, h3, h4, h5, h6 {
     font-family: 'Turret Road', sans-serif !important;
 }
 
-/* READABILITY FIX: Force metric text to be black */
 [data-testid="stMetricLabel"] {
     color: #000000 !important;
 }
+
 [data-testid="stMetricValue"] {
     color: #000000 !important;
 }
+
 [data-testid="stMetricDelta"] {
     color: #1a1a1a !important; 
 }
 
-/* UI Elements */
 .mobile-card {
     background: linear-gradient(135deg, #071a3d 0%, #0c0014 100%);
     border: 1px solid rgba(255, 245, 0, 0.2);
@@ -105,6 +104,7 @@ html, body, [class*="st-"], .stApp, h1, h2, h3, h4, h5, h6 {
     margin-bottom: 15px;
     box-shadow: 0 4px 15px rgba(0,0,0,0.5);
 }
+
 .rank-badge {
     background: #fff500;
     color: #041136;
@@ -113,32 +113,41 @@ html, body, [class*="st-"], .stApp, h1, h2, h3, h4, h5, h6 {
     padding: 2px 8px;
     font-size: 14px;
 }
+
 .trend-dot {
     height: 10px; width: 10px; border-radius: 50%; display: inline-block; margin-right: 3px;
 }
+
 .dot-w { background-color: #00ff88; box-shadow: 0 0 5px #00ff88; }
 .dot-l { background-color: #ff4b4b; }
+
 .stApp {
   background: linear-gradient(to bottom, #0b0c1f, #01010f);
 }
+
 @media print {
   html, body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
   body { background-color: #041136 !important; height: 100vh; margin: 0; padding: 0; }
   header, .stToolbar { display: none; }
 }
+
 [data-testid="stHeader"] { background-color: #041136 !important; }
+
 .profile-image {
     width: 80px; height: 80px; object-fit: cover; border: 2px solid #fff500;
     border-radius: 15px; margin-right: 15px; vertical-align: middle;
     transition: transform 0.2s; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4), 0 0 15px rgba(255, 245, 0, 0.6);
 }
+
 .profile-image:hover { transform: scale(1.1); }
+
 .court-card {
     background: linear-gradient(to bottom, #031827, #07314f); border: 1px solid #fff500;
     border-radius: 10px; padding: 15px; margin: 10px 0; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
     transition: transform 0.2s, box-shadow 0.2s; text-align: center;
     min-height: 120px; display: flex; flex-direction: column; justify-content: center; align-items: center;
 }
+
 .court-card:hover { transform: scale(1.05); box-shadow: 0 6px 12px rgba(255, 245, 0, 0.3); }
 .court-card h4 { color: #fff500; margin-bottom: 10px; }
 .court-card a {
@@ -146,36 +155,47 @@ html, body, [class*="st-"], .stApp, h1, h2, h3, h4, h5, h6 {
     text-decoration: none; font-weight: bold; display: inline-block; margin-top: 10px;
     transition: background-color 0.2s;
 }
+
 .court-card a:hover { background-color: #ffd700; }
+
 h1 { font-size: 24px !important; }
 h2 { font-size: 22px !important; }
 h3 { font-size: 16px !important; }
+
 .rankings-table-container {
     width: 100%; margin-top: 0px !important; padding: 5px;
 }
+
 .ranking-row {
     display: block; padding: 15px; margin-bottom: 15px; border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.3);
     background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.01) 100%);
     overflow: visible; transition: transform 0.2s;
 }
+
 .ranking-row:hover { transform: translateY(-2px); border-color: rgba(255, 245, 0, 0.5); }
 .rank-profile-player-group { display: flex; align-items: center; margin-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px; }
 .rank-col { font-size: 2em; font-weight: bold; color: #fff500; margin-right: 15px; min-width: 40px; text-align: center; }
 .player-col { font-size: 1.4em; font-weight: bold; color: #ffffff; flex-grow: 1; }
+
 .badge { background: #fff500; color: black; padding: 2px 8px; 
     border-radius: 10px; font-size: 0.75em; font-weight: bold; margin-left: 5px;
 }
+
 .stat-box {
     background: rgba(255,255,255,0.05); padding: 15px; border-radius: 10px; 
     border-left: 4px solid #fff500; margin-bottom: 10px;
 }
+
 .stat-label { font-size: 0.7em; color: #aaa; text-transform: uppercase; }
 .metric-value { font-size: 1.1em; font-weight: bold; }
 .stat-highlight { color: #fff500; }
+
 [data-testid="stMetric"] > div:nth-of-type(1) { color: #FF7518 !important; }
+
 .block-container { display: flex; flex-wrap: wrap; justify-content: center; }
 [data-testid="stHorizontalBlock"] { flex: 1 1 100% !important; margin: 10px 0; }
+
 .chapter-card {
     background: #222222;
     border: 2px solid #fff500;
@@ -189,17 +209,20 @@ h3 { font-size: 16px !important; }
     padding: 0;
     overflow: hidden;
 }
+
 .chapter-card:hover {
     transform: translateY(-5px);
     border-color: #fff500;
     box-shadow: 0 0 20px #fff500;
 }
+
 .card-content {
     padding: 15px;
     display: flex;
     flex-direction: column;
     flex-grow: 1;
 }
+
 .card-image-container {
     height: 150px;
     width: 100%;
@@ -209,16 +232,19 @@ h3 { font-size: 16px !important; }
     justify-content: center;
     background-color: rgba(255, 255, 255, 0.05);
 }
+
 .card-image-container img {
     width: 100%;
     height: 100%;
     object-fit: contain;
 }
+
 .chapter-card h3 {
     color: #fff500;
     margin-top: 10px;
     margin-bottom: 10px;
 }
+
 .enter-button {
     background-color: #fff500;
     color: #031827;
@@ -232,6 +258,7 @@ h3 { font-size: 16px !important; }
     width: 100%;
     box-sizing: border-box;
 }
+
 .enter-button:hover {
     background-color: #ffd700;
 }
