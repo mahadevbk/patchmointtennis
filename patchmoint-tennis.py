@@ -163,9 +163,8 @@ h3 { font-size: 16px !important; }
 .block-container { display: flex; flex-wrap: wrap; justify-content: center; }
 [data-testid="stHorizontalBlock"] { flex: 1 1 100% !important; margin: 10px 0; }
 
-/* --- Restored Chapter Card Styling Applied to Streamlit Containers --- */
 .chapter-card-style, [data-testid="stVerticalBlockBorderWrapper"] {
-    background: #222222 !important; /* Solid dark gray background */
+    background: #222222 !important; 
     border: 2px solid #fff500 !important;
     border-radius: 12px !important;
     text-align: center;
@@ -179,7 +178,6 @@ h3 { font-size: 16px !important; }
     border-color: #fff500;
     box-shadow: 0 0 20px #fff500;
 }
-/* Ensure inner container has correct padding since we zeroed out the wrapper */
 [data-testid="stVerticalBlockBorderWrapper"] > div {
     padding: 15px;
 }
@@ -192,7 +190,7 @@ h3 { font-size: 16px !important; }
     align-items: center;
     justify-content: center;
     background-color: rgba(255, 255, 255, 0.05);
-    margin: -15px -15px 10px -15px; /* Negative margin to pull to edges */
+    margin: -15px -15px 10px -15px; 
     width: calc(100% + 30px);
 }
 .card-image-container img {
