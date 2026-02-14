@@ -208,6 +208,8 @@ h3 { font-size: 16px !important; }
     color: #fff500;
     margin-top: 10px;
     margin-bottom: 10px;
+    font-size: 24px !important; /* Added font-size (16px * 1.5 = 24px) */
+    font-weight: 700;           /* Optional: makes it bold for better visibility */
 }
 .enter-button {
     background-color: #fff500;
