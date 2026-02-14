@@ -116,10 +116,9 @@ html, body, [class*="st-"], .stApp, h1, h2, h3, h4, h5, h6 {
   header, .stToolbar { display: none; }
 }
 [data-testid="stHeader"] {
-    background-image: url("https://raw.githubusercontent.com/mahadevbk/patchmointtennis/main/assets/background/background.jpg") !important;
-    background-size: cover;
-    background-position: top center;
-    border-bottom: 1px solid rgba(255, 245, 0, 0.3);
+    background: black !important;
+    background-image: none !important;
+    border-bottom: 1px solid #333;
 }
 .profile-image:hover { transform: scale(1.1); }
 .court-card {
