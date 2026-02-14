@@ -83,6 +83,19 @@ st.markdown("""
 html, body, [class*="st-"], .stApp, h1, h2, h3, h4, h5, h6 {
     font-family: 'Turret Road', sans-serif !important;
 }
+/* Target the label (top text) of metrics */
+[data-testid="stMetricLabel"] {
+    color: #000080 !important; /* Dark Blue */
+}
+/* Target the value (main big number) of metrics */
+[data-testid="stMetricValue"] {
+    color: #000000 !important; /* Black */
+ }
+/* If you are using standard markdown text on a yellow background */
+.stMarkdown p {
+    color: #000000;
+}
+
 .mobile-card {
     background: linear-gradient(135deg, #071a3d 0%, #0c0014 100%);
     border: 1px solid rgba(255, 245, 0, 0.2);
