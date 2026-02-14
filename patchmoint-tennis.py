@@ -162,6 +162,49 @@ h3 { font-size: 16px !important; }
 [data-testid="stMetric"] > div:nth-of-type(1) { color: #FF7518 !important; }
 .block-container { display: flex; flex-wrap: wrap; justify-content: center; }
 [data-testid="stHorizontalBlock"] { flex: 1 1 100% !important; margin: 10px 0; }
+
+/* --- Restored Chapter Card Styling Applied to Streamlit Containers --- */
+.chapter-card-style, [data-testid="stVerticalBlockBorderWrapper"] {
+    background: #222222 !important; /* Solid dark gray background */
+    border: 2px solid #fff500 !important;
+    border-radius: 12px !important;
+    text-align: center;
+    transition: transform 0.2s, box-shadow 0.2s;
+    box-shadow: 0 0 10px #fff500;
+    overflow: hidden;
+    padding: 0 !important;
+}
+[data-testid="stVerticalBlockBorderWrapper"]:hover {
+    transform: translateY(-5px);
+    border-color: #fff500;
+    box-shadow: 0 0 20px #fff500;
+}
+/* Ensure inner container has correct padding since we zeroed out the wrapper */
+[data-testid="stVerticalBlockBorderWrapper"] > div {
+    padding: 15px;
+}
+
+.card-image-container {
+    height: 150px;
+    width: 100%;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(255, 255, 255, 0.05);
+    margin: -15px -15px 10px -15px; /* Negative margin to pull to edges */
+    width: calc(100% + 30px);
+}
+.card-image-container img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+.card-content h3 {
+    color: #fff500;
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -978,42 +1021,37 @@ if not check_chapter_selected():
             else:
                 if SPORT_TYPE != "Tennis":
                     chap_df = pd.DataFrame()
-            
-            
+
             if not chap_df.empty:
                 st.subheader("Active Chapters")
                 cols = st.columns(3)
                 for idx, row in chap_df.iterrows():
                     with cols[idx % 3]:
+                        # The container will now pick up the div[data-testid="stVerticalBlockBorderWrapper"] styles from CSS
                         with st.container(border=True):
-                            # Restore fixed height image container logic
+                            # Image Area
                             img_url = row.get("title_image_url")
-                            if img_url:
-                                src = get_img_src(img_url)
-                                st.markdown(f"""
-                                <div style="height: 150px; width: 100%; display: flex; align-items: center; justify-content: center; background-color: rgba(255, 255, 255, 0.05); border-radius: 8px; overflow: hidden; margin-bottom: 10px;">
-                                    <img src="{src}" style="width: 100%; height: 100%; object-fit: contain;">
-                                </div>
-                                """, unsafe_allow_html=True)
-                            else:
-                                # Placeholder for consistent height (matches previous CSS behavior)
-                                st.markdown(f"""
-                                <div style="height: 150px; width: 100%; display: flex; align-items: center; justify-content: center; background-color: rgba(255, 255, 255, 0.05); border-radius: 8px; margin-bottom: 10px;">
-                                    <span style="font-size: 3em; opacity: 0.3;">🎾</span>
-                                </div>
-                                """, unsafe_allow_html=True)
+                            src = get_img_src(img_url) if img_url else ""
                             
-                            # Fixed height title area for alignment
+                            img_html = f'<img src="{src}">' if img_url else '<span style="font-size: 3em; opacity: 0.3;">🎾</span>'
+                            
                             st.markdown(f"""
-                            <div style="min-height: 50px; display: flex; align-items: center; justify-content: center; margin-bottom: 5px;">
-                                <h3 style="margin: 0; text-align: center; line-height: 1.2;">{row['name']}</h3>
+                            <div class="card-image-container">
+                                {img_html}
                             </div>
                             """, unsafe_allow_html=True)
                             
-                            num_players = player_counts.get(row['id'], 0)
-                            num_matches = match_counts.get(row['id'], 0)
-                            st.markdown(f"<div style='text-align: center; color: #aaa; font-size: 0.8em; margin-bottom: 15px;'>{num_players} players / {num_matches} games</div>", unsafe_allow_html=True)
+                            # Content Area (Title + Stats) using card-content styling
+                            st.markdown(f"""
+                            <div class="card-content">
+                                <div style="min-height: 50px; display: flex; align-items: center; justify-content: center; margin-bottom: 5px;">
+                                    <h3 style="margin: 0; text-align: center; color: #fff500; line-height: 1.2;">{row['name']}</h3>
+                                </div>
+                                <div style='text-align: center; color: #aaa; font-size: 0.8em; margin-bottom: 15px;'>{player_counts.get(row['id'], 0)} players / {match_counts.get(row['id'], 0)} games</div>
+                            </div>
+                            """, unsafe_allow_html=True)
                             
+                            # Button
                             if st.button("Enter", key=f"ent_{row['id']}", use_container_width=True):
                                 st.session_state.temp_selected_chapter = row.to_dict()
                                 st.rerun()
