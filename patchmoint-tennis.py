@@ -1347,7 +1347,19 @@ with tabs[1]:
             t2 = f"{row.team2_player1}/{row.team2_player2}" if row.team2_player2 else row.team2_player1
             scores = " | ".join([s for s in [row.set1, row.set2, row.set3] if s])
             img_h = f'<div style="display:flex; justify-content:center;"><img src="{get_img_src(row.match_image_url)}" style="max-height:400px; width:100%; object-fit:contain;"></div>' if row.match_image_url else ""
-            st.markdown(f"""<div style="background:rgba(255,255,255,0.05); border-radius:12px; margin-bottom:20px; border:1px solid rgba(255,255,255,0.1); overflow:hidden;">{img_h}<div style="padding:15px; text-align:center;"><div style="color:#888;">{row.date.strftime('%d %b %Y')}</div><div style="font-size:1.1em; margin:5px 0;">{t1} vs {t2}</div><div style="font-size:0.9em; color:#CCFF00; margin-bottom:5px; font-weight:bold; letter-spacing:1px; text-transform:uppercase;">{row.match_type}</div><div style="color:#FF7518; font-weight:bold;">{scores}</div><div style="margin-top:5px; font-weight:bold; color:#fff500;">Winner: {row.winner}</div></div></div>""", unsafe_allow_html=True)
+            winner_text = ""
+            if row.winner == "Team 1":
+                if row.team1_player2: # It's a doubles match
+                    winner_text = f"{row.team1_player1} & {row.team1_player2}"
+                else: # It's a singles match
+                    winner_text = row.team1_player1
+            elif row.winner == "Team 2":
+                if row.team2_player2: # It's a doubles match
+                    winner_text = f"{row.team2_player1} & {row.team2_player2}"
+                else: # It's a singles match
+                    winner_text = row.team2_player1
+
+            st.markdown(f"""<div style="background:rgba(255,255,255,0.05); border-radius:12px; margin-bottom:20px; border:1px solid rgba(255,255,255,0.1); overflow:hidden;">{img_h}<div style="padding:15px; text-align:center;"><div style="color:#888;">{row.date.strftime('%d %b %Y')}</div><div style="font-size:1.1em; margin:5px 0;">{t1} vs {t2}</div><div style="font-size:0.9em; color:#CCFF00; margin-bottom:5px; font-weight:bold; letter-spacing:1px; text-transform:uppercase;">{row.match_type}</div><div style="color:#FF7518; font-weight:bold;">{scores}</div><div style="margin-top:5px; font-weight:bold; color:#fff500;">Winner: {winner_text}</div></div></div>""", unsafe_allow_html=True)
             can_edit_match = False
             if st.session_state.is_admin or st.session_state.is_master_admin:
                 can_edit_match = True
