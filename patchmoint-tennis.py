@@ -567,17 +567,15 @@ def generate_match_id(matches_df, match_datetime):
     year = match_datetime.year
     month = match_datetime.month
     quarter = f"Q{(month-1)//3 + 1}"
-    
     prefix = f"MMD{quarter}{year}-"
     
     if not matches_df.empty:
-        # Filter matches belonging to the same quarter/year prefix
+        # Filter matches that start with the same quarter/year prefix
         quarter_matches = matches_df[matches_df['match_id'].str.startswith(prefix)]
         
         if not quarter_matches.empty:
-            # Extract serial numbers (last 2 digits) and find the maximum
             try:
-                # This splits 'MMDQ12026-05' to get '05' and converts to int
+                # Extract the serial (last part of the ID) and find the MAX + 1
                 serials = quarter_matches['match_id'].str.split('-').str[-1].astype(int)
                 serial = serials.max() + 1
             except:
@@ -587,7 +585,7 @@ def generate_match_id(matches_df, match_datetime):
     else:
         serial = 1
 
-    # Safety loop: if the ID still exists (due to cache lag), keep incrementing
+    # Safety loop to double-check against current dataframe
     while True:
         new_id = f"{prefix}{serial:02d}"
         if matches_df.empty or new_id not in matches_df['match_id'].values:
