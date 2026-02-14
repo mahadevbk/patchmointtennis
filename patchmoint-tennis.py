@@ -211,6 +211,13 @@ h3 { font-size: 16px !important; }
     font-size: 24px !important; /* Added font-size (16px * 1.5 = 24px) */
     font-weight: 700;           /* Optional: makes it bold for better visibility */
 }
+.chapter-card p {
+    color: #fff500 !important;
+    font-size: 16px;
+    font-weight: 500;
+    margin-bottom: 15px;
+    opacity: 1; /* Ensures it is fully bright */
+}
 .enter-button {
     background-color: #fff500;
     color: #031827;
