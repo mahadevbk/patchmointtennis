@@ -76,94 +76,49 @@ def init_db():
 init_db()
 
 st.markdown("""
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Turret+Road:wght@200;300;400;500;700;800&display=swap" rel="stylesheet">
 <style>
-/* 1. Global Font */
-html, body, [class*="st-"], .stApp, h1, h2, h3, h4, h5, h6 {
-    font-family: 'Turret Road', sans-serif !important;
+/* 1. FORCE METRIC TEXT TO BLACK */
+[data-testid="stMetricValue"], [data-testid="stMetricLabel"] {
+    color: #000000 !important;
 }
-
-/* 2. FORCE BLACK TEXT FOR METRICS (The Fix) */
-[data-testid="stMetricValue"], 
-[data-testid="stMetricLabel"],
-[data-testid="stMetricValue"] *, 
-[data-testid="stMetricLabel"] * {
+[data-testid="stMetricValue"] *, [data-testid="stMetricLabel"] * {
     color: #000000 !important;
 }
 
-/* 3. Global App Background */
+/* 2. BASE APP STYLES */
 .stApp {
-  background: linear-gradient(to bottom, #0b0c1f, #01010f);
+    background: linear-gradient(to bottom, #0b0c1f, #01010f);
 }
 
-/* 4. Navigation/Chapter Cards */
+/* 3. CHAPTER CARDS */
 .chapter-card {
     background: #222222;
     border: 2px solid #fff500;
     border-radius: 12px;
     text-align: center;
-    box-shadow: 0 0 10px #fff500;
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-    overflow: hidden;
+    padding: 10px;
 }
 
 .enter-button {
     background-color: #fff500;
     color: #031827;
-    padding: 8px 16px;
+    padding: 8px;
     border-radius: 5px;
     text-decoration: none;
     font-weight: bold;
     display: block;
-    width: 100%;
-    text-align: center;
 }
 
-/* 5. Mobile & Ranking Styles */
-.mobile-card {
-    background: linear-gradient(135deg, #071a3d 0%, #0c0014 100%);
-    border: 1px solid rgba(255, 245, 0, 0.2);
-    border-radius: 15px;
-    padding: 15px;
-    margin-bottom: 15px;
-}
-
-.rank-badge {
-    background: #fff500;
-    color: #041136;
-    font-weight: bold;
-    border-radius: 5px;
-    padding: 2px 8px;
-}
-
+/* 4. RANKING ROWS */
 .ranking-row {
-    display: block;
     padding: 15px;
-    margin-bottom: 15px;
+    margin-bottom: 10px;
     border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 12px;
     background: rgba(255, 255, 255, 0.05);
 }
-
-.stat-box {
-    background: rgba(255,255,255,0.05);
-    padding: 15px;
-    border-radius: 10px;
-    border-left: 4px solid #fff500;
-}
-
-/* 6. Profile Images */
-.profile-image {
-    width: 80px; height: 80px; object-fit: cover;
-    border: 2px solid #fff500; border-radius: 15px;
-}
 </style>
 """, unsafe_allow_html=True)
-
 
 # --- Constants ---
 PLAYERS_TABLE = "players"
