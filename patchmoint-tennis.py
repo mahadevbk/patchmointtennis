@@ -80,6 +80,7 @@ st.markdown("""
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Turret+Road:wght@200;300;400;500;700;800&display=swap" rel="stylesheet">
 <style>
+/* Base Font Styles */
 html, body, [class*="st-"], .stApp, h1, h2, h3, h4, h5, h6 {
     font-family: 'Turret Road', sans-serif !important;
 }
@@ -87,17 +88,18 @@ html, body, [class*="st-"], .stApp, h1, h2, h3, h4, h5, h6 {
 /* --- FIX FOR OPTIC YELLOW READABILITY --- */
 /* Target the label (top text) of metrics */
 [data-testid="stMetricLabel"] {
-    color: #000000 !important; /* Black */
+    color: #000000 !important;
 }
 /* Target the value (main big number) of metrics */
 [data-testid="stMetricValue"] {
-    color: #000000 !important; /* Black */
+    color: #000000 !important;
 }
 /* Target secondary text in metrics */
 [data-testid="stMetricDelta"] {
     color: #1a1a1a !important; 
 }
 
+/* UI Elements */
 .mobile-card {
     background: linear-gradient(135deg, #071a3d 0%, #0c0014 100%);
     border: 1px solid rgba(255, 245, 0, 0.2);
@@ -178,7 +180,7 @@ h3 { font-size: 16px !important; }
 .block-container { display: flex; flex-wrap: wrap; justify-content: center; }
 [data-testid="stHorizontalBlock"] { flex: 1 1 100% !important; margin: 10px 0; }
 .chapter-card {
-    background: #222222; /* Solid dark gray background */
+    background: #222222;
     border: 2px solid #fff500;
     border-radius: 12px;
     text-align: center;
@@ -228,7 +230,7 @@ h3 { font-size: 16px !important; }
     text-decoration: none;
     font-weight: bold;
     display: block;
-    margin-top: auto; /* Pushes button to the bottom */
+    margin-top: auto;
     transition: background-color 0.2s;
     width: 100%;
     box-sizing: border-box;
@@ -238,6 +240,7 @@ h3 { font-size: 16px !important; }
 }
 </style>
 """, unsafe_allow_html=True)
+
 
 # --- Constants ---
 PLAYERS_TABLE = "players"
