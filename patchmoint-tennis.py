@@ -978,26 +978,39 @@ if not check_chapter_selected():
             else:
                 if SPORT_TYPE != "Tennis":
                     chap_df = pd.DataFrame()
-
+            
             if not chap_df.empty:
                 st.subheader("Active Chapters")
                 cols = st.columns(3)
                 for idx, row in chap_df.iterrows():
                     with cols[idx % 3]:
-                        # Use native Streamlit container and button to avoid full page refresh
-                        with st.container(border=True):
-                            if row.get("title_image_url"):
-                                st.image(row.get("title_image_url"), use_container_width=True)
-                            
-                            st.markdown(f"### {row['name']}")
-                            num_players = player_counts.get(row['id'], 0)
-                            num_matches = match_counts.get(row['id'], 0)
-                            st.caption(f"{num_players} players / {num_matches} games")
-                            
-                            # Using st.button updates session state without full reload
-                            if st.button("Enter", key=f"ent_{row['id']}", use_container_width=True):
-                                st.session_state.temp_selected_chapter = row.to_dict()
-                                st.rerun()
+                        img_container_content = ''
+                        if row.get("title_image_url"):
+                            img_src = get_img_src(row.get("title_image_url"))
+                            img_container_content = f'<img src="{img_src}">'
+                        
+                        img_html = (
+                            '<div class="card-image-container">'
+                            f'{img_container_content}'
+                            '</div>'
+                        )
+                        title_html = f'<h3>{row["name"]}</h3>'
+                        num_players = player_counts.get(row['id'], 0)
+                        num_matches = match_counts.get(row['id'], 0)
+                        stats_html = f'<p style="margin: 10px 0; color: #aaa; font-size: 0.9em;">{num_players} players / {num_matches} games</p>'
+                        button_html = f'<a href="?select_chapter={row["id"]}" target="_self" class="enter-button">Enter</a>'
+
+                        card_html = (
+                            '<div class="chapter-card">'
+                            f'{img_html}'
+                            '<div class="card-content">'
+                            f'{title_html}'
+                            f'{stats_html}'
+                            f'{button_html}'
+                            '</div>'
+                            '</div>'
+                        )
+                        st.markdown(card_html, unsafe_allow_html=True)
             else:
                 st.info(f"No active {SPORT_TYPE} chapters found. Create one below!")
         
