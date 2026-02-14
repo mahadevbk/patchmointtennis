@@ -84,11 +84,7 @@ html, body, [class*="st-"], .stApp, h1, h2, h3, h4, h5, h6 {
     font-family: 'Turret Road', sans-serif !important;
 }
 
-[data-testid="stMetricLabel"] {
-    color: #000000 !important;
-}
-
-[data-testid="stMetricValue"] {
+[data-testid="stMetricLabel"], [data-testid="stMetricValue"] {
     color: #000000 !important;
 }
 
@@ -264,6 +260,7 @@ h3 { font-size: 16px !important; }
 }
 </style>
 """, unsafe_allow_html=True)
+
 
 # --- Constants ---
 PLAYERS_TABLE = "players"
