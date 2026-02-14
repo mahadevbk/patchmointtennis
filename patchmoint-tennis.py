@@ -569,23 +569,19 @@ def generate_match_id(matches_df, match_datetime):
     quarter = f"Q{(month-1)//3 + 1}"
     prefix = f"MMD{quarter}{year}-"
     
+    serial = 1
     if not matches_df.empty:
-        # Filter matches that start with the same quarter/year prefix
-        quarter_matches = matches_df[matches_df['match_id'].str.startswith(prefix)]
-        
-        if not quarter_matches.empty:
+        # Filter for same quarter
+        q_matches = matches_df[matches_df['match_id'].str.startswith(prefix)]
+        if not q_matches.empty:
             try:
-                # Extract the serial (last part of the ID) and find the MAX + 1
-                serials = quarter_matches['match_id'].str.split('-').str[-1].astype(int)
+                # Find the highest existing number and add 1
+                serials = q_matches['match_id'].str.split('-').str[-1].astype(int)
                 serial = serials.max() + 1
             except:
-                serial = len(quarter_matches) + 1
-        else:
-            serial = 1
-    else:
-        serial = 1
+                serial = len(q_matches) + 1
 
-    # Safety loop to double-check against current dataframe
+    # THE SAFETY LOOP: This is the most important part
     while True:
         new_id = f"{prefix}{serial:02d}"
         if matches_df.empty or new_id not in matches_df['match_id'].values:
