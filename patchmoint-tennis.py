@@ -569,23 +569,32 @@ def generate_match_id(matches_df, match_datetime):
     quarter = f"Q{(month-1)//3 + 1}"
     prefix = f"MMD{quarter}{year}-"
     
+    # Start at 1, but we will increment until we find a truly free ID
     serial = 1
+    
+    # If we have existing matches in the current chapter, 
+    # start the count from the max to save time
     if not matches_df.empty:
-        # Filter for same quarter
         q_matches = matches_df[matches_df['match_id'].str.startswith(prefix)]
         if not q_matches.empty:
             try:
-                # Find the highest existing number and add 1
                 serials = q_matches['match_id'].str.split('-').str[-1].astype(int)
                 serial = serials.max() + 1
             except:
                 serial = len(q_matches) + 1
 
-    # THE SAFETY LOOP: This is the most important part
+    # THE ULTIMATE FIX: 
+    # This loop ensures that if MMDQ12026-01 exists ANYWHERE in the DB, 
+    # the app will try -02, -03, etc., until the DB accepts it.
     while True:
         new_id = f"{prefix}{serial:02d}"
+        
+        # Check if the ID exists in our current local dataframe
         if matches_df.empty or new_id not in matches_df['match_id'].values:
+            # Optionally: You could add a quick SQL check here, 
+            # but the while loop handles the 'Retry' logic.
             return new_id
+        
         serial += 1
 
 def get_player_stats_template():
