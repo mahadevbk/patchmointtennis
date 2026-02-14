@@ -83,6 +83,21 @@ st.markdown("""
 html, body, [class*="st-"], .stApp, h1, h2, h3, h4, h5, h6 {
     font-family: 'Turret Road', sans-serif !important;
 }
+
+/* --- FIX FOR OPTIC YELLOW READABILITY --- */
+/* Target the label (top text) of metrics */
+[data-testid="stMetricLabel"] {
+    color: #000000 !important; /* Black */
+}
+/* Target the value (main big number) of metrics */
+[data-testid="stMetricValue"] {
+    color: #000000 !important; /* Black */
+}
+/* Target secondary text in metrics */
+[data-testid="stMetricDelta"] {
+    color: #1a1a1a !important; 
+}
+
 .mobile-card {
     background: linear-gradient(135deg, #071a3d 0%, #0c0014 100%);
     border: 1px solid rgba(255, 245, 0, 0.2);
