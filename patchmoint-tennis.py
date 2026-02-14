@@ -733,7 +733,7 @@ def calculate_rankings(matches_to_rank):
 
         rank_data.append({
             "Player": p, "Score": score_elo, "Label": "Elo", "Elo": score_elo, 
-            "Score_Elo (Hybrid):": score_elo, "Score_Points": s['points'], 
+            "Score_Elo (Hybrid)": score_elo, "Score_Points": s['points'], 
             "Score_UTR": current_utr, "Last Change": last_elo_changes.get(p, 0),
             "Wins": s['wins'], "Losses": s['losses'], "Games Won": s['games_won'],
             "Win %": round((s['wins']/m_played)*100, 1), "Matches": m_played, 
