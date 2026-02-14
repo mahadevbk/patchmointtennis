@@ -979,38 +979,44 @@ if not check_chapter_selected():
                 if SPORT_TYPE != "Tennis":
                     chap_df = pd.DataFrame()
             
+            
             if not chap_df.empty:
                 st.subheader("Active Chapters")
                 cols = st.columns(3)
                 for idx, row in chap_df.iterrows():
                     with cols[idx % 3]:
-                        img_container_content = ''
-                        if row.get("title_image_url"):
-                            img_src = get_img_src(row.get("title_image_url"))
-                            img_container_content = f'<img src="{img_src}">'
-                        
-                        img_html = (
-                            '<div class="card-image-container">'
-                            f'{img_container_content}'
-                            '</div>'
-                        )
-                        title_html = f'<h3>{row["name"]}</h3>'
-                        num_players = player_counts.get(row['id'], 0)
-                        num_matches = match_counts.get(row['id'], 0)
-                        stats_html = f'<p style="margin: 10px 0; color: #aaa; font-size: 0.9em;">{num_players} players / {num_matches} games</p>'
-                        button_html = f'<a href="?select_chapter={row["id"]}" target="_self" class="enter-button">Enter</a>'
-
-                        card_html = (
-                            '<div class="chapter-card">'
-                            f'{img_html}'
-                            '<div class="card-content">'
-                            f'{title_html}'
-                            f'{stats_html}'
-                            f'{button_html}'
-                            '</div>'
-                            '</div>'
-                        )
-                        st.markdown(card_html, unsafe_allow_html=True)
+                        with st.container(border=True):
+                            # Restore fixed height image container logic
+                            img_url = row.get("title_image_url")
+                            if img_url:
+                                src = get_img_src(img_url)
+                                st.markdown(f"""
+                                <div style="height: 150px; width: 100%; display: flex; align-items: center; justify-content: center; background-color: rgba(255, 255, 255, 0.05); border-radius: 8px; overflow: hidden; margin-bottom: 10px;">
+                                    <img src="{src}" style="width: 100%; height: 100%; object-fit: contain;">
+                                </div>
+                                """, unsafe_allow_html=True)
+                            else:
+                                # Placeholder for consistent height (matches previous CSS behavior)
+                                st.markdown(f"""
+                                <div style="height: 150px; width: 100%; display: flex; align-items: center; justify-content: center; background-color: rgba(255, 255, 255, 0.05); border-radius: 8px; margin-bottom: 10px;">
+                                    <span style="font-size: 3em; opacity: 0.3;">🎾</span>
+                                </div>
+                                """, unsafe_allow_html=True)
+                            
+                            # Fixed height title area for alignment
+                            st.markdown(f"""
+                            <div style="min-height: 50px; display: flex; align-items: center; justify-content: center; margin-bottom: 5px;">
+                                <h3 style="margin: 0; text-align: center; line-height: 1.2;">{row['name']}</h3>
+                            </div>
+                            """, unsafe_allow_html=True)
+                            
+                            num_players = player_counts.get(row['id'], 0)
+                            num_matches = match_counts.get(row['id'], 0)
+                            st.markdown(f"<div style='text-align: center; color: #aaa; font-size: 0.8em; margin-bottom: 15px;'>{num_players} players / {num_matches} games</div>", unsafe_allow_html=True)
+                            
+                            if st.button("Enter", key=f"ent_{row['id']}", use_container_width=True):
+                                st.session_state.temp_selected_chapter = row.to_dict()
+                                st.rerun()
             else:
                 st.info(f"No active {SPORT_TYPE} chapters found. Create one below!")
         
