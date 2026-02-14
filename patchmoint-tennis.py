@@ -561,15 +561,31 @@ def generate_match_id(matches_df, match_datetime):
     year = match_datetime.year
     month = match_datetime.month
     quarter = f"Q{(month-1)//3 + 1}"
+    
+    prefix = f"MMD{quarter}{year}-"
+    
     if not matches_df.empty:
-        dates = pd.to_datetime(matches_df['date'], errors='coerce')
-        mask = (dates.dt.year == year) & ((dates.dt.month-1)//3 + 1 == (month-1)//3 + 1)
-        serial = mask.sum() + 1
-    else: serial = 1
+        # 1. Filter matches that belong to the same quarter and year
+        quarter_matches = matches_df[matches_df['match_id'].str.startswith(prefix)]
+        
+        if not quarter_matches.empty:
+            # 2. Extract the serial numbers (the last 2 digits) and find the maximum
+            try:
+                serials = quarter_matches['match_id'].str.split('-').str[-1].astype(int)
+                next_serial = serials.max() + 1
+            except:
+                next_serial = len(quarter_matches) + 1
+        else:
+            next_serial = 1
+    else:
+        next_serial = 1
+
+    # 3. Final safety check against the database/dataframe
     while True:
-        new_id = f"MMD{quarter}{year}-{serial:02d}"
-        if matches_df.empty or new_id not in matches_df['match_id'].values: return new_id
-        serial += 1
+        new_id = f"{prefix}{next_serial:02d}"
+        if matches_df.empty or new_id not in matches_df['match_id'].values:
+            return new_id
+        next_serial += 1
 
 def get_player_stats_template():
     return {'wins': 0, 'losses': 0, 'matches': 0, 'games_won': 0, 'gd_sum': 0, 'clutch_wins': 0, 'clutch_matches': 0, 'gd_list': [], 'points': 0}
