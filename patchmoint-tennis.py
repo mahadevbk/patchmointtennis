@@ -918,21 +918,6 @@ if not check_chapter_selected():
         st.write("Welcome! Select an active chapter or create a new one.")
         st.caption("Free and Open Source • Create your league and push yourself to get better.")
 
-        # Handle chapter selection from query_params
-        if 'select_chapter' in st.query_params:
-            chap_id = st.query_params['select_chapter']
-            if not st.session_state.get('temp_selected_chapter'):
-                try:
-                    conn = get_connection()
-                    chap_df_query = pd.read_sql("SELECT * FROM chapters WHERE id = %s", conn, params=[chap_id])
-                    conn.close()
-                    if not chap_df_query.empty:
-                        st.session_state.temp_selected_chapter = chap_df_query.iloc[0].to_dict()
-                        st.query_params.clear()
-                        st.rerun()
-                except Exception as e:
-                    pass # Silently fail
-
         # --- LOAD CHAPTERS FROM NEON ---
         try:
             engine = get_sqlalchemy_engine()
@@ -962,59 +947,8 @@ if not check_chapter_selected():
             chap_df = pd.DataFrame()
             player_counts = {}
             match_counts = {}
-        
-        if not chap_df.empty:
-            if 'sport' in chap_df.columns:
-                chap_df = chap_df[chap_df['sport'] == SPORT_TYPE]
-            else:
-                if SPORT_TYPE != "Tennis":
-                    chap_df = pd.DataFrame()
 
-            if not chap_df.empty:
-                st.subheader("Active Chapters")
-                cols = st.columns(3)
-                for idx, row in chap_df.iterrows():
-                    with cols[idx % 3]:
-                        img_container_content = ''
-                        if row.get("title_image_url"):
-                            img_src = get_img_src(row.get("title_image_url"))
-                            img_container_content = f'<img src="{img_src}">'
-                        
-                        img_html = (
-                            '<div class="card-image-container">'
-                            f'{img_container_content}'
-                            '</div>'
-                        )
-                        title_html = f'<h3>{row["name"]}</h3>'
-                        num_players = player_counts.get(row['id'], 0)
-                        num_matches = match_counts.get(row['id'], 0)
-                        stats_html = f'<p style="margin: 10px 0; color: #aaa; font-size: 0.9em;">{num_players} players / {num_matches} games</p>'
-                        button_html = f'<a href="?select_chapter={row["id"]}" target="_self" class="enter-button">Enter</a>'
-
-                        card_html = (
-                            '<div class="chapter-card">'
-                            f'{img_html}'
-                            '<div class="card-content">'
-                            f'{title_html}'
-                            f'{stats_html}'
-                            f'{button_html}'
-                            '</div>'
-                            '</div>'
-                        )
-                        st.markdown(card_html, unsafe_allow_html=True)
-            else:
-                st.info(f"No active {SPORT_TYPE} chapters found. Create one below!")
-        
-        with st.expander("Explore Ranking Systems", expanded=False,icon="🏆"):
-            st.markdown("""
-            * **🏆 ELO Hybrid:** Best for highly competitive groups.
-            * **📈 UTR System:** For serious club-level play—the punishing standard.
-            * **🤝 Points Per Game:** For social games where grinders are rewarded!
-            * **🔥 The Trifecta:** Go wild and use all three to measure your tribe.
-            """)
-
-        st.info("🔑 **Note:** Use the admin-provided password to log in to your Chapter.")
-        
+        # --- LOGIN FORM (MOVED ABOVE CHAPTERS) ---
         if st.session_state.temp_selected_chapter:
             target = st.session_state.temp_selected_chapter
             st.divider()
@@ -1078,7 +1012,62 @@ if not check_chapter_selected():
                 if c2.button("Cancel Selection"):
                     st.session_state.temp_selected_chapter = None
                     st.rerun()
+        
+        # --- ACTIVE CHAPTERS ---
+        if not chap_df.empty:
+            if 'sport' in chap_df.columns:
+                chap_df = chap_df[chap_df['sport'] == SPORT_TYPE]
+            else:
+                if SPORT_TYPE != "Tennis":
+                    chap_df = pd.DataFrame()
 
+            if not chap_df.empty:
+                st.subheader("Active Chapters")
+                cols = st.columns(3)
+                for idx, row in chap_df.iterrows():
+                    with cols[idx % 3]:
+                        img_container_content = ''
+                        if row.get("title_image_url"):
+                            img_src = get_img_src(row.get("title_image_url"))
+                            img_container_content = f'<img src="{img_src}">'
+                        
+                        img_html = (
+                            '<div class="card-image-container">'
+                            f'{img_container_content}'
+                            '</div>'
+                        )
+                        title_html = f'<h3>{row["name"]}</h3>'
+                        num_players = player_counts.get(row['id'], 0)
+                        num_matches = match_counts.get(row['id'], 0)
+                        stats_html = f'<p style="margin: 10px 0; color: #aaa; font-size: 0.9em;">{num_players} players / {num_matches} games</p>'
+                        
+                        # Use HTML for the top part, but native Streamlit button for selection to avoid page reload
+                        card_html = (
+                            '<div class="chapter-card" style="height: auto; min-height: 200px; padding-bottom: 10px;">'
+                            f'{img_html}'
+                            '<div class="card-content">'
+                            f'{title_html}'
+                            f'{stats_html}'
+                            '</div>'
+                            '</div>'
+                        )
+                        st.markdown(card_html, unsafe_allow_html=True)
+                        if st.button("Enter", key=f"ent_{row['id']}", use_container_width=True):
+                            st.session_state.temp_selected_chapter = row.to_dict()
+                            st.rerun()
+            else:
+                st.info(f"No active {SPORT_TYPE} chapters found. Create one below!")
+        
+        with st.expander("Explore Ranking Systems", expanded=False,icon="🏆"):
+            st.markdown("""
+            * **🏆 ELO Hybrid:** Best for highly competitive groups.
+            * **📈 UTR System:** For serious club-level play—the punishing standard.
+            * **🤝 Points Per Game:** For social games where grinders are rewarded!
+            * **🔥 The Trifecta:** Go wild and use all three to measure your tribe.
+            """)
+
+        st.info("🔑 **Note:** Use the admin-provided password to log in to your Chapter.")
+        
         st.divider()
         with st.expander("Create New Chapter", expanded=False, icon="➡️"):
             new_chap_name = st.text_input("New Chapter Name")
