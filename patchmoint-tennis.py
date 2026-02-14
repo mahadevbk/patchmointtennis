@@ -739,7 +739,8 @@ def calculate_rankings(matches_to_rank):
             "Game Diff Avg": round(s['gd_sum']/m_played, 2), "Clutch Factor": round(clutch_pct, 1), 
             "Consistency Index": round(consistency, 2), "Last Active": l_date if l_date else "N/A",
             "Badges": badges, 
-            "Profile": pd.Series(players_df.profile_image_url.values, index=players_df.name).to_dict().get(p, "")
+            #"Profile": pd.Series(players_df.profile_image_url.values, index=players_df.name).to_dict().get(p, "")
+            "Profile": players_df.set_index('name')['profile_image_url'].get(p, DEFAULT_AVATAR)
         })
         
     df = pd.DataFrame(rank_data)
