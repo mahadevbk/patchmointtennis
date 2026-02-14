@@ -361,14 +361,8 @@ def update_chapter_admin_password(chapter_id, new_pass):
     except: return False
 
 def load_matches():
-    # 1. First, get the latest data from the database
     cid = st.session_state.current_chapter['id'] if st.session_state.current_chapter else None
     st.session_state.matches_df = fetch_data("matches", cid)
-    
-    # 2. Now generate the ID based on the fresh data
-    new_id = generate_match_id(st.session_state.matches_df, datetime.now())
-    
-    return new_id
 
 def save_matches(df):
     cid = st.session_state.current_chapter['id']
@@ -376,12 +370,15 @@ def save_matches(df):
         conn = get_connection()
         try:
             with conn.cursor() as cur:
-                cur.execute("DELETE FROM matches WHERE chapter_id = %s", (cid,))
                 df_clean = df.where(pd.notnull(df), None)
                 records = [tuple(x) for x in df_clean.to_numpy()]
                 cols = ",".join(list(df.columns))
+                
+                # Create the SET part of the UPDATE statement
+                update_cols = ", ".join([f"{col} = EXCLUDED.{col}" for col in df.columns if col != 'match_id'])
+                
                 if records:
-                    query = f"INSERT INTO matches ({cols}) VALUES %s"
+                    query = f"INSERT INTO matches ({cols}) VALUES %s ON CONFLICT (match_id) DO UPDATE SET {update_cols}"
                     execute_values(cur, query, records)
                 
                 # NEW: Update last_active_date for the chapter
@@ -567,34 +564,14 @@ def generate_match_id(matches_df, match_datetime):
     year = match_datetime.year
     month = match_datetime.month
     quarter = f"Q{(month-1)//3 + 1}"
-    prefix = f"MMD{quarter}{year}-"
-    
-    # Start at 1, but we will increment until we find a truly free ID
-    serial = 1
-    
-    # If we have existing matches in the current chapter, 
-    # start the count from the max to save time
     if not matches_df.empty:
-        q_matches = matches_df[matches_df['match_id'].str.startswith(prefix)]
-        if not q_matches.empty:
-            try:
-                serials = q_matches['match_id'].str.split('-').str[-1].astype(int)
-                serial = serials.max() + 1
-            except:
-                serial = len(q_matches) + 1
-
-    # THE ULTIMATE FIX: 
-    # This loop ensures that if MMDQ12026-01 exists ANYWHERE in the DB, 
-    # the app will try -02, -03, etc., until the DB accepts it.
+        dates = pd.to_datetime(matches_df['date'], errors='coerce')
+        mask = (dates.dt.year == year) & ((dates.dt.month-1)//3 + 1 == (month-1)//3 + 1)
+        serial = mask.sum() + 1
+    else: serial = 1
     while True:
-        new_id = f"{prefix}{serial:02d}"
-        
-        # Check if the ID exists in our current local dataframe
-        if matches_df.empty or new_id not in matches_df['match_id'].values:
-            # Optionally: You could add a quick SQL check here, 
-            # but the while loop handles the 'Retry' logic.
-            return new_id
-        
+        new_id = f"MMD{quarter}{year}-{serial:02d}"
+        if matches_df.empty or new_id not in matches_df['match_id'].values: return new_id
         serial += 1
 
 def get_player_stats_template():
@@ -1326,36 +1303,24 @@ with tabs[1]:
                 if not is_img_required:
                     st.caption("Photo is optional for this chapter.")
 
-                
-   		        
-                
                 if st.button("Post Match", key=f"bp_{pk}"):
                     if s1 and (img or not is_img_required):
-                        # 1. Get the Chapter ID
-                        cid = st.session_state.current_chapter['id']
-                        
-                        # 2. Pull latest matches from DB
-                        st.session_state.matches_df = fetch_data("matches", cid)
-                        
-                        # 3. Generate ID using fresh data
                         mid = generate_match_id(st.session_state.matches_df, datetime.combine(md, datetime.min.time()))
-                        
                         path = save_remote_image(img, mid, "match") if img else ""
                         
                         final_mt = mt
                         if mt == "Doubles":
                             # Auto-detect Mixed Doubles
                             def get_gender_val(pname):
-                                if not pname or pname == "Visitor": 
-                                    return None
+                                if not pname or pname == "Visitor": return None
                                 try:
                                     g_row = st.session_state.players_df[st.session_state.players_df['name'] == pname]
                                     if not g_row.empty:
                                         g = g_row.iloc[0]['gender']
                                         return str(g).lower().strip() if g else None
-                                except: 
-                                    return None
+                                except: return None
                                 return None
+
                             g1, g2 = get_gender_val(t1p1), get_gender_val(t1p2)
                             g3, g4 = get_gender_val(t2p1), get_gender_val(t2p2)
 
