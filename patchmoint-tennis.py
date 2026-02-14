@@ -115,11 +115,11 @@ html, body, [class*="st-"], .stApp, h1, h2, h3, h4, h5, h6 {
   body { background-color: #041136 !important; height: 100vh; margin: 0; padding: 0; }
   header, .stToolbar { display: none; }
 }
-[data-testid="stHeader"] { background-color: #041136 !important; }
-.profile-image {
-    width: 80px; height: 80px; object-fit: cover; border: 2px solid #fff500;
-    border-radius: 15px; margin-right: 15px; vertical-align: middle;
-    transition: transform 0.2s; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4), 0 0 15px rgba(255, 245, 0, 0.6);
+[data-testid="stHeader"] {
+    background-image: url("https://raw.githubusercontent.com/mahadevbk/patchmointtennis/main/assets/background/background.jpg") !important;
+    background-size: cover;
+    background-position: top center;
+    border-bottom: 1px solid rgba(255, 245, 0, 0.3);
 }
 .profile-image:hover { transform: scale(1.1); }
 .court-card {
