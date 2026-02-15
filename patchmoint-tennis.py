@@ -80,6 +80,25 @@ st.markdown("""
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Turret+Road:wght@200;300;400;500;700;800&display=swap" rel="stylesheet">
 <style>
+    .glow-square {
+            width: 100px; 
+            height: 100px;
+            border: 3px solid #ccff00;
+            border-radius: 12px;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #262626;
+            box-shadow: 0 0 15px rgba(204, 255, 0, 0.4);
+            margin: 0 auto;
+        }
+        .glow-square img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain; /* Ensures the whole image fits without cropping */
+            padding: 5px; /* Creates a small gap between image and border */
+        }
 html, body, [class*="st-"], .stApp, h1, h2, h3, h4, h5, h6 {
     font-family: 'Turret Road', sans-serif !important;
 }
