@@ -234,6 +234,23 @@ h3 { font-size: 16px !important; }
 .enter-button:hover {
     background-color: #ffd700;
 }
+.stat-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 10px;
+    }
+    .stat-chip {
+        padding: 4px 12px;
+        border-radius: 15px;
+        font-weight: bold;
+        font-size: 0.85rem;
+        color: white;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+    .win-rate { background: linear-gradient(135deg, #28a745, #1e7e34); }
+    .matches { background: linear-gradient(135deg, #007bff, #0056b3); }
+    .points { background: linear-gradient(135deg, #fd7e14, #d96101); }
 </style>
 """, unsafe_allow_html=True)
 
