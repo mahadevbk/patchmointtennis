@@ -1563,17 +1563,18 @@ with tabs[1]:
 
     m_hist = st.session_state.matches_df.copy()
     if not m_hist.empty:
-        # Convert date to datetime for sorting
+        # Convert date and sort
         m_hist['date_dt'] = pd.to_datetime(m_hist['date'], errors='coerce')
         m_hist = m_hist.sort_values('date_dt', ascending=False)
         
         for idx, row in m_hist.iterrows():
-            # Format Team Names
+            # 1. Prepare Data Safely
             t1p1 = row.get('team1_player1', 'Unknown')
             t1p2 = row.get('team1_player2')
             t2p1 = row.get('team2_player1', 'Unknown')
             t2p2 = row.get('team2_player2')
 
+            # Format names for Singles vs Doubles
             t1 = f"{t1p1} & {t1p2}" if (pd.notna(t1p2) and t1p2) else t1p1
             t2 = f"{t2p1} & {t2p2}" if (pd.notna(t2p2) and t2p2) else t2p1
             
@@ -1581,58 +1582,50 @@ with tabs[1]:
             sets = [s for s in [row.get('set1'), row.get('set2'), row.get('set3')] if (pd.notna(s) and s)]
             scores_html = " <span style='color:#666;'>|</span> ".join([f"<span style='color:#fff; font-weight:bold;'>{s}</span>" for s in sets])
             
-            # Handle Image
+            # Winner Logic Colors
+            win_val = row.get('winner')
+            t1_style = "color:#00ff88; font-weight:bold;" if win_val == "Team 1" else "color:#fff;"
+            t2_style = "color:#00ff88; font-weight:bold;" if win_val == "Team 2" else "color:#fff;"
+            
+            # Match Image
             img_url = row.get('match_image_url', '')
             img_html = ""
             if img_url:
-                 src = get_img_src(img_url)
-                 img_html = f"""
-                 <div style="width:100%; height:200px; overflow:hidden; border-bottom:1px solid rgba(255,255,255,0.1);">
-                    <img src="{src}" style="width:100%; height:100%; object-fit:cover;">
-                 </div>"""
-            
-            # Winner Color Logic
-            winner = row.get('winner')
-            t1_color = "#00ff88" if winner == "Team 1" else "#fff"
-            t2_color = "#00ff88" if winner == "Team 2" else "#fff"
-            
-            # Render the Card
+                img_html = f'<div style="width:100%; height:180px; overflow:hidden;"><img src="{get_img_src(img_url)}" style="width:100%; height:100%; object-fit:cover;"></div>'
+
+            # 2. RENDER THE CARD (Crucial: unsafe_allow_html=True)
             st.markdown(f"""
-            <div style="background:rgba(255,255,255,0.05); border-radius:12px; margin-bottom:20px; border:1px solid rgba(255,255,255,0.1); overflow:hidden; box-shadow:0 4px 15px rgba(0,0,0,0.3);">
+            <div style="background:rgba(255,255,255,0.05); border-radius:12px; margin-bottom:20px; border:1px solid rgba(255,255,255,0.1); overflow:hidden;">
                 {img_html}
                 <div style="padding:15px;">
-                    <div style="display:flex; justify-content:space-between; margin-bottom:12px; align-items:center;">
-                        <span style="font-size:0.75em; color:#ccff00; font-weight:bold; text-transform:uppercase; letter-spacing:1.5px; border:1px solid #ccff00; padding:3px 8px; border-radius:4px;">{row.get('match_type', 'Match')}</span>
+                    <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+                        <span style="font-size:0.75em; color:#ccff00; font-weight:bold; text-transform:uppercase; border:1px solid #ccff00; padding:2px 6px; border-radius:4px;">{row.get('match_type', 'Match')}</span>
                         <span style="font-size:0.8em; color:#888;">{pd.to_datetime(row.get('date')).strftime('%d %b %Y')}</span>
                     </div>
-                    <div style="display:grid; grid-template-columns:1fr auto 1fr; align-items:center; text-align:center; gap:10px; margin-bottom:15px;">
-                        <div style="font-weight:bold; color:{t1_color}; font-size:1.1em; line-height:1.2;">{t1}</div>
-                        <div style="color:#555; font-size:0.7em; font-weight:bold;">VS</div>
-                        <div style="font-weight:bold; color:{t2_color}; font-size:1.1em; line-height:1.2;">{t2}</div>
+                    <div style="display:grid; grid-template-columns:1fr auto 1fr; align-items:center; text-align:center; gap:10px; margin-bottom:10px;">
+                        <div style="{t1_style} font-size:1.1em;">{t1}</div>
+                        <div style="color:#555; font-size:0.8em;">VS</div>
+                        <div style="{t2_style} font-size:1.1em;">{t2}</div>
                     </div>
-                    <div style="text-align:center; background:rgba(0,0,0,0.3); padding:10px; border-radius:8px; border:1px solid rgba(255,255,255,0.05);">
+                    <div style="text-align:center; background:rgba(0,0,0,0.2); padding:8px; border-radius:8px;">
                         {scores_html}
                     </div>
                 </div>
             </div>
-            """, unsafe_allow_html=True)
-            
-            # Delete/Edit Controls (Keep as standard Streamlit buttons)
+            """, unsafe_allow_html=True) # <--- THIS MUST BE PRESENT
+
+            # 3. Admin Controls
             can_edit = False
             if st.session_state.get('is_master_admin') or st.session_state.get('is_admin'):
                 can_edit = True
-            elif st.session_state.get('logged_in_player'):
-                me = st.session_state.logged_in_player
-                players_in_match = [t1p1, t1p2, t2p1, t2p2]
-                if me in [p for p in players_in_match if p]:
-                    can_edit = True
+            elif st.session_state.get('logged_in_player') in [t1p1, t1p2, t2p1, t2p2]:
+                can_edit = True
             
             if can_edit:
-                with st.expander(f"⚙️ Manage Match {row.get('match_id')[:8]}", expanded=False):
-                     if st.button("🗑️ Delete Match", key=f"del_{row.get('match_id')}_{idx}"):
-                         delete_match_from_db(row.get('match_id'))
-                         st.rerun()
-
+                with st.expander(f"⚙️ Manage Match", expanded=False):
+                    if st.button("Delete Match", key=f"del_{row.get('match_id')}_{idx}"):
+                        delete_match_from_db(row.get('match_id'))
+                        st.rerun()
 
 
                          
