@@ -1595,33 +1595,18 @@ with tabs[1]:
                     else: 
                         st.error("Score & Photo required")
 
+
     # --- MATCH HISTORY UI ---
     m_hist = st.session_state.matches_df.copy()
     if not m_hist.empty:
-        # Ensure date column is datetime for sorting
         m_hist['date'] = pd.to_datetime(m_hist['date'], errors='coerce')
         m_hist = m_hist.sort_values('date', ascending=False)
         
         for row in m_hist.itertuples():
-            # Build names
-            t1 = f"{row.team1_player1}/{row.team1_player2}" if (hasattr(row, 'team1_player2') and row.team1_player2) else row.team1_player1
-            t2 = f"{row.team2_player1}/{row.team2_player2}" if (hasattr(row, 'team2_player2') and row.team2_player2) else row.team2_player1
+            # ... (keep your name/score logic the same) ...
             
-            # Build scores
-            scores_parts = [getattr(row, 'set1',''), getattr(row, 'set2',''), getattr(row, 'set3','')]
-            scores = " | ".join([str(s) for s in scores_parts if s and str(s).strip()])
-            
-            img_url = getattr(row, 'match_image_url', '')
-            img_h = f'<div style="display:flex; justify-content:center;"><img src="{get_img_src(img_url)}" style="max-height:400px; width:100%; object-fit:contain; border-radius:8px;"></div>' if img_url else ""
-            
-            # Winner Logic
-            winner_text = ""
-            if row.winner == "Team 1":
-                winner_text = f"{row.team1_player1} & {row.team1_player2}" if (hasattr(row, 'team1_player2') and row.team1_player2) else row.team1_player1
-            elif row.winner == "Team 2":
-                winner_text = f"{row.team2_player1} & {row.team2_player2}" if (hasattr(row, 'team2_player2') and row.team2_player2) else row.team2_player1
-
-            # Render Card
+            # 1. Capture the HTML in a variable or call st.markdown directly
+            # 2. IMPORTANT: Look at the very end of the line below
             st.markdown(f"""
             <div style="background:rgba(255,255,255,0.1); border-radius:12px; margin-bottom:20px; border:1px solid rgba(255,255,255,0.1); overflow:hidden;">
                 {img_h}
@@ -1633,22 +1618,22 @@ with tabs[1]:
                     <div style="margin-top:10px; font-size:0.9em; font-weight:bold; color:#fff500;">🏆 Winner: {winner_text}</div>
                 </div>
             </div>
-            """, unsafe_allow_html=True)
-            
-            # Admin Controls
-            can_edit_match = False
-            if st.session_state.is_admin or st.session_state.is_master_admin:
-                can_edit_match = True
-            elif st.session_state.get('logged_in_player'):
-                me = st.session_state.logged_in_player
-                if me in [row.team1_player1, getattr(row, 'team1_player2', ''), row.team2_player1, getattr(row, 'team2_player2', '')]:
+            """, unsafe_allow_html=True) # <--- THIS MUST BE HERE
+                
+                # Admin Controls
+                can_edit_match = False
+                if st.session_state.is_admin or st.session_state.is_master_admin:
                     can_edit_match = True
-            
-            if can_edit_match:
-                with st.expander(f"Manage Match {row.match_id[:8]}", expanded=False):
-                    if st.button("Delete Match", key=f"del_{row.match_id}"): 
-                        delete_match_from_db(row.match_id)
-                        st.rerun()
+                elif st.session_state.get('logged_in_player'):
+                    me = st.session_state.logged_in_player
+                    if me in [row.team1_player1, getattr(row, 'team1_player2', ''), row.team2_player1, getattr(row, 'team2_player2', '')]:
+                        can_edit_match = True
+                
+                if can_edit_match:
+                    with st.expander(f"Manage Match {row.match_id[:8]}", expanded=False):
+                        if st.button("Delete Match", key=f"del_{row.match_id}"): 
+                            delete_match_from_db(row.match_id)
+                            st.rerun()
                          
 
 with tabs[2]:
