@@ -1147,7 +1147,7 @@ if not check_chapter_selected():
                             '</div>'
                         )
                         st.markdown(card_html, unsafe_allow_html=True)
-                        if st.button("Enter", key=f"ent_{row['id']}", use_container_width=True):
+                        if st.button("Enter", key=f"ent_{row['id']}", width="stretch"):
                             st.session_state.temp_selected_chapter = row.to_dict()
                             st.rerun()
             else:
@@ -1196,12 +1196,13 @@ if not check_chapter_selected():
 
 
 def export_full_database():
-    conn = get_connection()
     try:
-        # Fetch all data from all tables
-        chapters_df = pd.read_sql("SELECT * FROM chapters", conn)
-        players_df = pd.read_sql("SELECT * FROM players", conn)
-        matches_df = pd.read_sql("SELECT * FROM matches", conn)
+        engine = get_sqlalchemy_engine()
+        with engine.connect() as conn:
+            # Fetch all data from all tables
+            chapters_df = pd.read_sql(text("SELECT * FROM chapters"), conn)
+            players_df = pd.read_sql(text("SELECT * FROM players"), conn)
+            matches_df = pd.read_sql(text("SELECT * FROM matches"), conn)
         
         # Create a buffer to hold the ZIP file
         zip_buffer = io.BytesIO()
@@ -1216,8 +1217,6 @@ def export_full_database():
     except Exception as e:
         st.error(f"Export failed: {e}")
         return None
-    finally:
-        conn.close()
 
 
 
@@ -1229,22 +1228,21 @@ if st.session_state.is_master_admin and st.session_state.current_chapter is None
     # 1. Header Actions
     col_header_1, col_header_2 = st.columns([1, 1])
     with col_header_1:
-        if st.button("Logout Master Admin", use_container_width=True): 
+        if st.button("Logout Master Admin", width="stretch"): 
             st.session_state.is_master_admin = False
             st.rerun()
 
     # 2. Database Stats & Connection
-    conn = get_connection()
     try:
-        chapters = pd.read_sql("SELECT * FROM chapters", conn)
-        total_players = pd.read_sql("SELECT COUNT(*) FROM players", conn).iloc[0, 0]
-        total_matches = pd.read_sql("SELECT COUNT(*) FROM matches", conn).iloc[0, 0]
+        engine = get_sqlalchemy_engine()
+        with engine.connect() as conn:
+            chapters = pd.read_sql(text("SELECT * FROM chapters"), conn)
+            total_players = pd.read_sql(text("SELECT COUNT(*) FROM players"), conn).iloc[0, 0]
+            total_matches = pd.read_sql(text("SELECT COUNT(*) FROM matches"), conn).iloc[0, 0]
     except Exception as e:
         st.error(f"Error fetching dashboard stats: {e}")
         chapters = pd.DataFrame()
         total_players, total_matches = 0, 0
-    finally:
-        conn.close()
     
     # 3. Metrics Row
     st.markdown("### System-Wide Statistics")
@@ -1266,7 +1264,7 @@ if st.session_state.is_master_admin and st.session_state.current_chapter is None
             file_name=f"patchmoint_backup_{datetime.now().strftime('%Y%m%d_%H%M')}.zip",
             mime="application/zip",
             type="primary",
-            use_container_width=True
+            width="stretch"
         )
     st.divider()
 
@@ -1287,7 +1285,7 @@ if st.session_state.is_master_admin and st.session_state.current_chapter is None
                 
                 with col_act:
                     # Enter Chapter as Admin
-                    if st.button(f"Enter Admin", key=f"ma_ent_{row['id']}", use_container_width=True):
+                    if st.button(f"Enter Admin", key=f"ma_ent_{row['id']}", width="stretch"):
                         st.session_state.current_chapter = {'id': row['id'], 'name': row['name']}
                         st.session_state.chapter_config = load_chapter_config(row['id'])
                         st.session_state.is_admin = True
@@ -1295,7 +1293,7 @@ if st.session_state.is_master_admin and st.session_state.current_chapter is None
                         st.rerun()
                     
                     # Delete Chapter
-                    if st.button(f"DELETE CHAPTER", key=f"ma_del_{row['id']}", type="primary", use_container_width=True):
+                    if st.button(f"DELETE CHAPTER", key=f"ma_del_{row['id']}", type="primary", width="stretch"):
                         # Assuming delete_chapter_fully is defined in your script
                         delete_chapter_fully(row['id'])
                         st.success(f"Deleted {row['name']}")
