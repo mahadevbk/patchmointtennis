@@ -407,7 +407,8 @@ def save_matches(df):
         return
 
     # Filter for only the current chapter to be safe
-    chapter_id = st.session_state.current_chapter
+    # Correctly access the 'id' from the current_chapter dictionary
+    chapter_id = st.session_state.current_chapter['id']
     df = df[df['chapter_id'] == chapter_id]
     
     if df.empty:
@@ -429,6 +430,7 @@ def save_matches(df):
                 t1p2 = t1p2 if pd.notna(t1p2) and t1p2 else None
                 t2p2 = t2p2 if pd.notna(t2p2) and t2p2 else None
 
+                # Map to correct table columns: set1, set2, set3, match_image_url
                 data_tuples.append((
                     str(row['match_id']),
                     row['date'],
@@ -437,20 +439,22 @@ def save_matches(df):
                     t1p2,
                     row['team2_player1'],
                     t2p2,
-                    int(row['team1_score']),
-                    int(row['team2_score']),
+                    row.get('set1'),
+                    row.get('set2'),
+                    row.get('set3'),
                     row['winner'],
-                    chapter_id,
-                    row.get('submitted_by', 'Unknown')
+                    row.get('match_image_url'),
+                    chapter_id
                 ))
 
+            # Correct SQL Query matching table schema
             query = """
                 INSERT INTO matches (
                     match_id, date, match_type, 
                     team1_player1, team1_player2, 
                     team2_player1, team2_player2, 
-                    team1_score, team2_score, 
-                    winner, chapter_id, submitted_by
+                    set1, set2, set3, 
+                    winner, match_image_url, chapter_id
                 ) VALUES %s
                 ON CONFLICT (match_id) DO NOTHING;
             """
