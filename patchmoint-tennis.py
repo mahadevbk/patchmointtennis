@@ -1113,30 +1113,33 @@ if not check_chapter_selected():
             if 'sport' in chap_df.columns:
                 chap_df = chap_df[chap_df['sport'] == SPORT_TYPE]
             else:
+                # If 'sport' col is missing, we clear df unless it's Tennis (fallback logic)
                 if SPORT_TYPE != "Tennis":
                     chap_df = pd.DataFrame()
 
             if not chap_df.empty:
                 st.subheader("Active Chapters")
                 cols = st.columns(3)
-                for idx, row in chap_df.iterrows():
-                    with cols[idx % 3]:
+                
+                # Use enumerate to ensure idx starts at 0 for clean column distribution
+                for i, (idx, row) in enumerate(chap_df.iterrows()):
+                    with cols[i % 3]:
                         img_container_content = ''
                         if row.get("title_image_url"):
                             img_src = get_img_src(row.get("title_image_url"))
-                            img_container_content = f'<img src="{img_src}">'
+                            img_container_content = f'<img src="{img_src}" style="width:100%">'
                         
                         img_html = (
                             '<div class="card-image-container">'
                             f'{img_container_content}'
                             '</div>'
                         )
+                        
                         title_html = f'<h3>{row["name"]}</h3>'
                         num_players = player_counts.get(row['id'], 0)
                         num_matches = match_counts.get(row['id'], 0)
                         stats_html = f'<p style="margin: 10px 0; color: #aaa; font-size: 0.9em;">{num_players} players / {num_matches} games</p>'
                         
-                        # Use HTML for the top part, but native Streamlit button for selection to avoid page reload
                         card_html = (
                             '<div class="chapter-card" style="height: auto; min-height: 200px; padding-bottom: 10px;">'
                             f'{img_html}'
@@ -1146,12 +1149,17 @@ if not check_chapter_selected():
                             '</div>'
                             '</div>'
                         )
+                        
                         st.markdown(card_html, unsafe_allow_html=True)
-                        if st.button("Enter", key=f"ent_{row['id']}", width="stretch"):
+                        
+                        # The button appears immediately under the HTML card
+                        if st.button("Enter", key=f"ent_{row['id']}", use_container_width=True):
                             st.session_state.temp_selected_chapter = row.to_dict()
                             st.rerun()
             else:
                 st.info(f"No active {SPORT_TYPE} chapters found. Create one below!")
+
+                
         
         with st.expander("Explore Ranking Systems", expanded=False,icon="🏆"):
             st.markdown("""
@@ -1196,13 +1204,12 @@ if not check_chapter_selected():
 
 
 def export_full_database():
+    conn = get_connection()
     try:
-        engine = get_sqlalchemy_engine()
-        with engine.connect() as conn:
-            # Fetch all data from all tables
-            chapters_df = pd.read_sql(text("SELECT * FROM chapters"), conn)
-            players_df = pd.read_sql(text("SELECT * FROM players"), conn)
-            matches_df = pd.read_sql(text("SELECT * FROM matches"), conn)
+        # Fetch all data from all tables
+        chapters_df = pd.read_sql("SELECT * FROM chapters", conn)
+        players_df = pd.read_sql("SELECT * FROM players", conn)
+        matches_df = pd.read_sql("SELECT * FROM matches", conn)
         
         # Create a buffer to hold the ZIP file
         zip_buffer = io.BytesIO()
@@ -1217,6 +1224,8 @@ def export_full_database():
     except Exception as e:
         st.error(f"Export failed: {e}")
         return None
+    finally:
+        conn.close()
 
 
 
@@ -1228,21 +1237,22 @@ if st.session_state.is_master_admin and st.session_state.current_chapter is None
     # 1. Header Actions
     col_header_1, col_header_2 = st.columns([1, 1])
     with col_header_1:
-        if st.button("Logout Master Admin", width="stretch"): 
+        if st.button("Logout Master Admin", use_container_width=True): 
             st.session_state.is_master_admin = False
             st.rerun()
 
     # 2. Database Stats & Connection
+    conn = get_connection()
     try:
-        engine = get_sqlalchemy_engine()
-        with engine.connect() as conn:
-            chapters = pd.read_sql(text("SELECT * FROM chapters"), conn)
-            total_players = pd.read_sql(text("SELECT COUNT(*) FROM players"), conn).iloc[0, 0]
-            total_matches = pd.read_sql(text("SELECT COUNT(*) FROM matches"), conn).iloc[0, 0]
+        chapters = pd.read_sql("SELECT * FROM chapters", conn)
+        total_players = pd.read_sql("SELECT COUNT(*) FROM players", conn).iloc[0, 0]
+        total_matches = pd.read_sql("SELECT COUNT(*) FROM matches", conn).iloc[0, 0]
     except Exception as e:
         st.error(f"Error fetching dashboard stats: {e}")
         chapters = pd.DataFrame()
         total_players, total_matches = 0, 0
+    finally:
+        conn.close()
     
     # 3. Metrics Row
     st.markdown("### System-Wide Statistics")
@@ -1264,7 +1274,7 @@ if st.session_state.is_master_admin and st.session_state.current_chapter is None
             file_name=f"patchmoint_backup_{datetime.now().strftime('%Y%m%d_%H%M')}.zip",
             mime="application/zip",
             type="primary",
-            width="stretch"
+            use_container_width=True
         )
     st.divider()
 
@@ -1285,7 +1295,7 @@ if st.session_state.is_master_admin and st.session_state.current_chapter is None
                 
                 with col_act:
                     # Enter Chapter as Admin
-                    if st.button(f"Enter Admin", key=f"ma_ent_{row['id']}", width="stretch"):
+                    if st.button(f"Enter Admin", key=f"ma_ent_{row['id']}", use_container_width=True):
                         st.session_state.current_chapter = {'id': row['id'], 'name': row['name']}
                         st.session_state.chapter_config = load_chapter_config(row['id'])
                         st.session_state.is_admin = True
@@ -1293,7 +1303,7 @@ if st.session_state.is_master_admin and st.session_state.current_chapter is None
                         st.rerun()
                     
                     # Delete Chapter
-                    if st.button(f"DELETE CHAPTER", key=f"ma_del_{row['id']}", type="primary", width="stretch"):
+                    if st.button(f"DELETE CHAPTER", key=f"ma_del_{row['id']}", type="primary", use_container_width=True):
                         # Assuming delete_chapter_fully is defined in your script
                         delete_chapter_fully(row['id'])
                         st.success(f"Deleted {row['name']}")
