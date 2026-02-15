@@ -1242,16 +1242,16 @@ with tabs[0]:
 
     ranking_descriptions = {
         "Elo (Hybrid)": {
-            "desc": "A dynamic rating system that adjusts based on opponent quality. This hybrid version rewards Game Difference (e.g., a 6-0 win is worth more than 7-6).",
+            "desc": "A dynamic rating system that adjusts based on opponent quality. This hybrid version rewards Game Difference.",
             "scenario": "Best for competitive leagues."
         },
         "Points": {
-            "desc": f"Cumulative system: **{pts_win}** per win, **{pts_loss}** per loss. Rewards activity/grinding.",
+            "desc": f"Cumulative system: **{pts_win}** per win, **{pts_loss}** per loss. Rewards activity.",
             "scenario": "Ideal for social leagues."
         },
         "UTR": {
-            "desc": "Universal Tennis Rating simulation. Focuses on game score margins for technical assessment.",
-            "scenario": "Best for finding equal practice partners."
+            "desc": "Universal Tennis Rating simulation. Focuses on game score margins.",
+            "scenario": "Best for technical assessment."
         }
     }
     
@@ -1274,77 +1274,80 @@ with tabs[0]:
         sys_key = f"Score_{view_system}"
         if sys_key in display_rank_df.columns:
             display_rank_df = display_rank_df.sort_values(by=[sys_key, "Win %"], ascending=[False, False]).reset_index(drop=True)
-            display_rank_df['Rank'] = [f"{i+1}" for i in display_rank_df.index]
+            display_rank_df['Rank_Num'] = [i+1 for i in display_rank_df.index]
             display_rank_df['Score'] = display_rank_df[sys_key]
             display_rank_df['Label'] = view_system
 
         if ranking_view == "Table View":
-            cols = ['Rank', 'Profile', 'Player', 'Score', 'Label', 'Win %', 'Matches', 'Game Diff Avg']
+            cols = ['Rank_Num', 'Profile', 'Player', 'Score', 'Label', 'Win %', 'Matches', 'Game Diff Avg']
             st.dataframe(display_rank_df[cols], hide_index=True, width='stretch', column_config={"Profile": st.column_config.ImageColumn("PIC"), "Win %": st.column_config.ProgressColumn(format="%.1f%%", min_value=0, max_value=100)})
         else:
-            # --- COLORFUL PODIUM SECTION ---
+            # --- OPTIC YELLOW PODIUM ---
             if len(display_rank_df) >= 3:
                 top3 = display_rank_df.head(3).to_dict('records')
-                # Layout: 2nd, 1st, 3rd
                 pod_order = [
-                    {"p": top3[1], "color": "#C0C0C0", "icon": "🥈", "height": "140px"},
-                    {"p": top3[0], "color": "#FFD700", "icon": "🥇", "height": "170px"},
-                    {"p": top3[2], "color": "#CD7F32", "icon": "🥉", "height": "120px"}
+                    {"p": top3[1], "color": "#C0C0C0", "icon": "🥈", "height": "210px"},
+                    {"p": top3[0], "color": "#ccff00", "icon": "🥇", "height": "250px"},
+                    {"p": top3[2], "color": "#CD7F32", "icon": "🥉", "height": "190px"}
                 ]
                 
-                pod_html = '<div style="display:flex; align-items:flex-end; gap:10px; margin-bottom:30px; justify-content:center;">'
+                pod_html = '<div style="display:flex; align-items:flex-end; gap:12px; margin-bottom:40px; justify-content:center;">'
                 for item in pod_order:
                     p = item["p"]
                     pod_html += f"""
-                    <div style="flex:1; background:rgba(255,255,255,0.08); border-radius:15px; border-top:4px solid {item['color']}; padding:10px; text-align:center; height:{item['height']}; display:flex; flex-direction:column; justify-content:center; box-shadow:0 4px 15px rgba(0,0,0,0.3);">
-                        <div style="font-size:1.5em;">{item['icon']}</div>
-                        <img src="{get_img_src(p['Profile'])}" style="width:50px; height:50px; border-radius:50%; border:2px solid {item['color']}; object-fit:cover; margin:0 auto;">
-                        <div style="color:white; font-weight:bold; font-size:0.9em; margin-top:5px; white-space:nowrap; overflow:hidden;">{p['Player']}</div>
-                        <div style="color:{item['color']}; font-weight:bold; font-size:1.1em;">{p['Score']:.1f}</div>
+                    <div style="flex:1; background:rgba(255,255,255,0.08); border-radius:15px; border-bottom:4px solid {item['color']}; padding:15px; text-align:center; height:{item['height']}; display:flex; flex-direction:column; justify-content:center;">
+                        <div style="font-size:1.5em; margin-bottom:5px;">{item['icon']}</div>
+                        <div class="glow-square" style="border-color:{item['color']}; width:80px; height:80px; box-shadow: 0 0 10px {item['color']}66;">
+                            <img src="{get_img_src(p['Profile'])}">
+                        </div>
+                        <div style="color:white; font-weight:bold; font-size:0.9em; margin-top:10px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{p['Player']}</div>
+                        <div style="color:{item['color']}; font-weight:bold; font-size:1.2em;">{p['Score']:.1f}</div>
                     </div>"""
                 pod_html += '</div>'
                 st.markdown(pod_html, unsafe_allow_html=True)
 
-            # --- COLORFUL RANKING LIST ---
+            # --- RANKING PLAYER CARDS ---
             for idx, row in display_rank_df.iterrows():
                 ch = row.get('Last Change', 0)
                 cc = "#00ff88" if ch >= 0 else "#ff4b4b"
                 trend_arrow = "▲" if ch > 0 else "▼" if ch < 0 else "—"
                 cd_html = f"<span style='color:{cc}; font-size:0.8em;'>{trend_arrow} {abs(ch)}</span>" if row['Label'] != 'Points' else ""
-                badges = "".join([f"<span class='badge'>{b}</span>" for b in row.get('Badges', [])])
+                badges_html = "".join([f"<span class='badge'>{b}</span>" for b in row.get('Badges', [])])
 
                 with st.container(border=True):
-                    c1, c2, c3 = st.columns([1.2, 2, 1.8])
+                    c1, c2, c3 = st.columns([1.5, 2, 1.8])
                     
                     with c1:
                         st.markdown(f"""
                         <div style="text-align:center;">
-                            <div style="font-size:1.8em; font-weight:bold; color:#fff500; line-height:1;">#{row['Rank']}</div>
-                            <img src="{get_img_src(row['Profile'])}" style="width:70px; height:70px; border-radius:50%; border:2px solid #fff500; object-fit:cover; margin:8px 0;">
-                            <div style="font-weight:bold; color:white; font-size:1.1em;">{row['Player']}</div>
+                            <div style="font-size:1.8em; font-weight:bold; color:#ccff00; line-height:1;">#{row['Rank_Num']}</div>
+                            <div class="glow-square" style="margin-top:8px;">
+                                <img src="{get_img_src(row['Profile'])}">
+                            </div>
+                            <div style="font-weight:bold; color:white; font-size:1.1em; margin-top:10px;">{row['Player']}</div>
                             <div style="color:#aaa; font-size:0.8em;">{row['Score']:.1f} {cd_html}</div>
-                            <div style="margin-top:5px;">{badges}</div>
+                            <div style="margin-top:5px;">{badges_html}</div>
                         </div>
                         """, unsafe_allow_html=True)
                     
                     with c2:
                         st.markdown(f"""
-                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:10px;">
-                            <div style="border-left:3px solid #00FF88; background:rgba(0,255,136,0.05); padding:8px; border-radius:4px;">
-                                <div style="font-size:0.6em; color:#aaa; text-transform:uppercase;">Win %</div>
-                                <div style="color:#00FF88; font-weight:bold;">{row['Win %']}%</div>
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:20px;">
+                            <div style="border-left:3px solid #00FF88; background:rgba(0,255,136,0.05); padding:10px; border-radius:4px;">
+                                <div style="font-size:0.65em; color:#aaa; text-transform:uppercase;">Win %</div>
+                                <div style="color:#00FF88; font-weight:bold; font-size:1.1em;">{row['Win %']}%</div>
                             </div>
-                            <div style="border-left:3px solid #00C0F2; background:rgba(0,192,242,0.05); padding:8px; border-radius:4px;">
-                                <div style="font-size:0.6em; color:#aaa; text-transform:uppercase;">Record</div>
-                                <div style="color:#00C0F2; font-weight:bold;">{row['Wins']}W-{row['Losses']}L</div>
+                            <div style="border-left:3px solid #00C0F2; background:rgba(0,192,242,0.05); padding:10px; border-radius:4px;">
+                                <div style="font-size:0.65em; color:#aaa; text-transform:uppercase;">Record</div>
+                                <div style="color:#00C0F2; font-weight:bold; font-size:1.1em;">{row['Wins']}W-{row['Losses']}L</div>
                             </div>
-                            <div style="border-left:3px solid #FFA500; background:rgba(255,165,0,0.05); padding:8px; border-radius:4px;">
-                                <div style="font-size:0.6em; color:#aaa; text-transform:uppercase;">GDA</div>
-                                <div style="color:#FFA500; font-weight:bold;">{row.get('Game Diff Avg', 0):+.2f}</div>
+                            <div style="border-left:3px solid #FFA500; background:rgba(255,165,0,0.05); padding:10px; border-radius:4px;">
+                                <div style="font-size:0.65em; color:#aaa; text-transform:uppercase;">GDA</div>
+                                <div style="color:#FFA500; font-weight:bold; font-size:1.1em;">{row.get('Game Diff Avg', 0):+.2f}</div>
                             </div>
-                            <div style="border-left:3px solid #FF4B4B; background:rgba(255,75,75,0.05); padding:8px; border-radius:4px;">
-                                <div style="font-size:0.6em; color:#aaa; text-transform:uppercase;">Clutch</div>
-                                <div style="color:#FF4B4B; font-weight:bold;">{row.get('Clutch Factor', 0)}%</div>
+                            <div style="border-left:3px solid #FF4B4B; background:rgba(255,75,75,0.05); padding:10px; border-radius:4px;">
+                                <div style="font-size:0.65em; color:#aaa; text-transform:uppercase;">Clutch</div>
+                                <div style="color:#FF4B4B; font-weight:bold; font-size:1.1em;">{row.get('Clutch Factor', 0)}%</div>
                             </div>
                         </div>
                         """, unsafe_allow_html=True)
@@ -1354,7 +1357,6 @@ with tabs[0]:
                     
                     with st.expander("📈 Match Performance Trend", expanded=False):
                         st.plotly_chart(plot_player_performance(row['Player'], st.session_state.matches_df), use_container_width=True, key=f"tr_{idx}")
-
 
 
 
