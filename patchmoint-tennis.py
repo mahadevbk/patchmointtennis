@@ -1469,34 +1469,36 @@ with tabs[2]:
                         </div>
                     """, unsafe_allow_html=True)
     
+                
                 with c2:
-                    if has_stats:
-                        badges_html = "".join([f"<span class='badge'>{b}</span>" for b in s.get('Badges', [])])
-                        
-                        # Define local helper for colorful metric boxes
-                        def metric_html(label, value, color):
-                            return f"""
-                            <div style="background: rgba(255,255,255,0.05); padding: 8px; border-radius: 8px; border-left: 3px solid {color};">
-                                <div style="font-size: 0.65em; color: #aaa; text-transform: uppercase; letter-spacing: 1px;">{label}</div>
-                                <div style="font-size: 1.1em; font-weight: bold; color: {color};">{value}</div>
-                            </div>"""
-    
-                        st.markdown(f"""
-                        <div style="background: rgba(255,255,255,0.08); padding: 15px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                                <span style="color: #fff500; font-weight: bold; font-size: 1.1em;">RANK: #{s.get('Rank', 'N/A')}</span>
-                                <div>{badges_html}</div>
-                            </div>
-                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                                {metric_html("Win Rate", f"{s.get('Win %', 0)}%", "#00FF88")}
-                                {metric_html("Elo Rating", s.get('Elo', 0), "#FF4B4B")}
-                                {metric_html("Matches", s.get('Matches', 0), "#00C0F2")}
-                                {metric_html("Record", f"{s.get('Wins', 0)}W-{s.get('Losses', 0)}L", "#FFA500")}
-                            </div>
+                if has_stats:
+                    badges_html = "".join([f"<span class='badge'>{b}</span>" for b in s.get('Badges', [])])
+                    
+                    # Helper function for colorful metric boxes
+                    def metric_html(label, value, color):
+                        return f"""
+                        <div style="background: rgba(255,255,255,0.05); padding: 8px; border-radius: 8px; border-left: 3px solid {color}; margin-bottom: 5px;">
+                            <div style="font-size: 0.65em; color: #aaa; text-transform: uppercase; letter-spacing: 1px;">{label}</div>
+                            <div style="font-size: 1.1em; font-weight: bold; color: {color};">{value}</div>
+                        </div>"""
+
+                    # Render the ranking and statistics grid
+                    st.markdown(f"""
+                    <div style="background: rgba(255,255,255,0.08); padding: 15px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                            <span style="color: #fff500; font-weight: bold; font-size: 1.1em;">RANK: #{s.get('Rank', 'N/A')}</span>
+                            <div>{badges_html}</div>
                         </div>
-                        """, unsafe_allow_html=True)
-                    else:
-                        st.info("No stats recorded yet.")
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                            {metric_html("Win Rate", f"{s.get('Win %', 0)}%", "#00FF88")}
+                            {metric_html("Elo Rating", s.get('Elo', 0), "#FF4B4B")}
+                            {metric_html("Matches", s.get('Matches', 0), "#00C0F2")}
+                            {metric_html("Record", f"{s.get('Wins', 0)}W-{s.get('Losses', 0)}L", "#FFA500")}
+                        </div>
+                    </div>
+                    """, unsafe_allow_html=True) # CRITICAL: This must be present
+                else:
+                    st.info("No stats")
     
                 with c3:
                     if has_stats: 
