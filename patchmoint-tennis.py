@@ -76,13 +76,7 @@ def init_db():
 init_db()
 
 st.markdown("""
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Turret+Road:wght@200;300;400;500;700;800&display=swap" rel="stylesheet">
 <style>
-html, body, [class*="st-"], .stApp, h1, h2, h3, h4, h5, h6 {
-    font-family: 'Turret Road', sans-serif !important;
-}
 .mobile-card {
     background: linear-gradient(135deg, #071a3d 0%, #0c0014 100%);
     border: 1px solid rgba(255, 245, 0, 0.2);
@@ -105,27 +99,37 @@ html, body, [class*="st-"], .stApp, h1, h2, h3, h4, h5, h6 {
 .dot-w { background-color: #00ff88; box-shadow: 0 0 5px #00ff88; }
 .dot-l { background-color: #ff4b4b; }
 .stApp {
-  background-image: url("https://raw.githubusercontent.com/mahadevbk/patchmointtennis/main/assets/background/background.jpg");
-  background-size: cover;
-  background-position: center;
-  background-attachment: fixed;
+  background: linear-gradient(to bottom, #041136, #21000a);
+  background-attachment: scroll;
 }
 @media print {
   html, body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-  body { background-color: #041136 !important; height: 100vh; margin: 0; padding: 0; }
+  body { background: linear-gradient(to bottom, #21000a, #041136) !important; height: 100vh; margin: 0; padding: 0; }
   header, .stToolbar { display: none; }
 }
-[data-testid="stHeader"] {
-    background: black !important;
-    background-image: none !important;
-    border-bottom: 1px solid #333;
+[data-testid="stHeader"] { background: linear-gradient(to top, #041136 , #21000a) !important; }
+.profile-image {
+    width: 80px; height: 80px; object-fit: cover; border: 2px solid #fff500;
+    border-radius: 15px; margin-right: 15px; vertical-align: middle;
+    transition: transform 0.2s; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4), 0 0 15px rgba(255, 245, 0, 0.6);
 }
 .profile-image:hover { transform: scale(1.1); }
+.birthday-banner {
+    background: linear-gradient(45deg, #FFFF00, #EEE8AA); color: #950606; padding: 15px;
+    border-radius: 10px; text-align: center; font-size: 1.2em; font-weight: bold;
+    margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    display: flex; justify-content: center; align-items: center;
+}
+.whatsapp-share, .calendar-share {
+    background-color: #25D366; color: white !important; padding: 5px 10px; border-radius: 5px; 
+    text-decoration: none; font-weight: bold; display: inline-flex; align-items: center;
+    font-size: 0.8em; border: none; cursor: pointer; margin-top: 5px;
+}
+.whatsapp-share img { width: 18px; vertical-align: middle; margin-right: 5px; filter: brightness(0) invert(1); }
 .court-card {
     background: linear-gradient(to bottom, #031827, #07314f); border: 1px solid #fff500;
     border-radius: 10px; padding: 15px; margin: 10px 0; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
     transition: transform 0.2s, box-shadow 0.2s; text-align: center;
-    min-height: 120px; display: flex; flex-direction: column; justify-content: center; align-items: center;
 }
 .court-card:hover { transform: scale(1.05); box-shadow: 0 6px 12px rgba(255, 245, 0, 0.3); }
 .court-card h4 { color: #fff500; margin-bottom: 10px; }
@@ -135,6 +139,8 @@ html, body, [class*="st-"], .stApp, h1, h2, h3, h4, h5, h6 {
     transition: background-color 0.2s;
 }
 .court-card a:hover { background-color: #ffd700; }
+@import url('https://fonts.googleapis.com/css2?family=Offside&display=swap');
+html, body, [class*="st-"], h1, h2, h3, h4, h5, h6 { font-family: 'Offside', sans-serif !important; }
 h1 { font-size: 24px !important; }
 h2 { font-size: 22px !important; }
 h3 { font-size: 16px !important; }
@@ -144,96 +150,22 @@ h3 { font-size: 16px !important; }
 .ranking-row {
     display: block; padding: 15px; margin-bottom: 15px; border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.30) 0%, rgba(255, 255, 255, 0.26) 100%);
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.01) 100%);
     overflow: visible; transition: transform 0.2s;
 }
 .ranking-row:hover { transform: translateY(-2px); border-color: rgba(255, 245, 0, 0.5); }
 .rank-profile-player-group { display: flex; align-items: center; margin-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px; }
 .rank-col { font-size: 2em; font-weight: bold; color: #fff500; margin-right: 15px; min-width: 40px; text-align: center; }
 .player-col { font-size: 1.4em; font-weight: bold; color: #ffffff; flex-grow: 1; }
-.badge { background: #fff500; color: black; padding: 2px 8px; 
-    border-radius: 10px; font-size: 0.75em; font-weight: bold; margin-left: 5px;
-}
-.stat-box {
-    background: rgba(255,255,255,0.30); padding: 15px; border-radius: 10px; 
-    border-left: 4px solid #fff500; margin-bottom: 10px;
-}
-.stat-label { font-size: 0.7em; color: #aaa; text-transform: uppercase; }
-.metric-value { font-size: 1.1em; font-weight: bold; }
+.badge { background: rgba(255, 215, 0, 0.2); color: #ffd700; padding: 2px 6px; border-radius: 4px; font-size: 0.6em; margin-right: 5px; border: 1px solid rgba(255, 215, 0, 0.4); vertical-align: middle; }
+.stat-box { flex: 1; min-width: 100px; text-align: center; padding: 5px; }
+.stat-label { font-size: 0.75em; color: #aaa; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px; }
+.stat-value { font-size: 1.1em; color: #fff; font-weight: bold; }
 .stat-highlight { color: #fff500; }
 [data-testid="stMetric"] > div:nth-of-type(1) { color: #FF7518 !important; }
 .block-container { display: flex; flex-wrap: wrap; justify-content: center; }
 [data-testid="stHorizontalBlock"] { flex: 1 1 100% !important; margin: 10px 0; }
-.chapter-card {
-    background-image: url("https://raw.githubusercontent.com/mahadevbk/patchmointtennis/main/assets/background/cardbg.png") !important;
-    background-size: cover;
-    background-position: center;
-    border: 2px solid #fff500;
-    border-radius: 12px;
-    text-align: center;
-    transition: transform 0.2s, box-shadow 0.2s;
-    box-shadow: 0 0 10px #fff500;
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-    padding: 0;
-    overflow: hidden;
-}
-.chapter-card:hover {
-    transform: translateY(-5px);
-    border-color: #fff500;
-    box-shadow: 0 0 20px #fff500;
-}
-.card-content {
-    padding: 15px;
-    display: flex;
-    flex-direction: column;
-    flex-grow: 1;
-}
-.card-image-container {
-    height: 150px;
-    width: 100%;
-    overflow: hidden;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background-color: rgba(255, 255, 255, 0.30);
-}
-.card-image-container img {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-}
-.chapter-card h3 {
-    color: #fff500;
-    margin-top: 10px;
-    margin-bottom: 10px;
-    font-size: 24px !important; /* Added font-size (16px * 1.5 = 24px) */
-    font-weight: 700;           /* Optional: makes it bold for better visibility */
-}
-.chapter-card p {
-    color: #fff500 !important;
-    font-size: 16px;
-    font-weight: 500;
-    margin-bottom: 15px;
-    opacity: 1; /* Ensures it is fully bright */
-}
-.enter-button {
-    background-color: #fff500;
-    color: #031827;
-    padding: 8px 16px;
-    border-radius: 5px;
-    text-decoration: none;
-    font-weight: bold;
-    display: block;
-    margin-top: auto; /* Pushes button to the bottom */
-    transition: background-color 0.2s;
-    width: 100%;
-    box-sizing: border-box;
-}
-.enter-button:hover {
-    background-color: #ffd700;
-}
+[data-testid="stExpander"] i, [data-testid="stExpander"] span.icon { font-family: 'Material Icons' !important; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -519,27 +451,56 @@ def get_img_src(path_or_url):
 def render_footer():
     st.markdown('<div style="text-align: center; margin-top: 20px; margin-bottom: 20px; color: #888; font-size: 0.8em;">Patch Moint League system is free and Open source. Hosted on GitHub and Powered by Streamlit.</div>', unsafe_allow_html=True)
 
-def create_radar_chart(row):
-    try:
-        win_rate = row.get('Win %', 0)
-        clutch = row.get('Clutch Factor', 0)
-        cons_idx = row.get('Consistency Index', 0)
-        consistency = max(0, 100 - (cons_idx * 15))
-        gda = row.get('Game Diff Avg', 0)
-        dominance = 50 + (gda * 16)
-        dominance = max(0, min(100, dominance))
-        matches = row.get('Matches', 0)
-        experience = min(100, matches * 5)
-        categories = ['Win Rate', 'Consistency', 'Dominance', 'Clutch', 'Experience']
-        values = [win_rate, consistency, dominance, clutch, experience]
-        fig = go.Figure()
-        fig.add_trace(go.Scatterpolar(r=values, theta=categories, fill='toself', name=row['Player'],
-            line=dict(color='#CCFF00'), fillcolor='rgba(204, 255, 0, 0.3)'))
-        fig.update_layout(polar=dict(radialaxis=dict(visible=True, range=[0, 100], showticklabels=False, linecolor='rgba(255,255,255,0.3)'),
-                angularaxis=dict(tickfont=dict(size=10, color='#aaa')), bgcolor='rgba(0,0,0,0)'),
-            paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', margin=dict(l=30, r=30, t=20, b=20), height=220, showlegend=False)
-        return fig
-    except: return None
+def create_radar_chart(player_data):
+    """Generates a small radar chart for player stats."""
+    categories = ['Win %', 'Clutch', 'Consistency', 'GDA', 'Exp']
+    
+    # Normalize stats for visual balance (0-100 scale)
+    # Consistency: Lower is better, so we invert it (0 index = 100 score)
+    consistency_score = max(0, 100 - (player_data.get('Consistency Index', 0) * 10))
+    
+    # GDA: Assume +3.0 is a perfect score
+    gda_score = min(100, max(0, (player_data.get('Game Diff Avg', 0) + 1) * 25))
+    
+    values = [
+        player_data.get('Win %', 0),
+        player_data.get('Clutch Factor', 0),
+        consistency_score,
+        gda_score,
+        min(100, (player_data.get('Matches', 0) / 15) * 100) # Experience cap at 15 matches
+    ]
+    
+    # Close the polygon by repeating the first value
+    values += values[:1]
+    categories += categories[:1]
+
+    fig = go.Figure()
+    fig.add_trace(go.Scatterpolar(
+        r=values,
+        theta=categories,
+        fill='toself',
+        fillcolor='rgba(255, 245, 0, 0.3)',
+        line=dict(color='#fff500', width=2),
+        hoverinfo='r+theta'
+    ))
+
+    fig.update_layout(
+        polar=dict(
+            bgcolor='rgba(0,0,0,0)',
+            radialaxis=dict(visible=False, range=[0, 100]),
+            angularaxis=dict(
+                gridcolor="rgba(255,255,255,0.1)", 
+                linecolor="rgba(255,255,255,0.1)",
+                tickfont=dict(size=9, color="#aaa")
+            )
+        ),
+        showlegend=False,
+        margin=dict(l=25, r=25, t=10, b=10),
+        height=140, # Compact height for mobile cards
+        paper_bgcolor='rgba(0,0,0,0)',
+        plot_bgcolor='rgba(0,0,0,0)',
+    )
+    return fig
 
 # --- Business Logic ---
 def get_valid_scores():
@@ -577,6 +538,12 @@ def generate_match_id(matches_df, match_datetime):
 def get_player_stats_template():
     return {'wins': 0, 'losses': 0, 'matches': 0, 'games_won': 0, 'gd_sum': 0, 'clutch_wins': 0, 'clutch_matches': 0, 'gd_list': [], 'points': 0}
 
+def get_partner_stats_inner_template():
+    return {'wins': 0, 'losses': 0, 'ties': 0, 'matches': 0, 'game_diff_sum': 0}
+
+def get_partner_stats_template():
+    return defaultdict(get_partner_stats_inner_template)
+
 @st.cache_data(show_spinner=False)
 def calculate_rankings(matches_to_rank):
     stats = defaultdict(get_player_stats_template)
@@ -586,6 +553,8 @@ def calculate_rankings(matches_to_rank):
     utr_ratings = {} # Initialize UTR ratings
     last_elo_changes = defaultdict(float) 
     K_FACTOR = 32 
+    
+    perf_breakdown = defaultdict(lambda: {'singles_w': 0, 'singles_m': 0, 'doubles_w': 0, 'doubles_m': 0}) # ADDED
     
     # UTR Constants
     UTR_DEFAULT_RATING = 4.0
@@ -615,6 +584,8 @@ def calculate_rankings(matches_to_rank):
     # Convert to defaultdict after initial population
     elo_ratings = defaultdict(lambda: 1200.0, elo_ratings) 
     utr_ratings = defaultdict(lambda: UTR_DEFAULT_RATING, utr_ratings)
+    
+    partner_stats = defaultdict(get_partner_stats_template) # Added this line
 
     if not matches_to_rank.empty: 
         matches_to_rank = matches_to_rank.sort_values('date')
@@ -658,6 +629,8 @@ def calculate_rankings(matches_to_rank):
         total_match_games = t1_total_games + t2_total_games
         if total_match_games == 0: continue # Avoid division by zero
 
+        match_gd = t1_total_games - t2_total_games # Define match_gd here
+
         t1_elo_avg = sum(elo_ratings[p] for p in t1) / len(t1)
         t2_elo_avg = sum(elo_ratings[p] for p in t2) / len(t2)
         t1_utr_avg = sum(utr_ratings[p] for p in t1) / len(t1)
@@ -691,14 +664,25 @@ def calculate_rankings(matches_to_rank):
                 stats[p]['gd_sum'] += (games_won - (total_games - games_won))
                 stats[p]['gd_list'].append(games_won - (total_games - games_won))
                 if is_clutch: stats[p]['clutch_matches'] += 1
+
+                # Update perf_breakdown
+                if row.match_type == 'Singles':
+                    perf_breakdown[p]['singles_m'] += 1
+                else:
+                    perf_breakdown[p]['doubles_m'] += 1
+                
                 if is_winner:
                     stats[p]['wins'] += 1
                     if is_clutch: stats[p]['clutch_wins'] += 1
-                    current_streaks[p] = max(0, current_streaks[p]) + 1
+                    if row.match_type == 'Singles': perf_breakdown[p]['singles_w'] += 1
+                    else: perf_breakdown[p]['doubles_w'] += 1
+                    if current_streaks[p] < 0: current_streaks[p] = 0 # reset streak if it was negative
+                    current_streaks[p] += 1
                     stats[p]['points'] += pts_win
                 else:
                     stats[p]['losses'] += 1
-                    current_streaks[p] = min(0, current_streaks[p]) - 1
+                    if current_streaks[p] > 0: current_streaks[p] = 0 # reset streak if it was positive
+                    current_streaks[p] -= 1
                     stats[p]['points'] += pts_loss
 
         # Apply updates
@@ -721,54 +705,85 @@ def calculate_rankings(matches_to_rank):
             update_utr(t1, t1_utr_avg, t2_utr_avg, t1_total_games / total_match_games)
             update_utr(t2, t2_utr_avg, t1_utr_avg, t2_total_games / total_match_games)
 
+        # Partner Stats (Original Logic from mmd.py)
+        # Assuming match_type is available in the row
+        if row.match_type in ['Doubles', 'Mixed Doubles'] and len(t1) == 2 and len(t2) == 2:
+            # Determine winner for partner stats
+            p_stats_winner = row.winner
+            
+            for team, code, gd_val in [(t1, 1, match_gd), (t2, 2, -match_gd)]:
+                p1, p2 = team[0], team[1]
+                for a, b in [(p1, p2), (p2, p1)]:
+                    ps = partner_stats[a][b]
+                    ps['matches'] += 1
+                    ps['game_diff_sum'] += gd_val
+                    if p_stats_winner == "Tie": ps['ties'] += 1
+                    elif (p_stats_winner == "Team 1" and code == 1) or (p_stats_winner == "Team 2" and code == 2):
+                        ps['wins'] += 1
+                    else: ps['losses'] += 1
+
+
     rank_data = []
     for p, s in stats.items():
         m_played = s['matches']
         if m_played == 0: continue
         clutch_pct = (s['clutch_wins'] / s['clutch_matches'] * 100) if s['clutch_matches'] > 0 else 0
         consistency = np.std(s['gd_list']) if s['gd_list'] else 0
-        l_date = last_active_dates.get(p, "")
-        if l_date:
-            try: l_date = pd.to_datetime(l_date).strftime("%d %b %y")
-            except: pass
         
-        badges = []
-        streak = current_streaks[p]
-        if streak >= 3: badges.append("🔥 Hot Hand")
-        elif streak <= -3: badges.append("❄️ Cold Snap")
-        if m_played >= 5:
-            if consistency < 1.5: badges.append("🤖 Machine")
-            if clutch_pct > 66 and s['clutch_matches'] >= 3: badges.append("🧊 Clutch")
-            if (s['wins']/m_played) > 0.75: badges.append("🦁 Dominant")
+        # Performance breakdown from mmd.py
+        pb = perf_breakdown[p]
+        s_perf = (pb['singles_w'] / pb['singles_m'] * 100) if pb['singles_m'] > 0 else 0
+        d_perf = (pb['doubles_w'] / pb['doubles_m'] * 100) if pb['doubles_m'] > 0 else 0
 
+        # Recent Trend from mmd.py
+        p_gd_list = s['gd_list'][-5:]
+        trend_html = "".join([f'<span class="trend-dot {"dot-w" if gd > 0 else "dot-l"}"></span>' for gd in p_gd_list])
+
+        badges = []
+        if clutch_pct > 70 and s['clutch_matches'] >= 3: badges.append("🎯 Clutch")
+        if consistency < 2.5 and m_played >= 5: badges.append("📉 Steady")
+        if current_streaks[p] >= 3: badges.append("🔥 Hot")
+        
         score_elo = round(elo_ratings[p], 1)
         current_utr = round(utr_ratings[p], 2) # Use the newly calculated UTR
 
         rank_data.append({
-            "Player": p, "Score": score_elo, "Label": "Elo", "Elo": score_elo, 
-            "Score_Elo (Hybrid)": score_elo, "Score_Points": s['points'], 
-            "Score_UTR": current_utr, "Last Change": last_elo_changes.get(p, 0),
-            "Wins": s['wins'], "Losses": s['losses'], "Games Won": s['games_won'],
-            "Win %": round((s['wins']/m_played)*100, 1), "Matches": m_played, 
-            "Game Diff Avg": round(s['gd_sum']/m_played, 2), "Clutch Factor": round(clutch_pct, 1), 
-            "Consistency Index": round(consistency, 2), "Last Active": l_date if l_date else "N/A",
+            "Player": p, 
+            "Points": s['points'], # Using the chapter configured points
+            "Elo": score_elo,
+            "Last Change": last_elo_changes.get(p, 0), # NEW: Added for UI
+            "Win %": round((s['wins']/m_played)*100, 1),
+            "Recent Trend": trend_html, # Added
+            "Matches": m_played, 
+            "Wins": s['wins'], 
+            "Losses": s['losses'],
+            "Games Won": s['games_won'], 
+            "Game Diff Avg": round(s['gd_sum']/m_played, 2),
+            "Clutch Factor": round(clutch_pct, 1), 
+            "Consistency Index": round(consistency, 2),
+            "Singles Perf": round(s_perf, 1), 
+            "Doubles Perf": round(d_perf, 1), # Added
             "Badges": badges, 
-            #"Profile": pd.Series(players_df.profile_image_url.values, index=players_df.name).to_dict().get(p, "")
             "Profile": players_df.set_index('name')['profile_image_url'].get(p, DEFAULT_AVATAR)
         })
         
     df = pd.DataFrame(rank_data)
+    
     if not df.empty:
+        # Default sort by Elo Hybrid as primary for the main view as in mmd.py
+        df = df.sort_values(
+            by=["Elo", "Win %", "Game Diff Avg", "Player"],
+            ascending=[False, False, False, True]
+        ).reset_index(drop=True)
+        df["Rank"] = [f"🏆 {i+1}" for i in df.index]
+        
+        # Additional sorting for specific ranking system views
         df = df.sort_values(by=["Score_Elo (Hybrid)", "Win %"], ascending=[False, False])
         df["Rank_Elo (Hybrid)"] = range(1, len(df) + 1)
         df = df.sort_values(by=["Score_Points", "Win %"], ascending=[False, False])
         df["Rank_Points"] = range(1, len(df) + 1)
         df = df.sort_values(by=["Score_UTR", "Win %"], ascending=[False, False])
         df["Rank_UTR"] = range(1, len(df) + 1)
-        
-        df = df.sort_values(by=["Score_Elo (Hybrid)", "Win %"], ascending=[False, False]).reset_index(drop=True)
-        df["Rank"] = [f"🏆 {i+1}" for i in df.index]
-    return df
 
 
 @st.cache_data(ttl=300)
@@ -806,6 +821,47 @@ def plot_player_performance(player_name, matches_df):
     fig = px.line(history, x="Match", y="Cumulative Game Diff", hover_data=["Date", "Result"], title=f"Trend - {player_name}", markers=True)
     fig.update_layout(height=300, margin=dict(l=20, r=20, t=40, b=20))
     return fig
+
+def get_birthday_banner(players_df):
+    if players_df.empty:
+        return
+    
+    today = datetime.now()
+    today_str = today.strftime("%d-%m")
+    
+    birthday_people = []
+    for _, row in players_df.iterrows():
+        if pd.notna(row['birthday']) and str(row['birthday']).strip() != "":
+            normalized_bday = "-".join([part.lstrip('0') for part in str(row['birthday']).split('-')])
+            normalized_today = "-".join([part.lstrip('0') for part in today_str.split('-')])
+            
+            if normalized_bday == normalized_today:
+                birthday_people.append(row['name'])
+
+    if birthday_people:
+        names = " & ".join(birthday_people)
+        st.markdown(f"""
+            <div style="
+                background: linear-gradient(90deg, #fff500, #ff0055);
+                padding: 15px;
+                border-radius: 10px;
+                text-align: center;
+                margin-bottom: 25px;
+                animation: pulse 2s infinite;
+                box-shadow: 0 4px 15px rgba(255, 245, 0, 0.4);
+            ">
+                <h2 style="color: white; margin: 0; font-size: 1.5em;">🎂 Happy Birthday, {names}! 🥳</h2>
+                <p style="color: white; margin: 5px 0 0 0; opacity: 0.9;">Wishing you a great day on and off the court!</p>
+            </div>
+            <style>
+            @keyframes pulse {{
+                0% {{ transform: scale(1); }}
+                50% {{ transform: scale(1.02); }}
+                100% {{ transform: scale(1); }}
+            }}
+            </style>
+        """, unsafe_allow_html=True)
+
 
 def load_bookings():
     cid = st.session_state.current_chapter['id'] if st.session_state.current_chapter else None
@@ -1164,8 +1220,9 @@ load_matches()
 load_bookings()
 
 rank_df = pd.DataFrame()
+partner_stats_global = {} # Initialize it here
 if not st.session_state.matches_df.empty:
-    rank_df = calculate_rankings(st.session_state.matches_df)
+    rank_df, partner_stats_global = calculate_rankings(st.session_state.matches_df)
 
 # Fetch chapter metadata
 try:
@@ -1186,6 +1243,9 @@ if not chap_data.empty and chap_data.iloc[0]['title_image_url']:
     st.markdown(f'<img src="{src}" style="height:150px; width:auto; object-fit:contain; margin-bottom:10px;">', unsafe_allow_html=True)
 else:
     st.title(f"{st.session_state.current_chapter['name']}")
+
+# ADDED: Call to birthday banner
+get_birthday_banner(st.session_state.players_df)
 
 
 
@@ -1229,8 +1289,10 @@ with tabs[0]:
     display_rank_df = rank_df.copy() if not rank_df.empty else pd.DataFrame()
 
     if not st.session_state.matches_df.empty:
-        if ranking_view == "Doubles": display_rank_df = calculate_rankings(st.session_state.matches_df[st.session_state.matches_df.match_type.isin(["Doubles", "Mixed Doubles"])])
-        elif ranking_view == "Singles": display_rank_df = calculate_rankings(st.session_state.matches_df[st.session_state.matches_df.match_type == "Singles"])
+        if ranking_view == "Doubles": 
+            display_rank_df, _ = calculate_rankings(st.session_state.matches_df[st.session_state.matches_df.match_type.isin(["Doubles", "Mixed Doubles"])])
+        elif ranking_view == "Singles": 
+            display_rank_df, _ = calculate_rankings(st.session_state.matches_df[st.session_state.matches_df.match_type == "Singles"])
 
     if display_rank_df.empty: st.info("No matches.")
     else:
@@ -1244,24 +1306,136 @@ with tabs[0]:
             cols = ['Rank', 'Profile', 'Player', 'Score', 'Label', 'Win %', 'Matches', 'Game Diff Avg']
             st.dataframe(display_rank_df[cols], hide_index=True, width='stretch', column_config={"Profile": st.column_config.ImageColumn("PIC"), "Win %": st.column_config.ProgressColumn(format="%.1f%%", min_value=0, max_value=100)})
         else:
+
+            # --- A. RESTORED & FIXED: Podium for Top 3 ---
             if len(display_rank_df) >= 3:
                 top3 = display_rank_df.head(3).to_dict('records')
-                podium = [{"p": top3[1], "m": "35px", "c": "#C0C0C0"}, {"p": top3[0], "m": "0px", "c": "#FFD700"}, {"p": top3[2], "m": "45px", "c": "#CD7F32"}]
-                html = ""
-                for i in podium:
-                    p = i["p"]; ch = p.get('Last Change', 0); cc = "#00ff88" if ch >= 0 else "#ff4b4b"; ct = f"({'+' if ch > 0 else ''}{ch})" if p.get('Label') != 'Points' else ""
-                    html += f"""<div style="flex:1; margin-top:{i['m']}; text-align:center; background:rgba(255,255,255,0.30); border-radius:12px; border:1px solid {i['c']}; padding:8px;"><div style="color:{i['c']}; font-weight:bold;">{p['Rank']}</div><img src="{get_img_src(p['Profile'])}" style="width:60px; height:60px; border-radius:50%; object-fit:cover; border:2px solid {i['c']};"><div style="color:#fff500; font-size:0.8em; margin-top:5px;">{p['Player']}</div><div style="color:white; font-weight:bold;">{p['Score']:.1f}</div><div style="color:{cc}; font-size:10px;">{ct}</div></div>"""
-                st.markdown(f'<div style="display:flex; gap:8px; margin-bottom:30px;">{html}</div>', unsafe_allow_html=True)
+                
+                # Define the order: Rank 2 (Left), Rank 1 (Center), Rank 3 (Right)
+                podium_order = [
+                    {"p": top3[1], "margin": "40px"}, # Rank 2
+                    {"p": top3[0], "margin": "0px"},  # Rank 1
+                    {"p": top3[2], "margin": "40px"}  # Rank 3
+                ]
+                
+                podium_html_content = ""
+                for item in podium_order:
+                    player = item["p"]
+                    
+                    # Logic for score and change indicator
+                    ch_val = player.get('Last Change', 0)
+                    ch_color = "#00ff88" if ch_val >= 0 else "#ff4b4b"
+                    ch_txt = f"{'+' if ch_val > 0 else ''}{int(ch_val)}"
+                    use_elo=True
+                    ch_indicator = f"<span style='color: {ch_color}; font-size: 10px;'>({ch_txt})</span>" if use_elo else ""
+                    metric_col = "Elo" if use_elo else "Points"
+                    metric_label = "ELO" if use_elo else "pts"
+                    score_str = f"{int(player[metric_col])}" if use_elo else f"{player[metric_col]:g}"
+                    photo = player["Profile"] if player["Profile"] else "https://via.placeholder.com/100?text=Player"
 
+                    podium_html_content += f"""
+                    <div style="flex: 1; margin-top: {item['margin']}; min-width: 0; display: flex; flex-direction: column;">
+                        <div style="flex-grow: 1; text-align: center; padding: 10px 2px; background: rgba(255,255,255,0.05); border-radius: 12px; border: 1px solid rgba(255,215,0,0.3); box-shadow: 0 4px 10px rgba(0,0,0,0.3);">
+                            <div style="font-size: 1.2em; margin-bottom: 5px; color: #FFD700; font-weight: bold;">{player['Rank']}</div>
+                            <div style="display: flex; justify-content: center; margin-bottom: 5px;">
+                                <img src="{photo}" style="width: clamp(50px, 20vw, 90px); height: clamp(50px, 20vw, 90px); border-radius: 15px; object-fit: cover; border: 2px solid #fff500; box-shadow: 0 0 15px rgba(255,245,0,0.6);">
+                            </div>
+                            <div style="margin: 5px 0; color: #fff500; font-size: 0.9em; font-weight: bold; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 0 2px;">{player['Player']}</div>
+                            <div style="color: white; font-weight: bold; font-size: 0.8em;">{score_str} {metric_label} {ch_indicator}</div>
+                            <div style="color: #aaa; font-size: 0.7em;">{player['Win %']}% Win</div>
+                        </div>
+                    </div>
+                    """
+                
+                # Wrap everything in a single flex container
+                st.markdown(f"""
+                    <div style="display: flex; flex-direction: row; flex-wrap: nowrap; justify-content: center; align-items: flex-start; gap: 8px; margin-bottom: 25px; width: 100%;">
+                        {podium_html_content}
+                    </div>
+                """, unsafe_allow_html=True)
+
+            # --- B. Detailed Player Cards ---
             for idx, row in display_rank_df.iterrows():
                 with st.container(border=True):
-                    c1, c2, c3 = st.columns([1.2, 2, 2])
-                    ch = row.get('Last Change', 0); cc = "#00ff88" if ch >= 0 else "#ff4b4b"; cd = f"<span style='color:{cc};'>({'+' if ch > 0 else ''}{ch})</span>" if row['Label'] != 'Points' else ""
-                    badges = "".join([f"<span class='badge'>{b}</span>" for b in row.get('Badges', [])])
-                    with c1: st.markdown(f"""<div style="text-align:center;"><img src="{get_img_src(row['Profile'])}" style="width:80px; height:80px; border-radius:50%; border:3px solid #CCFF00; object-fit:cover; margin-bottom:10px;"><div style="font-size:1.5em; font-weight:bold; color:#CCFF00;">{row['Rank']}</div><div style="font-size:1.2em; font-weight:bold; color:white;">{row['Player']}</div><div style="font-size:0.8em; color:#aaa;">{row['Label']}: {row['Score']:.1f} {cd}</div><div>{badges}</div></div>""", unsafe_allow_html=True)
-                    with c2: st.markdown(f"""<div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; text-align:center;"><div style="background:rgba(255,255,255,0.30); padding:8px; border-radius:8px;"><div class="stat-label">Win %</div><div style="color:#00ff88;">{row['Win %']}%</div></div><div style="background:rgba(255,255,255,0.30); padding:8px; border-radius:8px;"><div class="stat-label">Record</div><div>{row['Wins']}W - {row['Losses']}L</div></div><div style="background:rgba(255,255,255,0.30); padding:8px; border-radius:8px;"><div class="stat-label">GDA</div><div>{row.get('Game Diff Avg', 0):+.2f}</div></div><div style="background:rgba(255,255,255,0.30); padding:8px; border-radius:8px;"><div class="stat-label">Clutch</div><div>{row.get('Clutch Factor', 0)}%</div></div></div>""", unsafe_allow_html=True)
-                    with c3: st.plotly_chart(create_radar_chart(row), width=300, config={'displayModeBar': False}, key=f"rd_{idx}")
-                    with st.expander("📈 Trend", expanded=False, icon="➡️"): st.plotly_chart(plot_player_performance(row['Player'], st.session_state.matches_df), width=600, key=f"tr_{idx}")
+                    profile_pic = row['Profile'] if row['Profile'] else 'https://via.placeholder.com/100'
+                    trend = row.get('Recent Trend', '')
+                    badges_list = row.get('Badges', [])
+                    badges_html = ' '.join([f'<span title="{b}" style="font-size:16px; margin-left: 5px;">{b.split()[0]}</span>' for b in badges_list])
+                    
+                    # Metric calculation for cards
+                    ch_val = row.get('Last Change', 0)
+                    ch_color = "#00ff88" if ch_val >= 0 else "#ff4b4b"
+                    ch_txt = f"{'+' if ch_val > 0 else ''}{int(ch_val)}"
+                    use_elo=True
+                    ch_indicator = f"<span style='color: {ch_color}; font-size: 11px; margin-left: 5px; font-weight: normal;'>({ch_txt})</span>" if use_elo else ""
+                    metric_col = "Elo" if use_elo else "Points"
+                    metric_label = "ELO" if use_elo else "pts"
+                    score_display = f"{int(row[metric_col])}" if use_elo else f"{row[metric_col]:g}"
+
+                    st.markdown(f"""
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px;">
+                        <div style="display: flex; align-items: center;">
+                            <img src="{profile_pic}" style="width: 110px; height: 110px; border-radius: 12px; margin-right: 15px; object-fit: contain; border: 3px solid #CCFF00; box-shadow: 0 0 15px rgba(204, 255, 0, 0.5);">
+                            <div>
+                                <div style="font-size: 22px; font-weight: bold; color: white; line-height: 1.1;">{row['Player']}</div>
+                                <div style="font-size: 13px; color: #00ff88; margin-top: 5px; font-weight: 500;">{trend}</div>
+                            </div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="background: #CCFF00; color: #041136; font-weight: bold; border-radius: 6px; padding: 4px 10px; font-size: 16px; display: inline-block;">
+                                {row['Rank']}
+                            </div>
+                            <div style="color: #ccc; font-size: 13px; margin-top: 6px; font-weight: bold;">
+                                {score_display} {metric_label} {ch_indicator}
+                            </div>
+                        </div>
+                    </div>
+                    """, unsafe_allow_html=True)
+
+                    # Content Section (Radar + Stats)
+                    col_chart, col_stats = st.columns([1.8, 1])
+                    with col_chart:
+                        if 'create_radar_chart' in globals():
+                            fig = create_radar_chart(row)
+                            fig.update_layout(margin=dict(l=10, r=10, t=10, b=10), height=250)
+                            st.plotly_chart(fig, config={'displayModeBar': False}, use_container_width=True, key=f"radar_{row['Player']}_{idx}")
+                        
+                    with col_stats:
+                        stats_html = f"""
+                            <div style="text-align: right; padding-right: 5px;">
+                                <div style="margin-bottom: 12px;">
+                                    <div style="font-size: 10px; color: #888; letter-spacing: 1px;">WIN RATE</div>
+                                    <div style="font-size: 24px; font-weight: bold; color: #CCFF00;">{row['Win %']}%</div>
+                                </div>
+                                <div style="display: flex; justify-content: flex-end; gap: 15px; margin-bottom: 12px;">
+                                    <div>
+                                        <div style="font-size: 9px; color: #888;">MATCHES</div>
+                                        <div style="font-size: 16px; font-weight: bold; color: #eee;">{row['Matches']}</div>
+                                    </div>
+                                    <div>
+                                        <div style="font-size: 9px; color: #888;">W/L</div>
+                                        <div style="font-size: 16px; font-weight: bold; color: #eee;">{row['Wins']}/{row['Losses']}</div>
+                                    </div>
+                                </div>
+                                <div style="margin-bottom: 12px;">
+                                    <div style="font-size: 10px; color: #888; letter-spacing: 1px;">AVG GDA</div>
+                                    <div style="font-size: 18px; font-weight: bold; color: #eee;">{row.get('Game Diff Avg', 0)}</div>
+                                </div>
+                                <div style="display: flex; justify-content: flex-end; gap: 12px; margin-bottom: 12px;">
+                                    <div>
+                                        <div style="font-size: 9px; color: #888;">CLUTCH</div>
+                                        <div style="font-size: 14px; font-weight: bold; color: #00ff88;">{row.get('Clutch Factor', 0)}%</div>
+                                    </div>
+                                    <div>
+                                        <div style="font-size: 9px; color: #888;">CONSISTENCY</div>
+                                        <div style="font-size: 14px; font-weight: bold; color: #ff4b4b;">{row.get('Consistency Index', 0)}</div>
+                                    </div>
+                                </div>
+                                <div style="margin-top: 8px;">{badges_html}</div>
+                            </div>
+                        """
+                        st.markdown(stats_html, unsafe_allow_html=True)
+
 
 with tabs[1]:
     st.header("Matches")
@@ -1431,17 +1605,18 @@ with tabs[2]:
                         save_players(st.session_state.players_df); st.rerun()
                     if st.button("Delete Player"): delete_player_from_db(sel); st.session_state.players_df = st.session_state.players_df[st.session_state.players_df['name'] != sel]; st.rerun()
 
-    for idx, row in st.session_state.players_df.sort_values("name").iterrows():
+    for idx, row in disp.iterrows():
         p_name = row['name']
         p_stats = rank_df[rank_df['Player'] == p_name] if not rank_df.empty else pd.DataFrame()
         has_stats = not p_stats.empty
         s = p_stats.iloc[0] if has_stats else {}
 
         with st.container():
-            c1, c2, c3 = st.columns([1.2, 2, 2]) # Keep the 3-column layout
+            c1, c2 = st.columns([1, 3])
 
             with c1:
-                img_src = get_img_src(row['profile_image_url']) # Uses remote URL
+                img = row['profile_image_url'] or "https://via.placeholder.com/150"
+                bday_str = f"🎂 {row['dt_birthday'].strftime('%d %b')}" if pd.notna(row['dt_birthday']) else ""
                 st.markdown(f"""
                     <div style="text-align: center;">
                         <div style="
@@ -1456,13 +1631,14 @@ with tabs[2]:
                             overflow: hidden; 
                             margin: 0 auto;
                         ">
-                            <img src="{img_src}" style="
+                            <img src="{img}" style="
                                 max-width: 100%; 
                                 max-height: 100%; 
                                 object-fit: contain;
                             ">
                         </div>
                         <div style="margin-top: 10px; font-weight: bold; font-size: 1.2em;">{p_name}</div>
+                        <div style="color: #ffd700; font-size: 0.85em;">{bday_str}</div>
                     </div>
                 """, unsafe_allow_html=True)
 
@@ -1480,17 +1656,25 @@ with tabs[2]:
                             <div><div class="metric-label">GD Avg</div><div class="metric-value">{s.get('Game Diff Avg', 0)}</div></div>
                             <div><div class="metric-label">Clutch</div><div class="metric-value">{s.get('Clutch Factor', 0)}%</div></div>
                             <div><div class="metric-label">Consistency</div><div class="metric-value">{s.get('Consistency Index', 0)}</div></div>
+                            <div><div class="metric-label">Doubles Perf</div><div class="metric-value" style="color: #00ff00;">{s.get('Doubles Perf', 0)}%</div></div>
+                            <div><div class="metric-label">Singles Perf</div><div class="metric-value" style="color: #00bfff;">{s.get('Singles Perf', 0)}%</div></div>
                             <div><div class="metric-label">Win %</div><div class="metric-value">{s.get('Win %', 0)}%</div></div>
                             <div><div class="metric-label">Record</div><div class="metric-value">{s.get('Wins', 0)}W-{s.get('Losses', 0)}L</div></div>
-                            <div><div class="metric-label">Matches</div><div class="metric-value">{s.get('Matches', 0)}</div></div>
-                            <div><div class="metric-label">Elo</div><div class="metric-value">{s.get('Elo', 0)}</div></div>
                         </div>
                     </div>
                     """, unsafe_allow_html=True)
-                else: st.info("No stats")
-            with c3: # Radar Chart (kept from patchmoint-tennis.py)
-                if has_stats: 
-                    st.plotly_chart(create_radar_chart(s), width=300, config={'displayModeBar': False}, key=f"rp_{idx}")
+                    
+                    with st.expander("Details & Partners", expanded=False, icon="➡️"):
+                        t1, t2 = st.tabs(["Trends", "Partners"])
+                        with t1:
+                            fig = plot_player_performance(p_name, st.session_state.matches_df)
+                            if fig: st.plotly_chart(fig, use_container_width=True, key=f"p_{idx}")
+                        with t2:
+                            if p_name in partner_stats_global:
+                                pstats = sorted(partner_stats_global[p_name].items(), key=lambda item: item[1]['matches'], reverse=True)
+                                for partner, data in pstats:
+                                    wr = (data['wins'] / data['matches'] * 100) if data['matches'] > 0 else 0
+                                    st.text(f"{partner}: {data['wins']}W {data['losses']}L ({data['matches']} matches, {wr:.0f}% WR)")
         st.divider()
 
 with tabs[3]:
