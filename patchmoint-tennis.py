@@ -1562,78 +1562,88 @@ with tabs[1]:
 
                 if st.button("Post Match", key=f"bp_{pk}"):
                     if s1 and (img or not is_img_required):
-                        with st.spinner("Saving match..."):
-                            mid = str(uuid.uuid4())
-                            path = save_remote_image(img, mid, "match") if img else ""
-                            
-                            # Create the new row
-                            new_row = {
-                                "match_id": mid, 
-                                "date": md.strftime('%Y-%m-%d'), 
-                                "match_type": mt, 
-                                "team1_player1": t1p1, "team1_player2": t1p2, 
-                                "team2_player1": t2p1, "team2_player2": t2p2, 
-                                "set1": s1, "set2": s2, "set3": s3, 
-                                "winner": win, "match_image_url": path, 
-                                "chapter_id": st.session_state.current_chapter['id']
-                            }
-                            
-                            # 1. Convert to DataFrame and FORCE date type
-                            new_row_df = pd.DataFrame([new_row])
-                            new_row_df['date'] = pd.to_datetime(new_row_df['date'])
-                            
-                            # 2. Update local state immediately
-                            st.session_state.matches_df = pd.concat([st.session_state.matches_df, new_row_df], ignore_index=True)
-                            
-                            # 3. Save to DB
-                            save_matches(new_row_df) 
-                            
-                            st.session_state.match_post_key += 1
-                            st.success(f"Match Posted Successfully!")
-                            time.sleep(1) # Crucial: gives the DB a moment to settle
-                            st.rerun()
+                        mid = str(uuid.uuid4())
+                        path = save_remote_image(img, mid, "match") if img else ""
+                        
+                        new_row = {
+                            "match_id": mid, 
+                            "date": md.strftime('%Y-%m-%d'), 
+                            "match_type": mt, 
+                            "team1_player1": t1p1, "team1_player2": t1p2, 
+                            "team2_player1": t2p1, "team2_player2": t2p2, 
+                            "set1": s1, "set2": s2, "set3": s3, 
+                            "winner": win, "match_image_url": path, 
+                            "chapter_id": st.session_state.current_chapter['id']
+                        }
+                        
+                        # 1. Update DB first
+                        new_row_df = pd.DataFrame([new_row])
+                        save_matches(new_row_df) 
+                        
+                        # 2. Force local update so it shows up immediately
+                        st.session_state.matches_df = pd.concat([st.session_state.matches_df, new_row_df], ignore_index=True)
+                        
+                        st.session_state.match_post_key += 1
+                        st.success(f"Saved as {mt}")
+                        time.sleep(1) # Give DB time to propagate
+                        st.rerun()
                     else: 
                         st.error("Score & Photo required")
 
-
-    # --- MATCH HISTORY UI ---
+    # --- MATCH HISTORY DISPLAY ---
     m_hist = st.session_state.matches_df.copy()
     if not m_hist.empty:
+        # Sort history by date
         m_hist['date'] = pd.to_datetime(m_hist['date'], errors='coerce')
         m_hist = m_hist.sort_values('date', ascending=False)
         
         for row in m_hist.itertuples():
-            # ... (keep your name/score logic the same) ...
+            # Player labels
+            t1 = f"{row.team1_player1}/{row.team1_player2}" if (hasattr(row, 'team1_player2') and row.team1_player2) else row.team1_player1
+            t2 = f"{row.team2_player1}/{row.team2_player2}" if (hasattr(row, 'team2_player2') and row.team2_player2) else row.team2_player1
             
-            # 1. Capture the HTML in a variable or call st.markdown directly
-            # 2. IMPORTANT: Look at the very end of the line below
+            # Scores string
+            scores = " | ".join([str(s) for s in [getattr(row, 'set1',''), getattr(row, 'set2',''), getattr(row, 'set3','')] if s])
+            
+            # Image handling
+            img_url = getattr(row, 'match_image_url', '')
+            img_h = f'<div style="display:flex; justify-content:center;"><img src="{get_img_src(img_url)}" style="max-height:400px; width:100%; object-fit:contain;"></div>' if img_url else ""
+            
+            # Winner text logic
+            winner_text = ""
+            if row.winner == "Team 1":
+                winner_text = f"{row.team1_player1} & {row.team1_player2}" if (hasattr(row, 'team1_player2') and row.team1_player2) else row.team1_player1
+            elif row.winner == "Team 2":
+                winner_text = f"{row.team2_player1} & {row.team2_player2}" if (hasattr(row, 'team2_player2') and row.team2_player2) else row.team2_player1
+
+            # THE CARD (Rendered as HTML)
             st.markdown(f"""
-            <div style="background:rgba(255,255,255,0.1); border-radius:12px; margin-bottom:20px; border:1px solid rgba(255,255,255,0.1); overflow:hidden;">
+            <div style="background:rgba(255,255,255,0.15); border-radius:12px; margin-bottom:20px; border:1px solid rgba(255,255,255,0.1); overflow:hidden;">
                 {img_h}
                 <div style="padding:15px; text-align:center;">
-                    <div style="color:#aaa; font-size:0.85em;">{row.date.strftime('%d %b %Y') if pd.notnull(row.date) else 'Unknown Date'}</div>
-                    <div style="font-size:1.2em; margin:8px 0; color:white; font-weight:bold;">{t1} <span style="color:#666; font-size:0.8em;">vs</span> {t2}</div>
-                    <div style="font-size:0.8em; color:#CCFF00; margin-bottom:8px; font-weight:bold; letter-spacing:1px; text-transform:uppercase;">{getattr(row, 'match_type', 'MATCH')}</div>
-                    <div style="color:#FF7518; font-size:1.1em; font-weight:bold; background:rgba(0,0,0,0.2); display:inline-block; padding:4px 12px; border-radius:4px;">{scores}</div>
-                    <div style="margin-top:10px; font-size:0.9em; font-weight:bold; color:#fff500;">🏆 Winner: {winner_text}</div>
+                    <div style="color:#888;">{row.date.strftime('%d %b %Y') if pd.notnull(row.date) else ''}</div>
+                    <div style="font-size:1.1em; margin:5px 0; color:white;">{t1} vs {t2}</div>
+                    <div style="font-size:0.85em; color:#CCFF00; margin-bottom:5px; font-weight:bold; letter-spacing:1px; text-transform:uppercase;">{getattr(row, 'match_type', 'Match')}</div>
+                    <div style="color:#FF7518; font-weight:bold;">{scores}</div>
+                    <div style="margin-top:5px; font-weight:bold; color:#fff500;">Winner: {winner_text}</div>
                 </div>
             </div>
-            """, unsafe_allow_html=True) # <--- THIS MUST BE HERE
-                
-                # Admin Controls
-                can_edit_match = False
-                if st.session_state.is_admin or st.session_state.is_master_admin:
+            """, unsafe_allow_html=True) # <--- THIS ENABLES THE HTML
+            
+            # Management logic
+            can_edit_match = False
+            if st.session_state.is_admin or st.session_state.is_master_admin:
+                can_edit_match = True
+            elif st.session_state.get('logged_in_player'):
+                me = st.session_state.logged_in_player
+                if me in [row.team1_player1, getattr(row, 'team1_player2', ''), row.team2_player1, getattr(row, 'team2_player2', '')]:
                     can_edit_match = True
-                elif st.session_state.get('logged_in_player'):
-                    me = st.session_state.logged_in_player
-                    if me in [row.team1_player1, getattr(row, 'team1_player2', ''), row.team2_player1, getattr(row, 'team2_player2', '')]:
-                        can_edit_match = True
-                
-                if can_edit_match:
-                    with st.expander(f"Manage Match {row.match_id[:8]}", expanded=False):
-                        if st.button("Delete Match", key=f"del_{row.match_id}"): 
-                            delete_match_from_db(row.match_id)
-                            st.rerun()
+            
+            if can_edit_match:
+                with st.expander(f"Edit Match {row.match_id[:8]}", expanded=False, icon="➡️"):
+                    if st.button("Delete", key=f"del_{row.match_id}"): 
+                        delete_match_from_db(row.match_id)
+                        st.rerun()
                          
 
 with tabs[2]:
