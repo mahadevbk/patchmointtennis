@@ -1587,55 +1587,38 @@ with tabs[1]:
                         st.error("Score & Photo required")
 
     # --- MATCH HISTORY DISPLAY ---
+   
     m_hist = st.session_state.matches_df.copy()
     if not m_hist.empty:
         m_hist['date'] = pd.to_datetime(m_hist['date'], errors='coerce')
         m_hist = m_hist.sort_values('date', ascending=False)
-        
         for row in m_hist.itertuples():
-            # 1. Prepare Data
-            p1_label = f"{row.team1_player1}/{row.team1_player2}" if (hasattr(row, 'team1_player2') and row.team1_player2) else row.team1_player1
-            p2_label = f"{row.team2_player1}/{row.team2_player2}" if (hasattr(row, 'team2_player2') and row.team2_player2) else row.team2_player1
-            
-            set_scores = " | ".join([str(s) for s in [getattr(row, 'set1',''), getattr(row, 'set2',''), getattr(row, 'set3','')] if s])
+            t1 = f"{row.team1_player1}/{row.team1_player2}" if (hasattr(row, 'team1_player2') and row.team1_player2) else row.team1_player1
+            t2 = f"{row.team2_player1}/{row.team2_player2}" if (hasattr(row, 'team2_player2') and row.team2_player2) else row.team2_player1
+            scores = " | ".join([str(s) for s in [getattr(row, 'set1',''), getattr(row, 'set2',''), getattr(row, 'set3','')] if s])
             
             img_url = getattr(row, 'match_image_url', '')
-            image_html = f'<div style="display:flex; justify-content:center; background:#000;"><img src="{get_img_src(img_url)}" style="max-height:300px; width:100%; object-fit:contain;"></div>' if img_url else ""
+            img_h = f'<div style="display:flex; justify-content:center;"><img src="{get_img_src(img_url)}" style="max-height:400px; width:100%; object-fit:contain;"></div>' if img_url else ""
             
-            winner_val = ""
+            winner_text = ""
             if row.winner == "Team 1":
-                winner_val = f"{row.team1_player1} & {row.team1_player2}" if (hasattr(row, 'team1_player2') and row.team1_player2) else row.team1_player1
+                winner_text = f"{row.team1_player1} & {row.team1_player2}" if (hasattr(row, 'team1_player2') and row.team1_player2) else row.team1_player1
             elif row.winner == "Team 2":
-                winner_val = f"{row.team2_player1} & {row.team2_player2}" if (hasattr(row, 'team2_player2') and row.team2_player2) else row.team2_player1
+                winner_text = f"{row.team2_player1} & {row.team2_player2}" if (hasattr(row, 'team2_player2') and row.team2_player2) else row.team2_player1
 
-            # 2. RENDER CARD - (Ensure no extra spaces before the triple quotes)
-            st.markdown(f"""
-<div style="background:rgba(255,255,255,0.08); border-radius:15px; margin-bottom:20px; border:1px solid rgba(255,255,255,0.1); overflow:hidden;">
-    {image_html}
-    <div style="padding:20px; text-align:center;">
-        <div style="color:#888; font-size:0.8em; margin-bottom:5px;">{row.date.strftime('%d %b %Y') if pd.notnull(row.date) else ''}</div>
-        <div style="font-size:1.2em; font-weight:bold; color:white; margin-bottom:5px;">{p1_label} vs {p2_label}</div>
-        <div style="font-size:0.75em; color:#CCFF00; font-weight:bold; text-transform:uppercase; letter-spacing:1px; margin-bottom:10px;">{getattr(row, 'match_type', 'MATCH')}</div>
-        <div style="background:rgba(0,0,0,0.3); padding:8px; border-radius:8px; display:inline-block; border:1px solid rgba(255,255,255,0.05);">
-            <span style="color:#FF7518; font-weight:bold; font-size:1.1em;">{set_scores}</span>
-        </div>
-        <div style="margin-top:15px; font-size:0.9em; color:#fff500; font-weight:bold;">🏆 Winner: {winner_val}</div>
-    </div>
-</div>
-""", unsafe_allow_html=True)
-
-            # 3. Management Logic
-            can_edit = False
+            st.markdown(f"""<div style="background:rgba(255,255,255,0.30); border-radius:12px; margin-bottom:20px; border:1px solid rgba(255,255,255,0.1); overflow:hidden;">{img_h}<div style="padding:15px; text-align:center;"><div style="color:#888;">{row.date.strftime('%d %b %Y') if pd.notnull(row.date) else ''}</div><div style="font-size:1.1em; margin:5px 0; color:white;">{t1} vs {t2}</div><div style="font-size:0.9em; color:#CCFF00; margin-bottom:5px; font-weight:bold; letter-spacing:1px; text-transform:uppercase;">{getattr(row, 'match_type', '')}</div><div style="color:#FF7518; font-weight:bold;">{scores}</div><div style="margin-top:5px; font-weight:bold; color:#fff500;">Winner: {winner_text}</div></div></div>""", unsafe_allow_html=True)
+            
+            can_edit_match = False
             if st.session_state.is_admin or st.session_state.is_master_admin:
-                can_edit = True
+                can_edit_match = True
             elif st.session_state.get('logged_in_player'):
                 me = st.session_state.logged_in_player
                 if me in [row.team1_player1, getattr(row, 'team1_player2', ''), row.team2_player1, getattr(row, 'team2_player2', '')]:
-                    can_edit = True
+                    can_edit_match = True
             
-            if can_edit:
-                with st.expander(f"⚙️ Manage Match {row.match_id[:8]}", expanded=False):
-                    if st.button("Delete Match Record", key=f"del_m_{row.match_id}"): 
+            if can_edit_match:
+                with st.expander(f"Edit {row.match_id}", expanded=False, icon="➡️"):
+                    if st.button("Delete", key=f"del_{row.match_id}"): 
                         delete_match_from_db(row.match_id)
                         st.rerun()
                          
