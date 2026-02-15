@@ -401,29 +401,65 @@ def load_matches():
     st.session_state.matches_df = fetch_data("matches", cid)
 
 def save_matches(df):
-    cid = st.session_state.current_chapter['id']
-    if cid and not df.empty:
-        conn = get_connection()
-        try:
-            with conn.cursor() as cur:
-                df_clean = df.where(pd.notnull(df), None)
-                records = [tuple(x) for x in df_clean.to_numpy()]
-                cols = ",".join(list(df.columns))
-                
-                # Create the SET part of the UPDATE statement
-                update_cols = ", ".join([f"{col} = EXCLUDED.{col}" for col in df.columns if col != 'match_id'])
-                
-                if records:
-                    query = f"INSERT INTO matches ({cols}) VALUES %s ON CONFLICT (match_id) DO UPDATE SET {update_cols}"
-                    execute_values(cur, query, records)
-                
-                # NEW: Update last_active_date for the chapter
-                cur.execute("UPDATE chapters SET last_active_date = %s WHERE id = %s", (datetime.now().isoformat(), cid))
+    if df.empty:
+        return
+
+    # Filter for only the current chapter to be safe
+    chapter_id = st.session_state.current_chapter
+    df = df[df['chapter_id'] == chapter_id]
+    
+    if df.empty:
+        return
+
+    conn = get_connection()
+    try:
+        with conn.cursor() as cur:
+            # OPTION 1: Safe Insert (Append Only)
+            # This SQL statement inserts rows but does nothing if a row with the same ID already exists.
+            # This prevents duplicates without needing to delete anything.
+            
+            # Prepare the data for insertion
+            data_tuples = []
+            for _, row in df.iterrows():
+                # Ensure we handle NaN/None correctly for SQL
+                t1p2 = row.get('team1_player2')
+                t2p2 = row.get('team2_player2')
+                t1p2 = t1p2 if pd.notna(t1p2) and t1p2 else None
+                t2p2 = t2p2 if pd.notna(t2p2) and t2p2 else None
+
+                data_tuples.append((
+                    str(row['match_id']),
+                    row['date'],
+                    row['match_type'],
+                    row['team1_player1'],
+                    t1p2,
+                    row['team2_player1'],
+                    t2p2,
+                    int(row['team1_score']),
+                    int(row['team2_score']),
+                    row['winner'],
+                    chapter_id,
+                    row.get('submitted_by', 'Unknown')
+                ))
+
+            query = """
+                INSERT INTO matches (
+                    match_id, date, match_type, 
+                    team1_player1, team1_player2, 
+                    team2_player1, team2_player2, 
+                    team1_score, team2_score, 
+                    winner, chapter_id, submitted_by
+                ) VALUES %s
+                ON CONFLICT (match_id) DO NOTHING;
+            """
+            
+            execute_values(cur, query, data_tuples)
             conn.commit()
-        except Exception as e:
-            st.error(f"Save matches error: {e}")
-        finally:
-            conn.close()
+            
+    except Exception as e:
+        st.error(f"Error saving matches: {e}")
+    finally:
+        conn.close()
 
 def delete_match_from_db(match_id):
     try:
