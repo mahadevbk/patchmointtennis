@@ -1355,48 +1355,47 @@ with tabs[0]:
                     with c3:
                         st.plotly_chart(create_radar_chart(row), use_container_width=True, config={'displayModeBar': False}, key=f"rd_{idx}")
                     
-                    # --- CREATIVE PERFORMANCE TREND & POWER BAR ---
-                    with st.expander("🔥 Recent Form & Power Level", expanded=False):
-                        # Filter matches using correct database column names
-                        p_name = row['Player']
-                        m_df = st.session_state.matches_df
-                        player_matches = m_df[
-                            (m_df['team1_player1'] == p_name) | (m_df['team1_player2'] == p_name) |
-                            (m_df['team2_player1'] == p_name) | (m_df['team2_player2'] == p_name)
-                        ].copy()
-                        
-                        if not player_matches.empty:
-                            player_matches['dt'] = pd.to_datetime(player_matches['date'], errors='coerce')
-                            player_matches = player_matches.sort_values('dt', ascending=False).head(5)
+                    # --- DATA DISPLAY BELOW COLUMNS ---
+                    st.divider() # Subtle line separating main stats from form
+                    
+                    p_name = row['Player']
+                    m_df = st.session_state.matches_df
+                    player_matches = m_df[
+                        (m_df['team1_player1'] == p_name) | (m_df['team1_player2'] == p_name) |
+                        (m_df['team2_player1'] == p_name) | (m_df['team2_player2'] == p_name)
+                    ].copy()
+                    
+                    # 1. Recent Form Guide
+                    if not player_matches.empty:
+                        player_matches['dt'] = pd.to_datetime(player_matches['date'], errors='coerce')
+                        player_matches = player_matches.sort_values('dt', ascending=False).head(5)
 
-                            streak_html = '<div style="display:flex; gap:10px; justify-content:center; margin:15px 0;">'
-                            for _, m in player_matches.iterrows():
-                                # Determine if the player was on Team 1 or Team 2
-                                is_t1 = (m['team1_player1'] == p_name or m['team1_player2'] == p_name)
-                                won = (is_t1 and m['winner'] == "Team 1") or (not is_t1 and m['winner'] == "Team 2")
-                                
-                                color = "#00FF88" if won else "#FF4B4B"
-                                label = "W" if won else "L"
-                                streak_html += f'<div style="width:35px; height:35px; border-radius:50%; background:{color}22; border:2px solid {color}; color:{color}; display:flex; justify-content:center; align-items:center; font-weight:bold; box-shadow:0 0 8px {color}44;">{label}</div>'
-                            streak_html += '</div>'
-                            st.markdown(streak_html, unsafe_allow_html=True)
-                        
-                        # 2. Power Level Bar
-                        max_score = display_rank_df['Score'].max() if not display_rank_df.empty else 1
-                        current_score = row['Score']
-                        percent_of_max = min((current_score / max_score) * 100, 100)
-                        
-                        st.markdown(f"""
-                        <div style="margin-top:15px; padding: 0 20px;">
-                            <div style="display:flex; justify-content:space-between; font-size:0.7em; color:#aaa; margin-bottom:5px;">
-                                <span style="letter-spacing:1px;">LEAGUE POWER LEVEL</span>
-                                <span style="color:#ccff00; font-weight:bold;">{percent_of_max:.1f}%</span>
-                            </div>
-                            <div style="width:100%; height:8px; background:rgba(255,255,255,0.1); border-radius:4px; overflow:hidden;">
-                                <div style="width:{percent_of_max}%; height:100%; background:linear-gradient(90deg, #ccff00, #00FF88); border-radius:4px; box-shadow:0 0 10px #ccff0088;"></div>
-                            </div>
+                        streak_html = '<div style="display:flex; gap:12px; justify-content:center; margin-bottom:10px;">'
+                        for _, m in player_matches.iterrows():
+                            is_t1 = (m['team1_player1'] == p_name or m['team1_player2'] == p_name)
+                            won = (is_t1 and m['winner'] == "Team 1") or (not is_t1 and m['winner'] == "Team 2")
+                            color = "#00FF88" if won else "#FF4B4B"
+                            label = "W" if won else "L"
+                            streak_html += f'<div style="width:30px; height:30px; border-radius:50%; background:{color}22; border:2px solid {color}; color:{color}; display:flex; justify-content:center; align-items:center; font-weight:bold; font-size:0.8em; box-shadow:0 0 8px {color}33;">{label}</div>'
+                        streak_html += '</div>'
+                        st.markdown(streak_html, unsafe_allow_html=True)
+                    
+                    # 2. Power Level Bar
+                    max_score = display_rank_df['Score'].max() if not display_rank_df.empty else 1
+                    current_score = row['Score']
+                    percent_of_max = min((current_score / max_score) * 100, 100)
+                    
+                    st.markdown(f"""
+                    <div style="padding: 0 10px 10px 10px;">
+                        <div style="display:flex; justify-content:space-between; font-size:0.65em; color:#aaa; margin-bottom:4px;">
+                            <span style="letter-spacing:1px; font-weight:bold;">PLAYER POTENTIAL / LEAGUE STANDING</span>
+                            <span style="color:#ccff00; font-weight:bold;">{percent_of_max:.1f}%</span>
                         </div>
-                        """, unsafe_allow_html=True)
+                        <div style="width:100%; height:6px; background:rgba(255,255,255,0.05); border-radius:10px; overflow:hidden; border:1px solid rgba(255,255,255,0.1);">
+                            <div style="width:{percent_of_max}%; height:100%; background:linear-gradient(90deg, #ccff00, #00FF88); border-radius:10px; box-shadow:0 0 12px #ccff00aa;"></div>
+                        </div>
+                    </div>
+                    """, unsafe_allow_html=True)
 
 
 
