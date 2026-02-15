@@ -15,6 +15,8 @@ from sqlalchemy import create_engine, text
 from psycopg2.extras import RealDictCursor, execute_values
 from datetime import datetime, timedelta
 from collections import defaultdict
+import io
+import zipfile
 import warnings
 warnings.filterwarnings("ignore", category=UserWarning, module='pandas')
 
@@ -1187,42 +1189,125 @@ if not check_chapter_selected():
     render_footer()
     st.stop()
 
+
+
+def export_full_database():
+    conn = get_connection()
+    try:
+        # Fetch all data from all tables
+        chapters_df = pd.read_sql("SELECT * FROM chapters", conn)
+        players_df = pd.read_sql("SELECT * FROM players", conn)
+        matches_df = pd.read_sql("SELECT * FROM matches", conn)
+        
+        # Create a buffer to hold the ZIP file
+        zip_buffer = io.BytesIO()
+        
+        with zipfile.ZipFile(zip_buffer, "a", zipfile.ZIP_DEFLATED, False) as zip_file:
+            # Write each dataframe to a CSV inside the ZIP
+            zip_file.writestr("chapters_export.csv", chapters_df.to_csv(index=False))
+            zip_file.writestr("players_export.csv", players_df.to_csv(index=False))
+            zip_file.writestr("matches_export.csv", matches_df.to_csv(index=False))
+            
+        return zip_buffer.getvalue()
+    except Exception as e:
+        st.error(f"Export failed: {e}")
+        return None
+    finally:
+        conn.close()
+
+
+
+
 # --- MASTER ADMIN DASHBOARD ---
 if st.session_state.is_master_admin and st.session_state.current_chapter is None:
     st.title("🛡️ Master Admin Dashboard")
-    if st.button("Logout Master Admin"): st.session_state.is_master_admin = False; st.rerun()
     
+    # 1. Header Actions
+    col_header_1, col_header_2 = st.columns([1, 1])
+    with col_header_1:
+        if st.button("Logout Master Admin", use_container_width=True): 
+            st.session_state.is_master_admin = False
+            st.rerun()
+
+    # 2. Database Stats & Connection
     conn = get_connection()
     try:
         chapters = pd.read_sql("SELECT * FROM chapters", conn)
-    except:
+        total_players = pd.read_sql("SELECT COUNT(*) FROM players", conn).iloc[0, 0]
+        total_matches = pd.read_sql("SELECT COUNT(*) FROM matches", conn).iloc[0, 0]
+    except Exception as e:
+        st.error(f"Error fetching dashboard stats: {e}")
         chapters = pd.DataFrame()
-    conn.close()
+        total_players, total_matches = 0, 0
+    finally:
+        conn.close()
     
+    # 3. Metrics Row
+    st.markdown("### System-Wide Statistics")
     c1, c2, c3 = st.columns(3)
     c1.metric("Total Chapters", len(chapters))
-    c2.metric("Total Players", "Unknown") 
-    c3.metric("Total Matches", "Unknown") 
+    c2.metric("Total Players", total_players) 
+    c3.metric("Total Matches", total_matches) 
 
-    st.subheader("All Chapters")
-    st.dataframe(chapters) # Debug view
+    # 4. System Backup Section
+    st.divider()
+    st.subheader("💾 System Backup")
+    st.info("Download a complete snapshot of the database (all chapters, players, and matches) as a ZIP file.")
     
-    for idx, row in chapters.iterrows():
-        with st.container(border=True):
-            col_info, col_act = st.columns([3, 2])
-            with col_info:
-                st.markdown(f"### {row['name']} ({row.get('sport', 'Legacy')})")
-                st.caption(f"ID: {row['id']} | Pass: `{row['admin_password']}`")
-            with col_act:
-                if st.button(f"Enter Admin", key=f"ma_ent_{row['id']}"):
-                    st.session_state.current_chapter = {'id': row['id'], 'name': row['name']}
-                    st.session_state.chapter_config = load_chapter_config(row['id'])
-                    st.session_state.is_admin = True; st.session_state.can_write = True; st.rerun()
-                if st.button(f"DELETE", key=f"ma_del_{row['id']}", type="primary"):
-                    delete_chapter_fully(row['id']); st.rerun()
-            with st.expander(f"Manage Passwords {row['name']}", expanded=False, icon="➡️"):
-                npw = st.text_input("New Admin Pass", key=f"nap_{row['id']}")
-                if st.button("Reset Admin", key=f"rap_{row['id']}"): update_chapter_admin_password(row['id'], npw)
+    zip_data = export_full_database()
+    if zip_data:
+        st.download_button(
+            label="📥 Download Full Database (ZIP)",
+            data=zip_data,
+            file_name=f"patchmoint_backup_{datetime.now().strftime('%Y%m%d_%H%M')}.zip",
+            mime="application/zip",
+            type="primary",
+            use_container_width=True
+        )
+    st.divider()
+
+    # 5. Chapter Management List
+    st.subheader("All Active Chapters")
+    
+    if chapters.empty:
+        st.info("No chapters created yet.")
+    else:
+        for idx, row in chapters.iterrows():
+            with st.container(border=True):
+                col_info, col_act = st.columns([3, 2])
+                
+                with col_info:
+                    st.markdown(f"### {row['name']}")
+                    st.markdown(f"**Sport:** {row.get('sport', 'Tennis')}")
+                    st.caption(f"ID: `{row['id']}` | Admin Pass: `{row['admin_password']}`")
+                
+                with col_act:
+                    # Enter Chapter as Admin
+                    if st.button(f"Enter Admin", key=f"ma_ent_{row['id']}", use_container_width=True):
+                        st.session_state.current_chapter = {'id': row['id'], 'name': row['name']}
+                        st.session_state.chapter_config = load_chapter_config(row['id'])
+                        st.session_state.is_admin = True
+                        st.session_state.can_write = True
+                        st.rerun()
+                    
+                    # Delete Chapter
+                    if st.button(f"DELETE CHAPTER", key=f"ma_del_{row['id']}", type="primary", use_container_width=True):
+                        # Assuming delete_chapter_fully is defined in your script
+                        delete_chapter_fully(row['id'])
+                        st.success(f"Deleted {row['name']}")
+                        st.rerun()
+
+                # Password Reset inside each Chapter card
+                with st.expander(f"Manage Security for {row['name']}", expanded=False):
+                    npw = st.text_input("New Admin Password", key=f"nap_{row['id']}")
+                    if st.button("Update Admin Password", key=f"rap_{row['id']}"):
+                        if npw:
+                            # Assuming update_chapter_admin_password is defined in your script
+                            update_chapter_admin_password(row['id'], npw)
+                            st.success("Password updated!")
+                        else:
+                            st.warning("Enter a password first.")
+
     render_footer()
     st.stop()
 
