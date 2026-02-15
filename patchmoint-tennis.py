@@ -1449,6 +1449,7 @@ with tabs[2]:
                     if st.button("Delete Player"): delete_player_from_db(sel); st.session_state.players_df = st.session_state.players_df[st.session_state.players_df['name'] != sel]; st.rerun()
 
     
+    
     for idx, row in st.session_state.players_df.sort_values("name").iterrows():
             p_name = row['name']
             p_stats = rank_df[rank_df['Player'] == p_name] if not rank_df.empty else pd.DataFrame()
@@ -1456,54 +1457,39 @@ with tabs[2]:
             s = p_stats.iloc[0] if has_stats else {}
     
             with st.container():
-                c1, c2, c3 = st.columns([1.2, 2.2, 1.8]) # Adjusted widths for better fit
+                c1, c2, c3 = st.columns([1.2, 2.2, 1.8])
     
                 with c1:
                     img_src = get_img_src(row['profile_image_url'])
-                    st.markdown(f"""
-                        <div style="text-align: center;">
-                            <div style="width: 120px; height: 120px; background-color: #262626; border-radius: 15px; border: 3px solid #fff500; display: flex; justify-content: center; align-items: center; overflow: hidden; margin: 0 auto;">
-                                <img src="{img_src}" style="max-width: 100%; max-height: 100%; object-fit: contain;">
-                            </div>
-                            <div style="margin-top: 10px; font-weight: bold; font-size: 1.2em; color: white;">{p_name}</div>
-                        </div>
-                    """, unsafe_allow_html=True)
+                    st.markdown(f'<div style="text-align:center;"><div style="width:120px;height:120px;background-color:#262626;border-radius:15px;border:3px solid #fff500;display:flex;justify-content:center;align-items:center;overflow:hidden;margin:0 auto;"><img src="{img_src}" style="max-width:100%;max-height:100%;object-fit:contain;"></div><div style="margin-top:10px;font-weight:bold;font-size:1.2em;color:white;">{p_name}</div></div>', unsafe_allow_html=True)
     
-                
                 with c2:
                     if has_stats:
                         badges_html = "".join([f"<span class='badge'>{b}</span>" for b in s.get('Badges', [])])
                         
-                        # Helper function for colorful metric boxes
-                        def metric_html(label, value, color):
-                            return f"""
-                            <div style="background: rgba(255,255,255,0.05); padding: 8px; border-radius: 8px; border-left: 3px solid {color}; margin-bottom: 5px;">
-                                <div style="font-size: 0.65em; color: #aaa; text-transform: uppercase; letter-spacing: 1px;">{label}</div>
-                                <div style="font-size: 1.1em; font-weight: bold; color: {color};">{value}</div>
-                            </div>"""
+                        # Pre-calculate the values to keep the HTML string clean
+                        wr, elo, mtch, rec = f"{s.get('Win %', 0)}%", s.get('Elo', 0), s.get('Matches', 0), f"{s.get('Wins', 0)}W-{s.get('Losses', 0)}L"
+                        rank_val = s.get('Rank', 'N/A')
     
-                        # Render the ranking and statistics grid
                         st.markdown(f"""
-                        <div style="background: rgba(255,255,255,0.08); padding: 15px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                                <span style="color: #fff500; font-weight: bold; font-size: 1.1em;">RANK: #{s.get('Rank', 'N/A')}</span>
-                                <div>{badges_html}</div>
-                            </div>
-                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                                {metric_html("Win Rate", f"{s.get('Win %', 0)}%", "#00FF88")}
-                                {metric_html("Elo Rating", s.get('Elo', 0), "#FF4B4B")}
-                                {metric_html("Matches", s.get('Matches', 0), "#00C0F2")}
-                                {metric_html("Record", f"{s.get('Wins', 0)}W-{s.get('Losses', 0)}L", "#FFA500")}
-                            </div>
-                        </div>
-                        """, unsafe_allow_html=True) # CRITICAL: This must be present
+    <div style="background:rgba(255,255,255,0.08);padding:15px;border-radius:12px;border:1px solid rgba(255,255,255,0.1);">
+        <div style="display:flex;justify-content:space-between;margin-bottom:12px;">
+            <span style="color:#fff500;font-weight:bold;">RANK: #{rank_val}</span>
+            <div>{badges_html}</div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            <div style="border-left:3px solid #00FF88;padding-left:8px;"><small style="color:#aaa;display:block;font-size:10px;">WIN RATE</small><b style="color:#00FF88;font-size:1.1em;">{wr}</b></div>
+            <div style="border-left:3px solid #FF4B4B;padding-left:8px;"><small style="color:#aaa;display:block;font-size:10px;">ELO</small><b style="color:#FF4B4B;font-size:1.1em;">{elo}</b></div>
+            <div style="border-left:3px solid #00C0F2;padding-left:8px;"><small style="color:#aaa;display:block;font-size:10px;">MATCHES</small><b style="color:#00C0F2;font-size:1.1em;">{mtch}</b></div>
+            <div style="border-left:3px solid #FFA500;padding-left:8px;"><small style="color:#aaa;display:block;font-size:10px;">RECORD</small><b style="color:#FFA500;font-size:1.1em;">{rec}</b></div>
+        </div>
+    </div>""", unsafe_allow_html=True)
                     else:
                         st.info("No stats")
     
                 with c3:
                     if has_stats: 
                         st.plotly_chart(create_radar_chart(s), use_container_width=True, config={'displayModeBar': False}, key=f"rp_{idx}")
-            
             st.divider()
 
 with tabs[3]:
