@@ -1355,7 +1355,7 @@ with tabs[0]:
                     with c3:
                         st.plotly_chart(create_radar_chart(row), use_container_width=True, config={'displayModeBar': False}, key=f"rd_{idx}")
                     
-                    with st.expander("📈 Match Performance Trend", expanded=False):
+                    with st.expander("📈 Match Performance Trend", expanded=False, icon="➡️"):
                         st.plotly_chart(plot_player_performance(row['Player'], st.session_state.matches_df), use_container_width=True, key=f"tr_{idx}")
 
 
