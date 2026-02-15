@@ -1441,14 +1441,16 @@ with tabs[1]:
     st.header("Matches")
     config = st.session_state.chapter_config
     is_img_required = config.get("match_image_required", True)
+
     if st.session_state.can_write:
         with st.expander("➕ Post Result", expanded=False, icon="➡️"):
-            if st.session_state.players_df.empty: st.warning("Add players first.")
+            if st.session_state.players_df.empty:
+                st.warning("Add players first.")
             else:
                 pk = st.session_state.match_post_key
                 pnames = sorted([p for p in st.session_state.players_df["name"].dropna().tolist() if p != "Visitor"])
                 
-                # --- START OF CHANGE ---
+                # --- Match Type Selection ---
                 allowed_raw = config.get("match_types", ["Doubles", "Singles"])
                 ui_opts = []
                 if "Doubles" in allowed_raw or "Mixed Doubles" in allowed_raw: ui_opts.append("Doubles")
@@ -1456,95 +1458,177 @@ with tabs[1]:
                 if not ui_opts: ui_opts = ["Doubles", "Singles"]
                 
                 mt = st.radio("Type", ui_opts, horizontal=True, key=f"mt_{pk}")
-                # --- END OF CHANGE ---
-
                 md = st.date_input("Date", datetime.now(), key=f"md_{pk}")
+                
                 c1, c2 = st.columns(2)
                 if mt == "Doubles":
                     opts = [""] + pnames + ["Visitor"]
-                    t1p1 = c1.selectbox("T1 P1", opts, key=f"1_{pk}"); t1p2 = c1.selectbox("T1 P2", opts, key=f"2_{pk}")
-                    t2p1 = c2.selectbox("T2 P1", opts, key=f"3_{pk}"); t2p2 = c2.selectbox("T2 P2", opts, key=f"4_{pk}")
+                    t1p1 = c1.selectbox("T1 P1", opts, key=f"1_{pk}")
+                    t1p2 = c1.selectbox("T1 P2", opts, key=f"2_{pk}")
+                    t2p1 = c2.selectbox("T2 P1", opts, key=f"3_{pk}")
+                    t2p2 = c2.selectbox("T2 P2", opts, key=f"4_{pk}")
                 else:
                     opts = [""] + pnames
-                    t1p1 = c1.selectbox("P1", opts, key=f"1s_{pk}"); t2p1 = c2.selectbox("P2", opts, key=f"2s_{pk}")
-                    t1p2, t2p2 = "", ""
-                
+                    t1p1 = c1.selectbox("P1", opts, key=f"1s_{pk}")
+                    t2p1 = c2.selectbox("P2", opts, key=f"2s_{pk}")
+                    t1p2, t2p2 = None, None # Must be None for SQL, not ""
+
                 sc1, sc2, sc3 = st.columns(3)
-                s_list = [""] + get_valid_scores()
-                s1 = sc1.selectbox("Set 1", s_list, key=f"s1_{pk}"); s2 = sc2.selectbox("Set 2", s_list, key=f"s2_{pk}"); s3 = sc3.selectbox("Set 3", s_list, key=f"s3_{pk}")
+                # Helper to get valid scores (ensure this function exists in your scope or define list manually)
+                valid_scores = ["6-0", "6-1", "6-2", "6-3", "6-4", "7-5", "7-6", "0-6", "1-6", "2-6", "3-6", "4-6", "5-7", "6-7"] 
+                s_list = [""] + valid_scores
+                
+                s1 = sc1.selectbox("Set 1", s_list, key=f"s1_{pk}")
+                s2 = sc2.selectbox("Set 2", s_list, key=f"s2_{pk}")
+                s3 = sc3.selectbox("Set 3", s_list, key=f"s3_{pk}")
+                
                 win = st.radio("Winner", ["Team 1", "Team 2"], horizontal=True, key=f"w_{pk}")
                 img = st.file_uploader("Photo", type=["jpg", "png"], key=f"im_{pk}")
+                
                 if not is_img_required:
                     st.caption("Photo is optional for this chapter.")
 
                 if st.button("Post Match", key=f"bp_{pk}"):
-                    if s1 and (img or not is_img_required):
-                        mid = generate_match_id(st.session_state.matches_df, datetime.combine(md, datetime.min.time()))
-                        path = save_remote_image(img, mid, "match") if img else ""
+                    # Basic Validation
+                    valid_players = True
+                    if mt == "Doubles":
+                        if not all([t1p1, t1p2, t2p1, t2p2]): valid_players = False
+                    else:
+                        if not all([t1p1, t2p1]): valid_players = False
+                    
+                    if valid_players and s1 and (img or not is_img_required):
+                        # Generate ID
+                        mid = str(uuid.uuid4())
                         
+                        # Handle Image Upload
+                        path = ""
+                        if img:
+                             # Ensure save_remote_image is available
+                             path = save_remote_image(img, mid, "match")
+                        
+                        # Determine Final Match Type (Check for Mixed)
                         final_mt = mt
                         if mt == "Doubles":
-                            # Auto-detect Mixed Doubles
-                            def get_gender_val(pname):
+                            def get_gender(pname):
                                 if not pname or pname == "Visitor": return None
-                                try:
-                                    g_row = st.session_state.players_df[st.session_state.players_df['name'] == pname]
-                                    if not g_row.empty:
-                                        g = g_row.iloc[0]['gender']
-                                        return str(g).lower().strip() if g else None
-                                except: return None
+                                row = st.session_state.players_df[st.session_state.players_df['name'] == pname]
+                                if not row.empty:
+                                    g = row.iloc[0].get('gender')
+                                    return str(g).lower().strip() if g else None
                                 return None
 
-                            g1, g2 = get_gender_val(t1p1), get_gender_val(t1p2)
-                            g3, g4 = get_gender_val(t2p1), get_gender_val(t2p2)
+                            g1, g2 = get_gender(t1p1), get_gender(t1p2)
+                            g3, g4 = get_gender(t2p1), get_gender(t2p2)
 
-                            def is_pair_mixed(ga, gb):
+                            def is_mixed(ga, gb):
                                 if not ga or not gb: return False
-                                s = {ga, gb}
-                                return "male" in s and "female" in s
+                                return {"male", "female"} == {ga, gb}
                             
-                            if is_pair_mixed(g1, g2) and is_pair_mixed(g3, g4):
+                            if is_mixed(g1, g2) and is_mixed(g3, g4):
                                 final_mt = "Mixed Doubles"
 
-                        new_row = {"match_id": mid, "date": md.strftime('%Y-%m-%d'), "match_type": final_mt, "team1_player1": t1p1, "team1_player2": t1p2, "team2_player1": t2p1, "team2_player2": t2p2, "set1": s1, "set2": s2, "set3": s3, "winner": win, "match_image_url": path, "chapter_id": st.session_state.current_chapter['id']}
-                        st.session_state.matches_df = pd.concat([st.session_state.matches_df, pd.DataFrame([new_row])], ignore_index=True)
-                        save_matches(st.session_state.matches_df)
+                        # Create New Row Data
+                        new_row_data = {
+                            "match_id": mid,
+                            "date": md.strftime('%Y-%m-%d'),
+                            "match_type": final_mt,
+                            "team1_player1": t1p1,
+                            "team1_player2": t1p2,
+                            "team2_player1": t2p1,
+                            "team2_player2": t2p2,
+                            "set1": s1,
+                            "set2": s2,
+                            "set3": s3,
+                            "winner": win,
+                            "match_image_url": path,
+                            "chapter_id": st.session_state.current_chapter['id'],
+                            "submitted_by": st.session_state.get('username', 'Unknown')
+                        }
+                        
+                        # 1. Update Session State (Append)
+                        new_row_df = pd.DataFrame([new_row_data])
+                        st.session_state.matches_df = pd.concat([st.session_state.matches_df, new_row_df], ignore_index=True)
+                        
+                        # 2. Save ONLY the new row to DB (Fixes the bug)
+                        save_matches(new_row_df)
+                        
                         st.session_state.match_post_key += 1
-                        st.success(f"Saved as {final_mt}"); st.rerun()
-                    else: st.error("Score & Photo required" if is_img_required else "Score required")
+                        st.success(f"Saved as {final_mt}")
+                        time.sleep(1)
+                        st.rerun()
+                    else:
+                        st.error("Please fill in all players, at least Set 1, and photo (if required).")
 
+    # --- MATCH HISTORY DISPLAY ---
     m_hist = st.session_state.matches_df.copy()
     if not m_hist.empty:
-        m_hist['date'] = pd.to_datetime(m_hist['date']); m_hist = m_hist.sort_values('date', ascending=False)
+        # Convert date to datetime for sorting
+        m_hist['date_dt'] = pd.to_datetime(m_hist['date'], errors='coerce')
+        m_hist = m_hist.sort_values('date_dt', ascending=False)
+        
         for row in m_hist.itertuples():
-            t1 = f"{row.team1_player1}/{row.team1_player2}" if row.team1_player2 else row.team1_player1
-            t2 = f"{row.team2_player1}/{row.team2_player2}" if row.team2_player2 else row.team2_player1
-            scores = " | ".join([s for s in [row.set1, row.set2, row.set3] if s])
-            img_h = f'<div style="display:flex; justify-content:center;"><img src="{get_img_src(row.match_image_url)}" style="max-height:400px; width:100%; object-fit:contain;"></div>' if row.match_image_url else ""
-            winner_text = ""
-            if row.winner == "Team 1":
-                if row.team1_player2: # It's a doubles match
-                    winner_text = f"{row.team1_player1} & {row.team1_player2}"
-                else: # It's a singles match
-                    winner_text = row.team1_player1
-            elif row.winner == "Team 2":
-                if row.team2_player2: # It's a doubles match
-                    winner_text = f"{row.team2_player1} & {row.team2_player2}"
-                else: # It's a singles match
-                    winner_text = row.team2_player1
-
-            st.markdown(f"""<div style="background:rgba(255,255,255,0.30); border-radius:12px; margin-bottom:20px; border:1px solid rgba(255,255,255,0.1); overflow:hidden;">{img_h}<div style="padding:15px; text-align:center;"><div style="color:#888;">{row.date.strftime('%d %b %Y')}</div><div style="font-size:1.1em; margin:5px 0;">{t1} vs {t2}</div><div style="font-size:0.9em; color:#CCFF00; margin-bottom:5px; font-weight:bold; letter-spacing:1px; text-transform:uppercase;">{row.match_type}</div><div style="color:#FF7518; font-weight:bold;">{scores}</div><div style="margin-top:5px; font-weight:bold; color:#fff500;">Winner: {winner_text}</div></div></div>""", unsafe_allow_html=True)
-            can_edit_match = False
-            if st.session_state.is_admin or st.session_state.is_master_admin:
-                can_edit_match = True
-            elif st.session_state.get('logged_in_player'):
-                player_name = st.session_state.logged_in_player
-                if player_name in [row.team1_player1, row.team1_player2, row.team2_player1, row.team2_player2]:
-                    can_edit_match = True
+            # Format Team Names
+            t1 = f"{row.team1_player1} & {row.team1_player2}" if row.team1_player2 else row.team1_player1
+            t2 = f"{row.team2_player1} & {row.team2_player2}" if row.team2_player2 else row.team2_player1
             
-            if can_edit_match:
-                with st.expander(f"Edit {row.match_id}", expanded=False, icon="➡️"):
-                    if st.button("Delete", key=f"del_{row.match_id}"): delete_match_from_db(row.match_id); st.rerun()
+            # Format Scores
+            sets = [s for s in [getattr(row, 'set1', ''), getattr(row, 'set2', ''), getattr(row, 'set3', '')] if s]
+            scores_html = " <span style='color:#666;'>|</span> ".join([f"<span style='color:#fff; font-weight:bold;'>{s}</span>" for s in sets])
+            
+            # Format Image
+            img_url = getattr(row, 'match_image_url', '')
+            img_html = ""
+            if img_url:
+                 src = get_img_src(img_url)
+                 img_html = f"""
+                 <div style="width:100%; height:200px; overflow:hidden; border-bottom:1px solid rgba(255,255,255,0.1);">
+                    <img src="{src}" style="width:100%; height:100%; object-fit:cover;">
+                 </div>"""
+            
+            # Format Winner
+            winner_name = t1 if row.winner == "Team 1" else t2
+            
+            # Render Card
+            st.markdown(f"""
+            <div style="background:rgba(255,255,255,0.05); border-radius:12px; margin-bottom:20px; border:1px solid rgba(255,255,255,0.1); overflow:hidden; box-shadow:0 4px 6px rgba(0,0,0,0.1);">
+                {img_html}
+                <div style="padding:15px;">
+                    <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+                        <span style="font-size:0.8em; color:#ccff00; font-weight:bold; text-transform:uppercase; letter-spacing:1px; border:1px solid #ccff00; padding:2px 6px; border-radius:4px;">{row.match_type}</span>
+                        <span style="font-size:0.8em; color:#aaa;">{pd.to_datetime(row.date).strftime('%d %b %Y')}</span>
+                    </div>
+                    <div style="display:grid; grid-template-columns:1fr auto 1fr; align-items:center; text-align:center; gap:10px; margin-bottom:10px;">
+                        <div style="font-weight:bold; color:{'#00ff88' if row.winner == 'Team 1' else '#fff'}; font-size:1.1em;">{t1}</div>
+                        <div style="color:#666; font-size:0.8em;">VS</div>
+                        <div style="font-weight:bold; color:{'#00ff88' if row.winner == 'Team 2' else '#fff'}; font-size:1.1em;">{t2}</div>
+                    </div>
+                    <div style="text-align:center; background:rgba(0,0,0,0.2); padding:8px; border-radius:8px;">
+                        {scores_html}
+                    </div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            # Delete/Edit Controls
+            can_edit = False
+            # Check Master Admin or Local Admin
+            if st.session_state.get('is_master_admin') or st.session_state.get('is_admin'):
+                can_edit = True
+            # Check if logged in player was in the match
+            elif st.session_state.get('logged_in_player'):
+                me = st.session_state.logged_in_player
+                if me in [row.team1_player1, getattr(row, 'team1_player2', ''), row.team2_player1, getattr(row, 'team2_player2', '')]:
+                    can_edit = True
+            
+            if can_edit:
+                with st.expander(f"Manage Match", expanded=False):
+                     if st.button("🗑️ Delete Match", key=f"del_{row.match_id}"):
+                         delete_match_from_db(row.match_id)
+                         st.rerun()
+
+
+
+                         
 
 with tabs[2]:
     st.header("Player Profile")
