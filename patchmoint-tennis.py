@@ -1357,17 +1357,24 @@ with tabs[0]:
                     
                     # --- CREATIVE PERFORMANCE TREND & POWER BAR ---
                     with st.expander("🔥 Recent Form & Power Level", expanded=False):
-                        # 1. Form Guide (Circles)
-                        player_matches = st.session_state.matches_df[
-                            (st.session_state.matches_df['p1_name'] == row['Player']) | 
-                            (st.session_state.matches_df['p2_name'] == row['Player'])
-                        ].sort_values('timestamp', ascending=False).head(5)
-
+                        # Filter matches using correct database column names
+                        p_name = row['Player']
+                        m_df = st.session_state.matches_df
+                        player_matches = m_df[
+                            (m_df['team1_player1'] == p_name) | (m_df['team1_player2'] == p_name) |
+                            (m_df['team2_player1'] == p_name) | (m_df['team2_player2'] == p_name)
+                        ].copy()
+                        
                         if not player_matches.empty:
+                            player_matches['dt'] = pd.to_datetime(player_matches['date'], errors='coerce')
+                            player_matches = player_matches.sort_values('dt', ascending=False).head(5)
+
                             streak_html = '<div style="display:flex; gap:10px; justify-content:center; margin:15px 0;">'
                             for _, m in player_matches.iterrows():
-                                is_p1 = m['p1_name'] == row['Player']
-                                won = (is_p1 and m['p1_score'] > m['p2_score']) or (not is_p1 and m['p2_score'] > m['p1_score'])
+                                # Determine if the player was on Team 1 or Team 2
+                                is_t1 = (m['team1_player1'] == p_name or m['team1_player2'] == p_name)
+                                won = (is_t1 and m['winner'] == "Team 1") or (not is_t1 and m['winner'] == "Team 2")
+                                
                                 color = "#00FF88" if won else "#FF4B4B"
                                 label = "W" if won else "L"
                                 streak_html += f'<div style="width:35px; height:35px; border-radius:50%; background:{color}22; border:2px solid {color}; color:{color}; display:flex; justify-content:center; align-items:center; font-weight:bold; box-shadow:0 0 8px {color}44;">{label}</div>'
@@ -1375,9 +1382,9 @@ with tabs[0]:
                             st.markdown(streak_html, unsafe_allow_html=True)
                         
                         # 2. Power Level Bar
-                        max_elo = display_rank_df['Score'].max() if not display_rank_df.empty else 1
-                        current_elo = row['Score']
-                        percent_of_max = min((current_elo / max_elo) * 100, 100)
+                        max_score = display_rank_df['Score'].max() if not display_rank_df.empty else 1
+                        current_score = row['Score']
+                        percent_of_max = min((current_score / max_score) * 100, 100)
                         
                         st.markdown(f"""
                         <div style="margin-top:15px; padding: 0 20px;">
@@ -1390,6 +1397,9 @@ with tabs[0]:
                             </div>
                         </div>
                         """, unsafe_allow_html=True)
+
+
+
 
 
 with tabs[1]:
