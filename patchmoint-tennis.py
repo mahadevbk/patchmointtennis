@@ -1448,67 +1448,61 @@ with tabs[2]:
                         save_players(st.session_state.players_df); st.rerun()
                     if st.button("Delete Player"): delete_player_from_db(sel); st.session_state.players_df = st.session_state.players_df[st.session_state.players_df['name'] != sel]; st.rerun()
 
+    
     for idx, row in st.session_state.players_df.sort_values("name").iterrows():
-        p_name = row['name']
-        p_stats = rank_df[rank_df['Player'] == p_name] if not rank_df.empty else pd.DataFrame()
-        has_stats = not p_stats.empty
-        s = p_stats.iloc[0] if has_stats else {}
-
-        with st.container():
-            c1, c2, c3 = st.columns([1.2, 2, 2]) # Keep the 3-column layout
-
-            with c1:
-                img_src = get_img_src(row['profile_image_url']) # Uses remote URL
-                st.markdown(f"""
-                    <div style="text-align: center;">
-                        <div style="
-                            width: 120px; 
-                            height: 120px; 
-                            background-color: #262626; 
-                            border-radius: 15px; 
-                            border: 3px solid #fff500; 
-                            display: flex; 
-                            justify-content: center; 
-                            align-items: center; 
-                            overflow: hidden; 
-                            margin: 0 auto;
-                        ">
-                            <img src="{img_src}" style="
-                                max-width: 100%; 
-                                max-height: 100%; 
-                                object-fit: contain;
-                            ">
-                        </div>
-                        <div style="margin-top: 10px; font-weight: bold; font-size: 1.2em;">{p_name}</div>
-                    </div>
-                """, unsafe_allow_html=True)
-
-            with c2:
-                if has_stats:
-                    badges_html = "".join([f"<span class='badge'>{b}</span>" for b in s.get('Badges', [])])
+            p_name = row['name']
+            p_stats = rank_df[rank_df['Player'] == p_name] if not rank_df.empty else pd.DataFrame()
+            has_stats = not p_stats.empty
+            s = p_stats.iloc[0] if has_stats else {}
+    
+            with st.container():
+                c1, c2, c3 = st.columns([1.2, 2.2, 1.8]) # Adjusted widths for better fit
+    
+                with c1:
+                    img_src = get_img_src(row['profile_image_url'])
                     st.markdown(f"""
-                    <div class="stat-box">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px;">
-                            <span style="color: #fff500; font-weight: bold; font-size: 1.1em;">Rank: {s.get('Rank', 'N/A')}</span>
-                            <div>{badges_html}</div>
+                        <div style="text-align: center;">
+                            <div style="width: 120px; height: 120px; background-color: #262626; border-radius: 15px; border: 3px solid #fff500; display: flex; justify-content: center; align-items: center; overflow: hidden; margin: 0 auto;">
+                                <img src="{img_src}" style="max-width: 100%; max-height: 100%; object-fit: contain;">
+                            </div>
+                            <div style="margin-top: 10px; font-weight: bold; font-size: 1.2em; color: white;">{p_name}</div>
                         </div>
-                        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; text-align: center;">
-                            <div><div class="metric-label">Games Won</div><div class="metric-value">{s.get('Games Won', 0)}</div></div>
-                            <div><div class="metric-label">GD Avg</div><div class="metric-value">{s.get('Game Diff Avg', 0)}</div></div>
-                            <div><div class="metric-label">Clutch</div><div class="metric-value">{s.get('Clutch Factor', 0)}%</div></div>
-                            <div><div class="metric-label">Consistency</div><div class="metric-value">{s.get('Consistency Index', 0)}</div></div>
-                            <div><div class="metric-label">Win %</div><div class="metric-value">{s.get('Win %', 0)}%</div></div>
-                            <div><div class="metric-label">Record</div><div class="metric-value">{s.get('Wins', 0)}W-{s.get('Losses', 0)}L</div></div>
-                            <div><div class="metric-label">Matches</div><div class="metric-value">{s.get('Matches', 0)}</div></div>
-                            <div><div class="metric-label">Elo</div><div class="metric-value">{s.get('Elo', 0)}</div></div>
-                        </div>
-                    </div>
                     """, unsafe_allow_html=True)
-                else: st.info("No stats")
-            with c3: # Radar Chart (kept from patchmoint-tennis.py)
-                if has_stats: 
-                    st.plotly_chart(create_radar_chart(s), width=300, config={'displayModeBar': False}, key=f"rp_{idx}")
-        st.divider()
+    
+                with c2:
+                    if has_stats:
+                        badges_html = "".join([f"<span class='badge'>{b}</span>" for b in s.get('Badges', [])])
+                        
+                        # Define local helper for colorful metric boxes
+                        def metric_html(label, value, color):
+                            return f"""
+                            <div style="background: rgba(255,255,255,0.05); padding: 8px; border-radius: 8px; border-left: 3px solid {color};">
+                                <div style="font-size: 0.65em; color: #aaa; text-transform: uppercase; letter-spacing: 1px;">{label}</div>
+                                <div style="font-size: 1.1em; font-weight: bold; color: {color};">{value}</div>
+                            </div>"""
+    
+                        st.markdown(f"""
+                        <div style="background: rgba(255,255,255,0.08); padding: 15px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                                <span style="color: #fff500; font-weight: bold; font-size: 1.1em;">RANK: #{s.get('Rank', 'N/A')}</span>
+                                <div>{badges_html}</div>
+                            </div>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                                {metric_html("Win Rate", f"{s.get('Win %', 0)}%", "#00FF88")}
+                                {metric_html("Elo Rating", s.get('Elo', 0), "#FF4B4B")}
+                                {metric_html("Matches", s.get('Matches', 0), "#00C0F2")}
+                                {metric_html("Record", f"{s.get('Wins', 0)}W-{s.get('Losses', 0)}L", "#FFA500")}
+                            </div>
+                        </div>
+                        """, unsafe_allow_html=True)
+                    else:
+                        st.info("No stats recorded yet.")
+    
+                with c3:
+                    if has_stats: 
+                        st.plotly_chart(create_radar_chart(s), use_container_width=True, config={'displayModeBar': False}, key=f"rp_{idx}")
+            
+            st.divider()
 
 with tabs[3]:
     st.header("Courts")
