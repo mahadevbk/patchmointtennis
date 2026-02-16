@@ -82,34 +82,6 @@ st.markdown("""
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Turret+Road:wght@200;300;400;500;700;800&display=swap" rel="stylesheet">
 <style>
-<style>
-    /* Target the Streamlit Container and turn it into Glass */
-    [data-testid="stVerticalBlockBorderWrapper"] {
-        background: rgba(255, 255, 255, 0.04) !important;
-        backdrop-filter: blur(12px) !important;
-        -webkit-backdrop-filter: blur(12px) !important;
-        border: 1px solid rgba(255, 255, 255, 0.1) !important;
-        border-radius: 16px !important;
-        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37) !important;
-        padding: 20px !important;
-        margin-bottom: 10px !important;
-    }
-
-    /* Remove the default Streamlit border so it doesn't double up */
-    [data-testid="stVerticalBlockBorderWrapper"] > div {
-        border: none !important;
-    }
-</style>
-.glass-card {
-    background: linear-gradient(145deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 100%);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 15px;
-    padding: 15px;
-    margin-bottom: 20px;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-}
     .glow-square {
             width: 100px; 
             height: 100px;
@@ -1469,6 +1441,7 @@ with tabs[0]:
     view_system = st.radio("Ranking System", active_systems, horizontal=True) if len(active_systems) > 1 else active_systems[0]
     
     # --- Ranking System Explanations ---
+    # This part can be improved by dynamically creating descriptions based on match_type_settings
     pts_desc = "Varies by match type"
     if "match_type_settings" in conf:
         s_pts = conf["match_type_settings"].get("Singles", {})
@@ -1476,9 +1449,18 @@ with tabs[0]:
         pts_desc = f"S:{s_pts.get('win_points',0)}W/{s_pts.get('loss_points',0)}L, D:{d_pts.get('win_points',0)}W/{d_pts.get('loss_points',0)}L"
 
     ranking_descriptions = {
-        "Elo (Hybrid)": {"desc": "A dynamic rating system.", "scenario": "Competitive leagues."},
-        "Points": {"desc": f"Cumulative system ({pts_desc})", "scenario": "Social leagues."},
-        "UTR": {"desc": "Universal Tennis Rating simulation.", "scenario": "Technical assessment."}
+        "Elo (Hybrid)": {
+            "desc": "A dynamic rating system that adjusts based on opponent quality. This hybrid version rewards Game Difference.",
+            "scenario": "Best for competitive leagues."
+        },
+        "Points": {
+            "desc": f"Cumulative system based on match type. ({pts_desc})",
+            "scenario": "Ideal for social leagues."
+        },
+        "UTR": {
+            "desc": "Universal Tennis Rating simulation. Focuses on game score margins.",
+            "scenario": "Best for technical assessment."
+        }
     }
     
     current_desc = ranking_descriptions.get(view_system, {"desc": "Custom ranking system.", "scenario": "General usage."})
@@ -1505,9 +1487,38 @@ with tabs[0]:
             display_rank_df['Label'] = view_system
 
         if ranking_view == "Table View":
-            st.dataframe(display_rank_df, hide_index=True) # Standard table view
+            cols = ['Rank', 'Profile', 'Player', 'Score', 'Label', 'Win %', 'Matches', 'Game Diff Avg', 'Singles Perf', 'Doubles Perf']
+            st.dataframe(display_rank_df[cols], hide_index=True, width='stretch', 
+                         column_config={"Profile": st.column_config.ImageColumn("PIC"), 
+                                        "Win %": st.column_config.ProgressColumn(format="%.1f%%", min_value=0, max_value=100),
+                                        "Singles Perf": st.column_config.ProgressColumn(format="%.1f%%", min_value=0, max_value=100),
+                                        "Doubles Perf": st.column_config.ProgressColumn(format="%.1f%%", min_value=0, max_value=100)})
         else:
-            # --- PLAYER LIST ---
+            # --- OPTIC YELLOW PODIUM ---
+            if len(display_rank_df) >= 3:
+                top3 = display_rank_df.head(3).to_dict('records')
+                pod_order = [
+                    {"p": top3[1], "color": "#C0C0C0", "icon": "🥈", "height": "210px"},
+                    {"p": top3[0], "color": "#ccff00", "icon": "🥇", "height": "250px"},
+                    {"p": top3[2], "color": "#CD7F32", "icon": "🥉", "height": "190px"}
+                ]
+                
+                pod_html = '<div style="display:flex; align-items:flex-end; gap:12px; margin-bottom:40px; justify-content:center;">'
+                for item in pod_order:
+                    p = item["p"]
+                    pod_html += f"""
+                    <div style="flex:1; background:rgba(255,255,255,0.08); border-radius:15px; border-bottom:4px solid {item['color']}; padding:15px; text-align:center; height:{item['height']}; display:flex; flex-direction:column; justify-content:center;">
+                        <div style="font-size:1.5em; margin-bottom:5px;">{item['icon']}</div>
+                        <div class="glow-square" style="border-color:{item['color']}; width:80px; height:80px; box-shadow: 0 0 10px {item['color']}66;">
+                            <img src="{get_img_src(p['Profile'])}">
+                        </div>
+                        <div style="color:white; font-weight:bold; font-size:0.9em; margin-top:10px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{p['Player']}</div>
+                        <div style="color:{item['color']}; font-weight:bold; font-size:1.2em;">{p['Score']:.1f}</div>
+                    </div>"""
+                pod_html += '</div>'
+                st.markdown(pod_html, unsafe_allow_html=True)
+
+            # --- RANKING PLAYER LIST ---
             for idx, row in display_rank_df.iterrows():
                 ch = row.get('Last Change', 0)
                 cc = "#00ff88" if ch >= 0 else "#ff4b4b"
@@ -1515,7 +1526,6 @@ with tabs[0]:
                 cd_html = f"<span style='color:{cc}; font-size:0.8em;'>{trend_arrow} {abs(ch)}</span>" if row['Label'] != 'Points' else ""
                 badges_html = "".join([f"<span class='badge'>{b}</span>" for b in row.get('Badges', [])])
 
-                # This container will now automatically have the Glass Effect via CSS
                 with st.container(border=True):
                     c1, c2, c3 = st.columns([1.5, 2.5, 1.8])
                     
@@ -1534,54 +1544,65 @@ with tabs[0]:
                     
                     with c2:
                         st.markdown(f"""
-                        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-top:15px;">
+                        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-top:15px; align-items: stretch; height:100%;">
                             <div style="border-left:3px solid #00FF88; background:rgba(0,255,136,0.05); padding:8px; border-radius:4px;"><div style="font-size:0.6em; color:#aaa; text-transform:uppercase;">Win %</div><div style="color:#00FF88; font-weight:bold; font-size:1.0em;">{row['Win %']}%</div></div>
                             <div style="border-left:3px solid #00C0F2; background:rgba(0,192,242,0.05); padding:8px; border-radius:4px;"><div style="font-size:0.6em; color:#aaa; text-transform:uppercase;">Record</div><div style="color:#00C0F2; font-weight:bold; font-size:1.0em;">{row['Record']}</div></div>
                             <div style="border-left:3px solid #FF4B4B; background:rgba(255,75,75,0.05); padding:8px; border-radius:4px;"><div style="font-size:0.6em; color:#aaa; text-transform:uppercase;">Clutch</div><div style="color:#FF4B4B; font-weight:bold; font-size:1.0em;">{row.get('Clutch Factor', 0)}%</div></div>
                             <div style="border-left:3px solid #ccff00; background:rgba(204,255,0,0.05); padding:8px; border-radius:4px;"><div style="font-size:0.6em; color:#aaa; text-transform:uppercase;">Points</div><div style="color:#ccff00; font-weight:bold; font-size:1.0em;">{row.get('Points', 0)}</div></div>
                             <div style="border-left:3px solid #FFA500; background:rgba(255,165,0,0.05); padding:8px; border-radius:4px;"><div style="font-size:0.6em; color:#aaa; text-transform:uppercase;">GDA</div><div style="color:#FFA500; font-weight:bold; font-size:1.0em;">{row.get('Game Diff Avg', 0):+.2f}</div></div>
                             <div style="border-left:3px solid #FFFFFF; background:rgba(255,255,255,0.05); padding:8px; border-radius:4px;"><div style="font-size:0.6em; color:#aaa; text-transform:uppercase;">Games Won</div><div style="color:#FFFFFF; font-weight:bold; font-size:1.0em;">{row.get('Games Won', 0)}</div></div>
+                            <div style="border-left:3px solid #9400D3; background:rgba(148,0,211,0.05); padding:8px; border-radius:4px;"><div style="font-size:0.6em; color:#aaa; text-transform:uppercase;">Consistency</div><div style="color:#9400D3; font-weight:bold; font-size:1.0em;">{row.get('Consistency Index', 0):.2f}</div></div>
+                            <div style="border-left:3px solid #32CD32; background:rgba(50,205,50,0.05); padding:8px; border-radius:4px;"><div style="font-size:0.6em; color:#aaa; text-transform:uppercase;">Singles Perf</div><div style="color:#32CD32; font-weight:bold; font-size:1.0em;">{row.get('Singles Perf', 0)}%</div></div>
+                            <div style="border-left:3px solid #1E90FF; background:rgba(30,144,255,0.05); padding:8px; border-radius:4px;"><div style="font-size:0.6em; color:#aaa; text-transform:uppercase;">Doubles Perf</div><div style="color:#1E90FF; font-weight:bold; font-size:1.0em;">{row.get('Doubles Perf', 0)}%</div></div>
                         </div>
                         """, unsafe_allow_html=True)
                     
                     with c3:
                         st.plotly_chart(create_radar_chart(row), use_container_width=True, config={'displayModeBar': False}, key=f"rd_{idx}")
                     
-                    # --- FORM GUIDE & POWER BAR (Now safely inside the container) ---
-                    st.divider() 
+                    # --- DATA DISPLAY BELOW COLUMNS ---
+                    st.divider() # Subtle line separating main stats from form
                     
-                    # 1. Recent Form
                     p_name = row['Player']
                     m_df = st.session_state.matches_df
-                    player_matches = m_df[(m_df['team1_player1'] == p_name) | (m_df['team1_player2'] == p_name) | (m_df['team2_player1'] == p_name) | (m_df['team2_player2'] == p_name)].copy()
+                    player_matches = m_df[
+                        (m_df['team1_player1'] == p_name) | (m_df['team1_player2'] == p_name) |
+                        (m_df['team2_player1'] == p_name) | (m_df['team2_player2'] == p_name)
+                    ].copy()
                     
+                    # 1. Recent Form Guide
                     if not player_matches.empty:
                         player_matches['dt'] = pd.to_datetime(player_matches['date'], errors='coerce')
                         player_matches = player_matches.sort_values('dt', ascending=False).head(5)
+
                         streak_html = '<div style="display:flex; gap:12px; justify-content:center; margin-bottom:10px;">'
                         for _, m in player_matches.iterrows():
                             is_t1 = (m['team1_player1'] == p_name or m['team1_player2'] == p_name)
                             won = (is_t1 and m['winner'] == "Team 1") or (not is_t1 and m['winner'] == "Team 2")
                             color = "#00FF88" if won else "#FF4B4B"
                             label = "W" if won else "L"
-                            streak_html += f'<div style="width:30px; height:30px; border-radius:50%; background:{color}22; border:2px solid {color}; color:{color}; display:flex; justify-content:center; align-items:center; font-weight:bold; font-size:0.8em;">{label}</div>'
+                            streak_html += f'<div style="width:30px; height:30px; border-radius:50%; background:{color}22; border:2px solid {color}; color:{color}; display:flex; justify-content:center; align-items:center; font-weight:bold; font-size:0.8em; box-shadow:0 0 8px {color}33;">{label}</div>'
                         streak_html += '</div>'
                         st.markdown(streak_html, unsafe_allow_html=True)
                     
-                    # 2. Potential Bar
+                    # 2. Power Level Bar
                     max_score = display_rank_df['Score'].max() if not display_rank_df.empty else 1
-                    percent = min((row['Score'] / max_score) * 100, 100)
+                    current_score = row['Score']
+                    percent_of_max = min((current_score / max_score) * 100, 100)
+                    
                     st.markdown(f"""
                     <div style="padding: 0 10px 10px 10px;">
                         <div style="display:flex; justify-content:space-between; font-size:0.65em; color:#aaa; margin-bottom:4px;">
-                            <span>PLAYER POTENTIAL</span>
-                            <span style="color:#ccff00;">{percent:.1f}%</span>
+                            <span style="letter-spacing:1px; font-weight:bold;">PLAYER POTENTIAL / LEAGUE STANDING</span>
+                            <span style="color:#ccff00; font-weight:bold;">{percent_of_max:.1f}%</span>
                         </div>
-                        <div style="width:100%; height:6px; background:rgba(255,255,255,0.1); border-radius:10px;">
-                            <div style="width:{percent}%; height:100%; background:linear-gradient(90deg, #ccff00, #00FF88); border-radius:10px;"></div>
+                        <div style="width:100%; height:6px; background:rgba(255,255,255,0.05); border-radius:10px; overflow:hidden; border:1px solid rgba(255,255,255,0.1);">
+                            <div style="width:{percent_of_max}%; height:100%; background:linear-gradient(90deg, #ccff00, #00FF88); border-radius:10px; box-shadow:0 0 12px #ccff00aa;"></div>
                         </div>
                     </div>
                     """, unsafe_allow_html=True)
+
+
 
 
 
