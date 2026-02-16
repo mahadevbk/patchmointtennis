@@ -1688,8 +1688,6 @@ with tabs[1]:
     # --- MATCH HISTORY DISPLAY ---
     m_hist = st.session_state.matches_df.copy()
     if not m_hist.empty:
-        player_images = st.session_state.players_df.set_index('name')['profile_image_url'].to_dict()
-        
         m_hist['date'] = pd.to_datetime(m_hist['date'], errors='coerce')
         m_hist = m_hist.sort_values('date', ascending=False)
         
@@ -1721,63 +1719,21 @@ with tabs[1]:
 
             # Winner text and colors
             winner_text = "N/A"
-            t1_color, t2_color = "#888", "#888" # Default border color
             if getattr(row, 'winner', '') == "Team 1":
                 winner_text = t1_names
-                t1_color, t2_color = "#00FF88", "#FF4B4B" # Green for winner, Red for loser
             elif getattr(row, 'winner', '') == "Team 2":
                 winner_text = t2_names
-                t1_color, t2_color = "#FF4B4B", "#00FF88"
-
-            # Player Images
-            t1_p1_img = get_img_src(player_images.get(t1_p1, ''))
-            t1_p2_img = get_img_src(player_images.get(t1_p2, ''))
-            t2_p1_img = get_img_src(player_images.get(t2_p1, ''))
-            t2_p2_img = get_img_src(player_images.get(t2_p2, ''))
-            
-            t1_img_html = f'<img src="{t1_p1_img}" style="width:40px; height:40px; border-radius:50%; border:2px solid {t1_color};">'
-            if t1_p2: t1_img_html += f'<img src="{t1_p2_img}" style="width:40px; height:40px; border-radius:50%; border:2px solid {t1_color}; margin-left:-15px;">'
-            
-            t2_img_html = f'<img src="{t2_p1_img}" style="width:40px; height:40px; border-radius:50%; border:2px solid {t2_color};">'
-            if t2_p2: t2_img_html += f'<img src="{t2_p2_img}" style="width:40px; height:40px; border-radius:50%; border:2px solid {t2_color}; margin-left:-15px;">'
 
             scores = " | ".join([str(s) for s in [getattr(row, 'set1',''), getattr(row, 'set2',''), getattr(row, 'set3','')] if s])
             
-            img_url = getattr(row, 'match_image_url', '')
-            img_h = f'<div style="display:flex; justify-content:center; background:rgba(0,0,0,0.3); padding:10px 0;"><img src="{get_img_src(img_url)}" style="max-height:350px; width:auto; object-fit:contain; border-radius:8px;"></div>' if img_url else ""
-            
-            game_diff_color = '#00FF88' if game_diff > 0 else '#FF4B4B' if game_diff < 0 else 'white'
-
             st.markdown(f"""
-            <div style="background:rgba(255,255,255,0.05); border-radius:12px; margin-bottom:20px; border:1px solid rgba(255,255,255,0.2); overflow:hidden; box-shadow: 0 4px 8px rgba(0,0,0,0.3);">
-                {img_h}
-                <div style="padding:15px;">
-                    <div style="text-align:center; color:#888; font-size:0.8em; margin-bottom:15px;">{row.date.strftime('%d %b %Y') if pd.notnull(row.date) else ''} &bull; {getattr(row, 'match_type', '').upper()}</div>
-                    
-                    <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <!-- Team 1 -->
-                        <div style="flex:1; text-align:center;">
-                            <div style="display:flex; justify-content:center; align-items:center; min-height:40px;">{t1_img_html}</div>
-                            <div style="font-weight:bold; color:white; font-size:0.9em; margin-top:5px;">{t1_names}</div>
-                        </div>
-                        
-                        <!-- Score -->
-                        <div style="flex:0.5; text-align:center;">
-                            <div style="font-size:1.4em; font-weight:bold; color:#FF7518;">{scores}</div>
-                        </div>
-
-                        <!-- Team 2 -->
-                        <div style="flex:1; text-align:center;">
-                            <div style="display:flex; justify-content:center; align-items:center; min-height:40px;">{t2_img_html}</div>
-                            <div style="font-weight:bold; color:white; font-size:0.9em; margin-top:5px;">{t2_names}</div>
-                        </div>
-                    </div>
-                    
-                    <div style="background:rgba(0,0,0,0.2); padding:10px; border-radius:8px; text-align:center; margin-top:20px;">
-                        <div style="font-size:1em; font-weight:bold; color:#fff500;">Winner: {winner_text}</div>
-                        <div style="font-size:0.8em; color:#aaa; margin-top:3px;">Game Diff: <span style="color:{game_diff_color}; font-weight:bold;">{game_diff:+}</span></div>
-                    </div>
-                </div>
+            <div style="border: 1px solid white; margin: 10px; padding: 10px; border-radius: 10px;">
+                <p>Date: {row.date.strftime('%d %b %Y') if pd.notnull(row.date) else ''}</p>
+                <p>Match Type: {getattr(row, 'match_type', '').upper()}</p>
+                <p>{t1_names} vs {t2_names}</p>
+                <p>Scores: {scores}</p>
+                <p>Winner: {winner_text}</p>
+                <p>Game Diff: {game_diff:+}</p>
             </div>
             """, unsafe_allow_html=True)
             
