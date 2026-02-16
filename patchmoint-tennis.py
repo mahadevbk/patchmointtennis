@@ -1363,16 +1363,16 @@ if st.session_state.is_master_admin and st.session_state.current_chapter is None
                     if st.session_state.get(delete_key):
                         st.warning(f"Are you sure you want to permanently delete **{row['name']}** and all its data? This cannot be undone.")
                         c1, c2 = st.columns(2)
-                        if c1.button("CONFIRM DELETION", key=f"ma_conf_del_{row['id']}", type="primary", use_container_width=True):
+                        if c1.button("CONFIRM DELETION", key=f"ma_conf_del_{row['id']}", type="primary", width='stretch'):
                             if delete_chapter_fully(row['id']):
                                 st.success(f"Deleted {row['name']}")
                                 st.session_state[delete_key] = False
                                 st.rerun()
-                        if c2.button("Cancel", key=f"ma_canc_del_{row['id']}", use_container_width=True):
+                        if c2.button("Cancel", key=f"ma_canc_del_{row['id']}", width='stretch'):
                             st.session_state[delete_key] = False
                             st.rerun()
                     else:
-                        if st.button(f"DELETE CHAPTER", key=f"ma_del_{row['id']}", type="primary", use_container_width=True):
+                        if st.button(f"DELETE CHAPTER", key=f"ma_del_{row['id']}", type="primary", width='stretch'):
                             st.session_state[delete_key] = True
                             st.rerun()
 
@@ -1558,7 +1558,7 @@ with tabs[0]:
                         """, unsafe_allow_html=True)
                     
                     with c3:
-                        st.plotly_chart(create_radar_chart(row), use_container_width=True, config={'displayModeBar': False}, key=f"rd_{idx}")
+                        st.plotly_chart(create_radar_chart(row), width='stretch', config={'displayModeBar': False}, key=f"rd_{idx}")
                     
                     # --- DATA DISPLAY BELOW COLUMNS ---
                     st.divider() # Subtle line separating main stats from form
@@ -1608,122 +1608,9 @@ with tabs[0]:
 
 with tabs[1]:
     st.header("Matches")
-    
-    # --- Custom CSS for Modern Match Cards ---
-    st.markdown("""
-    <style>
-        .modern-match-card {
-            background: linear-gradient(145deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 100%);
-            border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 16px;
-            margin-bottom: 24px;
-            overflow: hidden;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
-        }
-        .modern-match-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 15px rgba(0,0,0,0.4);
-            border-color: rgba(255, 95, 31, 0.4); /* Orange border on hover */
-        }
-        .mmc-header {
-            display: flex;
-            justify-content: space-between;
-            padding: 12px 20px;
-            background: rgba(0,0,0,0.2);
-            font-size: 0.85em;
-            color: #888;
-            border-bottom: 1px solid rgba(255,255,255,0.05);
-        }
-        .mmc-body {
-            display: flex;
-            align-items: center;
-            padding: 20px 10px; /* Reduced side padding */
-            position: relative;
-        }
-        .mmc-team {
-            flex: 1;
-            text-align: center;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            z-index: 2;
-        }
-        .mmc-avatar {
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            border: 2px solid #444;
-            object-fit: cover;
-            margin-bottom: 8px;
-            background: #222;
-        }
-        .mmc-winner-img {
-            border-color: #FF5F1F; /* Orange border for winner */
-            box-shadow: 0 0 15px rgba(255, 95, 31, 0.4);
-        }
-        .mmc-name {
-            font-weight: bold;
-            font-size: 1.0em;
-            color: #eee;
-            line-height: 1.2;
-        }
-        .mmc-winner-text {
-            color: #FF5F1F; /* Orange text for winner */
-            text-shadow: 0 0 10px rgba(255, 95, 31, 0.2);
-        }
-        .mmc-vs-container {
-            flex: 0 0 140px; /* Wider container for the score */
-            text-align: center;
-            z-index: 2;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-        }
-        .mmc-vs-label {
-            font-size: 0.7em;
-            color: #666;
-            font-weight: bold;
-            margin-bottom: 2px;
-            letter-spacing: 2px;
-        }
-        .mmc-score-main {
-            font-size: 2.2em; /* BIGGER */
-            font-weight: 900;
-            color: #FF5F1F; /* BRIGHT ORANGE */
-            letter-spacing: 1px;
-            line-height: 1.1;
-            text-shadow: 0 0 20px rgba(255, 95, 31, 0.3); /* GLOW */
-            white-space: nowrap;
-        }
-        .mmc-footer {
-            padding: 12px 20px;
-            background: rgba(255,255,255,0.03);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-top: 1px solid rgba(255,255,255,0.05);
-        }
-        .mmc-tag {
-            background: rgba(255, 95, 31, 0.15);
-            color: #FF5F1F;
-            padding: 2px 8px;
-            border-radius: 4px;
-            font-size: 0.75em;
-            font-weight: bold;
-            text-transform: uppercase;
-        }
-        .mmc-stat {
-            color: #aaa;
-            font-size: 0.9em;
-        }
-    </style>
-    """, unsafe_allow_html=True)
-
     config = st.session_state.chapter_config
     is_img_required = config.get("match_image_required", True)
     
-    # --- POST RESULT SECTION ---
     if st.session_state.can_write:
         with st.expander("➕ Post Result", expanded=False, icon="➡️"):
             if st.session_state.players_df.empty: 
@@ -1734,20 +1621,26 @@ with tabs[1]:
                 
                 match_type_settings = config.get("match_type_settings", get_default_config()["match_type_settings"])
                 ui_opts = []
-                if match_type_settings.get("Singles", {}).get("enabled"): ui_opts.append("Singles")
-                if match_type_settings.get("Doubles", {}).get("enabled") or match_type_settings.get("Mixed Doubles", {}).get("enabled"): ui_opts.append("Doubles")
+                if match_type_settings.get("Singles", {}).get("enabled"):
+                    ui_opts.append("Singles")
+                # Group "Doubles" and "Mixed Doubles" under a single "Doubles" UI option
+                if match_type_settings.get("Doubles", {}).get("enabled") or match_type_settings.get("Mixed Doubles", {}).get("enabled"):
+                    ui_opts.append("Doubles")
                 
                 if not ui_opts: 
                     st.warning("No match types enabled in Chapter Settings.")
-                    ui_opts = ["Singles"]
+                    ui_opts = ["Singles"] # Fallback
 
                 mt = st.radio("Type", ui_opts, horizontal=True, key=f"mt_{pk}")
                 
+                # Allow admin to specify if it's a Mixed Doubles match, if applicable
                 is_mixed = False
                 if mt == "Doubles" and match_type_settings.get("Mixed Doubles", {}).get("enabled"):
                     is_mixed = st.checkbox("This is a Mixed Doubles match", key=f"mixed_{pk}")
                 
+                # The actual match_type to be saved
                 final_match_type = "Mixed Doubles" if is_mixed else mt
+
                 md = st.date_input("Date", datetime.now(), key=f"md_{pk}")
                 
                 c1, c2 = st.columns(2)
@@ -1770,153 +1663,63 @@ with tabs[1]:
                     if s1 and (img or not is_img_required):
                         mid = str(uuid.uuid4())
                         path = save_remote_image(img, mid, "match") if img else ""
+                        
                         new_row = {
-                            "match_id": mid, "date": md.strftime('%Y-%m-%d'), "match_type": final_match_type, 
-                            "team1_player1": t1p1, "team1_player2": t1p2, "team2_player1": t2p1, "team2_player2": t2p2, 
-                            "set1": s1, "set2": s2, "set3": s3, "winner": win, "match_image_url": path, 
+                            "match_id": mid, 
+                            "date": md.strftime('%Y-%m-%d'), 
+                            "match_type": final_match_type, 
+                            "team1_player1": t1p1, "team1_player2": t1p2, 
+                            "team2_player1": t2p1, "team2_player2": t2p2, 
+                            "set1": s1, "set2": s2, "set3": s3, 
+                            "winner": win, "match_image_url": path, 
                             "chapter_id": st.session_state.current_chapter['id']
                         }
+                        
+                        # Save and Update State
                         new_row_df = pd.DataFrame([new_row])
                         save_matches(new_row_df) 
                         st.session_state.matches_df = pd.concat([st.session_state.matches_df, new_row_df], ignore_index=True)
+                        
                         st.session_state.match_post_key += 1
                         st.success(f"Saved as {mt}"); time.sleep(1); st.rerun()
-                    else: st.error("Score & Photo required")
+                    else: 
+                        st.error("Score & Photo required")
 
     # --- MATCH HISTORY DISPLAY ---
-    player_imgs = {}
-    if not st.session_state.players_df.empty:
-        for _, p_row in st.session_state.players_df.iterrows():
-            player_imgs[p_row['name']] = p_row.get('profile_image_url')
-
+   
     m_hist = st.session_state.matches_df.copy()
     if not m_hist.empty:
         m_hist['date'] = pd.to_datetime(m_hist['date'], errors='coerce')
         m_hist = m_hist.sort_values('date', ascending=False)
-        
         for row in m_hist.itertuples():
-            t1_p1_name = row.team1_player1
-            t1_p2_name = getattr(row, 'team1_player2', '')
-            t2_p1_name = row.team2_player1
-            t2_p2_name = getattr(row, 'team2_player2', '')
-
-            def get_p_img(name):
-                return get_img_src(player_imgs.get(name, ''))
-
-            # Stats Calculation
-            t1_games_total = 0
-            t2_games_total = 0
-            sets_played = 0
-            set_scores_display = []
+            t1 = f"{row.team1_player1}/{row.team1_player2}" if (hasattr(row, 'team1_player2') and row.team1_player2) else row.team1_player1
+            t2 = f"{row.team2_player1}/{row.team2_player2}" if (hasattr(row, 'team2_player2') and row.team2_player2) else row.team2_player1
+            scores = " | ".join([str(s) for s in [getattr(row, 'set1',''), getattr(row, 'set2',''), getattr(row, 'set3','')] if s])
             
-            for s in [getattr(row, 'set1',''), getattr(row, 'set2',''), getattr(row, 'set3','')]:
-                if s:
-                    sets_played += 1
-                    s_str = str(s)
-                    set_scores_display.append(s_str)
-                    
-                    g1, g2 = 0, 0
-                    if "Tie Break" in s_str:
-                         nums = re.findall(r'\d+', s_str)
-                         if len(nums) >= 2:
-                             if int(nums[0]) > int(nums[1]): g1, g2 = 7, 6
-                             else: g1, g2 = 6, 7
-                    elif '-' in s_str:
-                        try:
-                            parts = s_str.split('-')
-                            g1, g2 = int(parts[0]), int(parts[1])
-                        except: pass
-                    t1_games_total += g1
-                    t2_games_total += g2
-
-            game_diff = abs(t1_games_total - t2_games_total)
-            
-            # Winner Logic
-            t1_won = (row.winner == "Team 1")
-            t1_class = "mmc-winner-text" if t1_won else ""
-            t2_class = "mmc-winner-text" if not t1_won else ""
-            t1_img_class = "mmc-winner-img" if t1_won else ""
-            t2_img_class = "mmc-winner-img" if not t1_won else ""
-            
-            if t1_p2_name:
-                t1_html = f"""<div style="display:flex; gap:5px; justify-content:center;">
-                                <img src="{get_p_img(t1_p1_name)}" class="mmc-avatar {t1_img_class}">
-                                <img src="{get_p_img(t1_p2_name)}" class="mmc-avatar {t1_img_class}">
-                              </div>
-                              <div class="mmc-name {t1_class}">{t1_p1_name}<br>& {t1_p2_name}</div>"""
-            else:
-                t1_html = f"""<img src="{get_p_img(t1_p1_name)}" class="mmc-avatar {t1_img_class}">
-                              <div class="mmc-name {t1_class}">{t1_p1_name}</div>"""
-
-            if t2_p2_name:
-                t2_html = f"""<div style="display:flex; gap:5px; justify-content:center;">
-                                <img src="{get_p_img(t2_p1_name)}" class="mmc-avatar {t2_img_class}">
-                                <img src="{get_p_img(t2_p2_name)}" class="mmc-avatar {t2_img_class}">
-                              </div>
-                              <div class="mmc-name {t2_class}">{t2_p1_name}<br>& {t2_p2_name}</div>"""
-            else:
-                t2_html = f"""<img src="{get_p_img(t2_p1_name)}" class="mmc-avatar {t2_img_class}">
-                              <div class="mmc-name {t2_class}">{t2_p1_name}</div>"""
-
-            # Badges
-            badges = []
-            if game_diff >= 8: badges.append("DOMINATION")
-            if game_diff <= 2: badges.append("NAIL BITER")
-            if sets_played == 2 and (t1_won and t1_games_total > t2_games_total): badges.append("STRAIGHT SETS")
-            
-            badges_html = "".join([f'<span class="mmc-tag" style="margin-right:5px;">{b}</span>' for b in badges])
-            
-            # Format Score String (with line breaks if 3 sets to keep it readable)
-            if len(set_scores_display) == 3:
-                # If 3 sets, break line for neatness
-                scores_str = f"{set_scores_display[0]} {set_scores_display[1]}<br>{set_scores_display[2]}"
-            else:
-                scores_str = " ".join(set_scores_display)
-            
-            # Render Card
-            st.markdown(f"""
-            <div class="modern-match-card">
-                <div class="mmc-header">
-                    <div>📅 {row.date.strftime('%d %b %Y') if pd.notnull(row.date) else ''}</div>
-                    <div style="font-weight:bold; color:#FF5F1F;">{getattr(row, 'match_type', 'Match').upper()}</div>
-                </div>
-                <div class="mmc-body">
-                    <div class="mmc-team">{t1_html}</div>
-                    <div class="mmc-vs-container">
-                        <div class="mmc-vs-label">VS</div>
-                        <div class="mmc-score-main">{scores_str}</div>
-                    </div>
-                    <div class="mmc-team">{t2_html}</div>
-                </div>
-                <div class="mmc-footer">
-                    <div>{badges_html}</div>
-                    <div class="mmc-stat">Game Diff: <span style="color:#FF5F1F; font-weight:bold;">{game_diff}</span></div>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-
-            # Match Photo Expander
             img_url = getattr(row, 'match_image_url', '')
-            if img_url:
-                with st.expander("📷 View Match Photo", expanded=False):
-                    st.image(img_url, use_container_width=True)
+            img_h = f'<div style="display:flex; justify-content:center;"><img src="{get_img_src(img_url)}" style="max-height:400px; width:100%; object-fit:contain;"></div>' if img_url else ""
+            
+            winner_text = ""
+            if row.winner == "Team 1":
+                winner_text = f"{row.team1_player1} & {row.team1_player2}" if (hasattr(row, 'team1_player2') and row.team1_player2) else row.team1_player1
+            elif row.winner == "Team 2":
+                winner_text = f"{row.team2_player1} & {row.team2_player2}" if (hasattr(row, 'team2_player2') and row.team2_player2) else row.team2_player1
 
-            # Edit/Delete Logic
+            st.markdown(f"""<div style="background:rgba(255,255,255,0.30); border-radius:12px; margin-bottom:20px; border:1px solid rgba(255,255,255,0.1); overflow:hidden;">{img_h}<div style="padding:15px; text-align:center;"><div style="color:#888;">{row.date.strftime('%d %b %Y') if pd.notnull(row.date) else ''}</div><div style="font-size:1.1em; margin:5px 0; color:white;">{t1} vs {t2}</div><div style="font-size:0.9em; color:#CCFF00; margin-bottom:5px; font-weight:bold; letter-spacing:1px; text-transform:uppercase;">{getattr(row, 'match_type', '')}</div><div style="color:#FF7518; font-weight:bold;">{scores}</div><div style="margin-top:5px; font-weight:bold; color:#fff500;">Winner: {winner_text}</div></div></div>""", unsafe_allow_html=True)
+            
             can_edit_match = False
-            if st.session_state.is_admin or st.session_state.is_master_admin: can_edit_match = True
+            if st.session_state.is_admin or st.session_state.is_master_admin:
+                can_edit_match = True
             elif st.session_state.get('logged_in_player'):
                 me = st.session_state.logged_in_player
-                if me in [t1_p1_name, t1_p2_name, t2_p1_name, t2_p2_name]: can_edit_match = True
+                if me in [row.team1_player1, getattr(row, 'team1_player2', ''), row.team2_player1, getattr(row, 'team2_player2', '')]:
+                    can_edit_match = True
             
             if can_edit_match:
-                with st.expander(f"⚙️ Manage Result ({row.match_id})", expanded=False):
-                    if st.button("Delete Match Record", key=f"del_{row.match_id}"): 
+                with st.expander(f"Edit {row.match_id}", expanded=False, icon="➡️"):
+                    if st.button("Delete", key=f"del_{row.match_id}"): 
                         delete_match_from_db(row.match_id)
                         st.rerun()
-
-
-
-                        
                          
 
 with tabs[2]:
