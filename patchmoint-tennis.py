@@ -1153,7 +1153,7 @@ if not check_chapter_selected():
                         st.markdown(card_html, unsafe_allow_html=True)
                         
                         # The button appears immediately under the HTML card
-                        if st.button("Enter", key=f"ent_{row['id']}", use_container_width=True):
+                        if st.button("Enter", key=f"ent_{row['id']}", width='stretch'):
                             st.session_state.temp_selected_chapter = row.to_dict()
                             st.rerun()
             else:
@@ -1237,7 +1237,7 @@ if st.session_state.is_master_admin and st.session_state.current_chapter is None
     # 1. Header Actions
     col_header_1, col_header_2 = st.columns([1, 1])
     with col_header_1:
-        if st.button("Logout Master Admin", use_container_width=True): 
+        if st.button("Logout Master Admin", width='stretch'): 
             st.session_state.is_master_admin = False
             st.rerun()
 
@@ -1274,7 +1274,7 @@ if st.session_state.is_master_admin and st.session_state.current_chapter is None
             file_name=f"patchmoint_backup_{datetime.now().strftime('%Y%m%d_%H%M')}.zip",
             mime="application/zip",
             type="primary",
-            use_container_width=True
+            width='stretch'
         )
     st.divider()
 
@@ -1295,7 +1295,7 @@ if st.session_state.is_master_admin and st.session_state.current_chapter is None
                 
                 with col_act:
                     # Enter Chapter as Admin
-                    if st.button(f"Enter Admin", key=f"ma_ent_{row['id']}", use_container_width=True):
+                    if st.button(f"Enter Admin", key=f"ma_ent_{row['id']}", width='stretch'):
                         st.session_state.current_chapter = {'id': row['id'], 'name': row['name']}
                         st.session_state.chapter_config = load_chapter_config(row['id'])
                         st.session_state.is_admin = True
@@ -1303,7 +1303,7 @@ if st.session_state.is_master_admin and st.session_state.current_chapter is None
                         st.rerun()
                     
                     # Delete Chapter
-                    if st.button(f"DELETE CHAPTER", key=f"ma_del_{row['id']}", type="primary", use_container_width=True):
+                    if st.button(f"DELETE CHAPTER", key=f"ma_del_{row['id']}", type="primary", width='stretch'):
                         # Assuming delete_chapter_fully is defined in your script
                         delete_chapter_fully(row['id'])
                         st.success(f"Deleted {row['name']}")
@@ -1486,7 +1486,7 @@ with tabs[0]:
                         """, unsafe_allow_html=True)
                     
                     with c3:
-                        st.plotly_chart(create_radar_chart(row), use_container_width=True, config={'displayModeBar': False}, key=f"rd_{idx}")
+                        st.plotly_chart(create_radar_chart(row), width='stretch', config={'displayModeBar': False}, key=f"rd_{idx}")
                     
                     # --- DATA DISPLAY BELOW COLUMNS ---
                     st.divider() # Subtle line separating main stats from form
@@ -1735,7 +1735,7 @@ with tabs[2]:
     
                 with c3:
                     if has_stats: 
-                        st.plotly_chart(create_radar_chart(s), use_container_width=True, config={'displayModeBar': False}, key=f"rp_{idx}")
+                        st.plotly_chart(create_radar_chart(s), width='stretch', config={'displayModeBar': False}, key=f"rp_{idx}")
             st.divider()
 
 with tabs[3]:
