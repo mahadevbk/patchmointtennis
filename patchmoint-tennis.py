@@ -505,10 +505,12 @@ def delete_chapter_fully(chapter_id):
 
 def get_default_config():
     return {
-        "ranking_systems": ["Elo (Hybrid)"],
-        "match_types": ["Doubles", "Singles"],
-        "sets_modes": {"Singles": "Best of 3", "Doubles": "Best of 3", "Mixed Doubles": "Best of 3"},
-        "points_win": 3, "points_loss": 1,
+        "ranking_systems": {"Elo (Hybrid)": True, "Points": True, "UTR": False},
+        "match_type_settings": {
+            "Singles": {"enabled": True, "win_points": 2, "loss_points": 1, "min_sets": "Best of 3"},
+            "Doubles": {"enabled": True, "win_points": 2, "loss_points": 1, "min_sets": "Best of 3"},
+            "Mixed Doubles": {"enabled": False, "win_points": 3, "loss_points": 0, "min_sets": "Best of 3"}
+        },
         "match_image_required": True
     }
 
@@ -522,15 +524,45 @@ def load_chapter_config(chapter_id):
         
         if data and data['config']:
             conf = json.loads(data['config'])
-            if "sets_modes" not in conf:
-                old = conf.get("sets_mode", "Best of 3")
-                conf["sets_modes"] = {"Singles": old, "Doubles": old, "Mixed Doubles": old}
-            if "ranking_systems" not in conf:
-                conf["ranking_systems"] = [conf.get("ranking_system", "Elo (Hybrid)")]
-            if "match_image_required" not in conf:
-                conf["match_image_required"] = True
+            
+            # Migration for ranking_systems
+            if "ranking_systems" not in conf or isinstance(conf["ranking_systems"], list):
+                old_ranking_systems = conf.get("ranking_systems", ["Elo (Hybrid)"])
+                if isinstance(old_ranking_systems, list):
+                    conf["ranking_systems"] = {
+                        "Elo (Hybrid)": "Elo (Hybrid)" in old_ranking_systems,
+                        "Points": "Points" in old_ranking_systems,
+                        "UTR": "UTR" in old_ranking_systems,
+                    }
+                # if it's already a dict, do nothing
+            
+            # Migration for match_type_settings
+            if "match_type_settings" not in conf:
+                default_settings = get_default_config()["match_type_settings"]
+                old_match_types = conf.get("match_types", ["Doubles", "Singles"])
+                old_win = conf.get("points_win", 3)
+                old_loss = conf.get("points_loss", 1)
+                old_sets = conf.get("sets_modes", {"Singles": "Best of 3", "Doubles": "Best of 3", "Mixed Doubles": "Best of 3"})
+
+                conf["match_type_settings"] = {}
+                for mt in ["Singles", "Doubles", "Mixed Doubles"]:
+                    conf["match_type_settings"][mt] = {
+                        "enabled": mt in old_match_types,
+                        "win_points": old_win,
+                        "loss_points": old_loss,
+                        "min_sets": old_sets.get(mt, "Best of 3")
+                    }
+
+            # Ensure all keys from default are present
+            default_conf = get_default_config()
+            for key in default_conf:
+                if key not in conf:
+                    conf[key] = default_conf[key]
+            
             return conf
-    except: pass
+    except Exception as e:
+        # st.error(f"Config load error: {e}") # Optional: for debugging
+        pass
     return get_default_config()
 
 def save_chapter_config(chapter_id, config_dict):
@@ -653,44 +685,39 @@ def generate_match_id(matches_df, match_datetime):
         serial += 1
 
 def get_player_stats_template():
-    return {'wins': 0, 'losses': 0, 'matches': 0, 'games_won': 0, 'gd_sum': 0, 'clutch_wins': 0, 'clutch_matches': 0, 'gd_list': [], 'points': 0}
+    return {'wins': 0, 'losses': 0, 'matches': 0, 'games_won': 0, 'gd_sum': 0, 'clutch_wins': 0, 'clutch_matches': 0, 'gd_list': [], 'points': 0, 'singles_wins': 0, 'singles_matches': 0, 'doubles_wins': 0, 'doubles_matches': 0}
 
 @st.cache_data(show_spinner=False)
 def calculate_rankings(matches_to_rank):
     stats = defaultdict(get_player_stats_template)
     current_streaks = defaultdict(int)
     last_active_dates = {}
-    elo_ratings = {} # Initialize as a regular dict first
-    utr_ratings = {} # Initialize UTR ratings
+    elo_ratings = {} 
+    utr_ratings = {} 
     last_elo_changes = defaultdict(float) 
     K_FACTOR = 32 
     
-    # UTR Constants
     UTR_DEFAULT_RATING = 4.0
-    UTR_K_FACTOR = 0.05 # How much UTR changes per match (smaller for slower change)
-    UTR_SCALE = 3.0   # Factor to convert UTR difference to expected game win percentage
+    UTR_K_FACTOR = 0.05 
+    UTR_SCALE = 3.0   
     UTR_MIN = 1.0
     UTR_MAX = 16.5
 
     players_df = st.session_state.players_df
     config = st.session_state.chapter_config
-    ranking_systems = config.get("ranking_systems", ["Elo (Hybrid)"])
-    pts_win = config.get("points_win", 3)
-    pts_loss = config.get("points_loss", 1)
+    match_type_settings = config.get("match_type_settings", get_default_config()["match_type_settings"])
 
-    # Initialize ELO and UTR ratings for all players based on initial_utr or default
     for _, player_row in players_df.iterrows():
         player_name = player_row['name']
         initial_utr = player_row.get('initial_utr')
         if pd.notna(initial_utr) and initial_utr is not None:
-            starting_elo = (initial_utr - 4.0) * 110.0 + 1200.0 # Inverse of original UTR mapping
+            starting_elo = (initial_utr - 4.0) * 110.0 + 1200.0
             elo_ratings[player_name] = float(starting_elo)
             utr_ratings[player_name] = float(initial_utr)
         else:
-            elo_ratings[player_name] = 1200.0 # Default ELO
-            utr_ratings[player_name] = UTR_DEFAULT_RATING # Default UTR
+            elo_ratings[player_name] = 1200.0
+            utr_ratings[player_name] = UTR_DEFAULT_RATING
 
-    # Convert to defaultdict after initial population
     elo_ratings = defaultdict(lambda: 1200.0, elo_ratings) 
     utr_ratings = defaultdict(lambda: UTR_DEFAULT_RATING, utr_ratings)
 
@@ -701,6 +728,14 @@ def calculate_rankings(matches_to_rank):
         t1 = [p for p in [row.team1_player1, row.team1_player2] if p and str(p).strip() and str(p).upper() != "VISITOR"]
         t2 = [p for p in [row.team2_player1, row.team2_player2] if p and str(p).strip() and str(p).upper() != "VISITOR"]
         if not t1 or not t2: continue
+        
+        match_type = row.match_type
+        type_config = match_type_settings.get(match_type, {"enabled": False})
+        if not type_config.get("enabled", False):
+            continue
+
+        pts_win = type_config.get("win_points", 1)
+        pts_loss = type_config.get("loss_points", 0)
 
         current_match_date = row.date
         for p in t1 + t2: 
@@ -734,7 +769,7 @@ def calculate_rankings(matches_to_rank):
             t2_total_games += t2_g
 
         total_match_games = t1_total_games + t2_total_games
-        if total_match_games == 0: continue # Avoid division by zero
+        if total_match_games == 0: continue
 
         t1_elo_avg = sum(elo_ratings[p] for p in t1) / len(t1)
         t2_elo_avg = sum(elo_ratings[p] for p in t2) / len(t2)
@@ -743,35 +778,38 @@ def calculate_rankings(matches_to_rank):
 
         t1_won = row.winner == "Team 1"
 
-        # ELO Calculation
-        def update_elo(players, own_elo_avg, opp_elo_avg, actual_score, is_winner):
+        def update_elo(players, own_elo_avg, opp_elo_avg, actual_score):
             expected = 1 / (1 + 10 ** ((opp_elo_avg - own_elo_avg) / 400))
             elo_change = K_FACTOR * (actual_score - expected)
             for p in players:
                 elo_ratings[p] += elo_change
                 last_elo_changes[p] = round(elo_change, 1)
         
-        # UTR Calculation
         def update_utr(players, own_utr_avg, opp_utr_avg, actual_gwp):
             utr_diff = own_utr_avg - opp_utr_avg
-            expected_gwp = 1 / (1 + np.exp(-utr_diff / UTR_SCALE)) # Logistic function
+            expected_gwp = 1 / (1 + np.exp(-utr_diff / UTR_SCALE))
             utr_change = UTR_K_FACTOR * (actual_gwp - expected_gwp)
-
             for p in players:
-                utr_ratings[p] += utr_change
-                utr_ratings[p] = max(UTR_MIN, min(UTR_MAX, utr_ratings[p])) # Clamp UTR
-        
-        # Update stats common to both ELO and UTR
-        def update_common_stats(players, games_won, total_games, is_winner):
+                utr_ratings[p] = max(UTR_MIN, min(UTR_MAX, utr_ratings[p] + utr_change))
+
+        def update_common_stats(players, games_won, total_games, is_winner, match_type):
             for p in players:
                 stats[p]['matches'] += 1
                 stats[p]['games_won'] += games_won
                 stats[p]['gd_sum'] += (games_won - (total_games - games_won))
                 stats[p]['gd_list'].append(games_won - (total_games - games_won))
                 if is_clutch: stats[p]['clutch_matches'] += 1
+
+                if match_type == "Singles":
+                    stats[p]['singles_matches'] += 1
+                else: # Doubles and Mixed Doubles
+                    stats[p]['doubles_matches'] += 1
+
                 if is_winner:
                     stats[p]['wins'] += 1
                     if is_clutch: stats[p]['clutch_wins'] += 1
+                    if match_type == "Singles": stats[p]['singles_wins'] += 1
+                    else: stats[p]['doubles_wins'] += 1
                     current_streaks[p] = max(0, current_streaks[p]) + 1
                     stats[p]['points'] += pts_win
                 else:
@@ -779,23 +817,16 @@ def calculate_rankings(matches_to_rank):
                     current_streaks[p] = min(0, current_streaks[p]) - 1
                     stats[p]['points'] += pts_loss
 
-        # Apply updates
         if t1_won:
-            update_common_stats(t1, t1_total_games, total_match_games, True)
-            update_common_stats(t2, t2_total_games, total_match_games, False)
-            
-            update_elo(t1, t1_elo_avg, t2_elo_avg, 1.0, True) # Elo uses win/loss (1.0 for win)
-            update_elo(t2, t2_elo_avg, t1_elo_avg, 0.0, False) # (0.0 for loss)
-
+            update_common_stats(t1, t1_total_games, total_match_games, True, match_type)
+            update_common_stats(t2, t2_total_games, total_match_games, False, match_type)
+            update_elo(t1, t1_elo_avg, t2_elo_avg, 1.0); update_elo(t2, t2_elo_avg, t1_elo_avg, 0.0)
             update_utr(t1, t1_utr_avg, t2_utr_avg, t1_total_games / total_match_games)
             update_utr(t2, t2_utr_avg, t1_utr_avg, t2_total_games / total_match_games)
-        else: # Team 2 won
-            update_common_stats(t1, t1_total_games, total_match_games, False)
-            update_common_stats(t2, t2_total_games, total_match_games, True)
-
-            update_elo(t1, t1_elo_avg, t2_elo_avg, 0.0, False) # Elo uses win/loss (0.0 for loss)
-            update_elo(t2, t2_elo_avg, t1_elo_avg, 1.0, True) # (1.0 for win)
-            
+        else:
+            update_common_stats(t1, t1_total_games, total_match_games, False, match_type)
+            update_common_stats(t2, t2_total_games, total_match_games, True, match_type)
+            update_elo(t1, t1_elo_avg, t2_elo_avg, 0.0); update_elo(t2, t2_elo_avg, t1_elo_avg, 1.0)
             update_utr(t1, t1_utr_avg, t2_utr_avg, t1_total_games / total_match_games)
             update_utr(t2, t2_utr_avg, t1_utr_avg, t2_total_games / total_match_games)
 
@@ -803,8 +834,9 @@ def calculate_rankings(matches_to_rank):
     for p, s in stats.items():
         m_played = s['matches']
         if m_played == 0: continue
+        
         clutch_pct = (s['clutch_wins'] / s['clutch_matches'] * 100) if s['clutch_matches'] > 0 else 0
-        consistency = np.std(s['gd_list']) if s['gd_list'] else 0
+        consistency = np.std(s['gd_list']) if len(s['gd_list']) > 1 else 0
         l_date = last_active_dates.get(p, "")
         if l_date:
             try: l_date = pd.to_datetime(l_date).strftime("%d %b %y")
@@ -820,19 +852,25 @@ def calculate_rankings(matches_to_rank):
             if (s['wins']/m_played) > 0.75: badges.append("🦁 Dominant")
 
         score_elo = round(elo_ratings[p], 1)
-        current_utr = round(utr_ratings[p], 2) # Use the newly calculated UTR
+        current_utr = round(utr_ratings[p], 2)
+        
+        singles_perf = round((s['singles_wins'] / s['singles_matches']) * 100, 1) if s['singles_matches'] > 0 else 0
+        doubles_perf = round((s['doubles_wins'] / s['doubles_matches']) * 100, 1) if s['doubles_matches'] > 0 else 0
 
         rank_data.append({
-            "Player": p, "Score": score_elo, "Label": "Elo", "Elo": score_elo, 
+            "Player": p, "Points": s['points'], "Score": score_elo, "Label": "Elo", "Elo": score_elo, 
             "Score_Elo (Hybrid)": score_elo, "Score_Points": s['points'], 
             "Score_UTR": current_utr, "Last Change": last_elo_changes.get(p, 0),
             "Wins": s['wins'], "Losses": s['losses'], "Games Won": s['games_won'],
             "Win %": round((s['wins']/m_played)*100, 1), "Matches": m_played, 
-            "Game Diff Avg": round(s['gd_sum']/m_played, 2), "Clutch Factor": round(clutch_pct, 1), 
+            "Game Diff Avg": round(s['gd_sum']/m_played, 2) if m_played > 0 else 0,
+            "Clutch Factor": round(clutch_pct, 1), 
             "Consistency Index": round(consistency, 2), "Last Active": l_date if l_date else "N/A",
             "Badges": badges, 
-            #"Profile": pd.Series(players_df.profile_image_url.values, index=players_df.name).to_dict().get(p, "")
-            "Profile": players_df.set_index('name')['profile_image_url'].get(p, DEFAULT_AVATAR)
+            "Profile": players_df.set_index('name')['profile_image_url'].get(p, DEFAULT_AVATAR),
+            "Record": f"{s['wins']}W-{s['losses']}L",
+            "Singles Perf": singles_perf,
+            "Doubles Perf": doubles_perf,
         })
         
     df = pd.DataFrame(rank_data)
@@ -844,8 +882,9 @@ def calculate_rankings(matches_to_rank):
         df = df.sort_values(by=["Score_UTR", "Win %"], ascending=[False, False])
         df["Rank_UTR"] = range(1, len(df) + 1)
         
-        df = df.sort_values(by=["Score_Elo (Hybrid)", "Win %"], ascending=[False, False]).reset_index(drop=True)
-        df["Rank"] = [f"🏆 {i+1}" for i in df.index]
+        # Set default rank based on Elo Hybrid
+        df = df.sort_values(by="Score_Elo (Hybrid)", ascending=False).reset_index(drop=True)
+        df["Rank"] = df.index + 1
     return df
 
 
@@ -986,18 +1025,35 @@ if not check_chapter_selected():
         st.divider()
         st.subheader("⚙️ Initial Chapter Setup")
         with st.form("initial_setup_form"):
-            r_sys = st.multiselect("Ranking Systems", ["Elo (Hybrid)", "Points", "UTR"], default=["Elo (Hybrid)"])
-            if not r_sys: r_sys = ["Elo (Hybrid)"]
-            c1, c2 = st.columns(2)
-            p_win = c1.number_input("Points per Win", value=3, min_value=1)
-            p_loss = c2.number_input("Points per Loss", value=1, min_value=0)
-            m_types = st.multiselect("Allowed Match Types", ["Singles", "Doubles", "Mixed Doubles"], default=["Doubles", "Singles"])
-            c1, c2, c3 = st.columns(3)
-            sm_s = c1.selectbox("Singles Sets", ["Single Set", "Best of 3", "Best of 5"], index=1)
-            sm_d = c2.selectbox("Doubles Sets", ["Single Set", "Best of 3", "Best of 5"], index=1)
-            sm_m = c3.selectbox("Mixed Sets", ["Single Set", "Best of 3", "Best of 5"], index=1)
+            st.subheader("Ranking Systems")
+            ranking_systems = {}
+            for rs in ["Elo (Hybrid)", "Points", "UTR"]:
+                ranking_systems[rs] = st.toggle(rs, value=(rs == "Elo (Hybrid)"))
+
+            st.subheader("Match Type Settings")
+            match_type_settings = {}
+            set_options = ["Single Set", "Best of 3", "Best of 5"]
+            
+            for mt in ["Singles", "Doubles", "Mixed Doubles"]:
+                st.markdown(f"**{mt}**")
+                cols = st.columns([1, 1, 1, 2])
+                enabled = cols[0].checkbox("Enabled", value=(mt in ["Singles", "Doubles"]), key=f"en_{mt}")
+                win_points = cols[1].number_input("Win Pts", value=2, min_value=0, key=f"wp_{mt}")
+                loss_points = cols[2].number_input("Loss Pts", value=1, min_value=0, key=f"lp_{mt}")
+                min_sets = cols[3].selectbox("Min Sets", options=set_options, index=1, key=f"ms_{mt}")
+                match_type_settings[mt] = {
+                    "enabled": enabled,
+                    "win_points": win_points,
+                    "loss_points": loss_points,
+                    "min_sets": min_sets
+                }
+
             if st.form_submit_button("Save Settings & Enter Chapter", type="primary"):
-                new_conf = {"ranking_systems": r_sys, "match_types": m_types, "sets_modes": {"Singles": sm_s, "Doubles": sm_d, "Mixed Doubles": sm_m}, "points_win": p_win, "points_loss": p_loss}
+                new_conf = {
+                    "ranking_systems": ranking_systems,
+                    "match_type_settings": match_type_settings,
+                    "match_image_required": True # Default value
+                }
                 cid = st.session_state.new_chapter_created['id']
                 save_chapter_config(cid, new_conf)
                 st.session_state.current_chapter = {'id': cid, 'name': st.session_state.new_chapter_created['name']}
@@ -1303,11 +1359,22 @@ if st.session_state.is_master_admin and st.session_state.current_chapter is None
                         st.rerun()
                     
                     # Delete Chapter
-                    if st.button(f"DELETE CHAPTER", key=f"ma_del_{row['id']}", type="primary", width='stretch'):
-                        # Assuming delete_chapter_fully is defined in your script
-                        delete_chapter_fully(row['id'])
-                        st.success(f"Deleted {row['name']}")
-                        st.rerun()
+                    delete_key = f"confirm_delete_{row['id']}"
+                    if st.session_state.get(delete_key):
+                        st.warning(f"Are you sure you want to permanently delete **{row['name']}** and all its data? This cannot be undone.")
+                        c1, c2 = st.columns(2)
+                        if c1.button("CONFIRM DELETION", key=f"ma_conf_del_{row['id']}", type="primary", use_container_width=True):
+                            if delete_chapter_fully(row['id']):
+                                st.success(f"Deleted {row['name']}")
+                                st.session_state[delete_key] = False
+                                st.rerun()
+                        if c2.button("Cancel", key=f"ma_canc_del_{row['id']}", use_container_width=True):
+                            st.session_state[delete_key] = False
+                            st.rerun()
+                    else:
+                        if st.button(f"DELETE CHAPTER", key=f"ma_del_{row['id']}", type="primary", use_container_width=True):
+                            st.session_state[delete_key] = True
+                            st.rerun()
 
                 # Password Reset inside each Chapter card
                 with st.expander(f"Manage Security for {row['name']}", expanded=False):
@@ -1366,12 +1433,20 @@ tabs = st.tabs(tab_names)
 with tabs[0]:
     conf = st.session_state.chapter_config
     st.header(f"Rankings")
-    active_systems = conf.get("ranking_systems", ["Elo (Hybrid)"])
+    
+    active_systems_dict = conf.get("ranking_systems", {"Elo (Hybrid)": True})
+    active_systems = [k for k, v in active_systems_dict.items() if v]
+    if not active_systems: active_systems = ["Elo (Hybrid)"] 
+    
     view_system = st.radio("Ranking System", active_systems, horizontal=True) if len(active_systems) > 1 else active_systems[0]
     
     # --- Ranking System Explanations ---
-    pts_win = conf.get("points_win", 3)
-    pts_loss = conf.get("points_loss", 1)
+    # This part can be improved by dynamically creating descriptions based on match_type_settings
+    pts_desc = "Varies by match type"
+    if "match_type_settings" in conf:
+        s_pts = conf["match_type_settings"].get("Singles", {})
+        d_pts = conf["match_type_settings"].get("Doubles", {})
+        pts_desc = f"S:{s_pts.get('win_points',0)}W/{s_pts.get('loss_points',0)}L, D:{d_pts.get('win_points',0)}W/{d_pts.get('loss_points',0)}L"
 
     ranking_descriptions = {
         "Elo (Hybrid)": {
@@ -1379,7 +1454,7 @@ with tabs[0]:
             "scenario": "Best for competitive leagues."
         },
         "Points": {
-            "desc": f"Cumulative system: **{pts_win}** per win, **{pts_loss}** per loss. Rewards activity.",
+            "desc": f"Cumulative system based on match type. ({pts_desc})",
             "scenario": "Ideal for social leagues."
         },
         "UTR": {
@@ -1407,13 +1482,17 @@ with tabs[0]:
         sys_key = f"Score_{view_system}"
         if sys_key in display_rank_df.columns:
             display_rank_df = display_rank_df.sort_values(by=[sys_key, "Win %"], ascending=[False, False]).reset_index(drop=True)
-            display_rank_df['Rank_Num'] = [i+1 for i in display_rank_df.index]
+            display_rank_df['Rank'] = [i+1 for i in display_rank_df.index]
             display_rank_df['Score'] = display_rank_df[sys_key]
             display_rank_df['Label'] = view_system
 
         if ranking_view == "Table View":
-            cols = ['Rank_Num', 'Profile', 'Player', 'Score', 'Label', 'Win %', 'Matches', 'Game Diff Avg']
-            st.dataframe(display_rank_df[cols], hide_index=True, width='stretch', column_config={"Profile": st.column_config.ImageColumn("PIC"), "Win %": st.column_config.ProgressColumn(format="%.1f%%", min_value=0, max_value=100)})
+            cols = ['Rank', 'Profile', 'Player', 'Score', 'Label', 'Win %', 'Matches', 'Game Diff Avg', 'Singles Perf', 'Doubles Perf']
+            st.dataframe(display_rank_df[cols], hide_index=True, width='stretch', 
+                         column_config={"Profile": st.column_config.ImageColumn("PIC"), 
+                                        "Win %": st.column_config.ProgressColumn(format="%.1f%%", min_value=0, max_value=100),
+                                        "Singles Perf": st.column_config.ProgressColumn(format="%.1f%%", min_value=0, max_value=100),
+                                        "Doubles Perf": st.column_config.ProgressColumn(format="%.1f%%", min_value=0, max_value=100)})
         else:
             # --- OPTIC YELLOW PODIUM ---
             if len(display_rank_df) >= 3:
@@ -1448,12 +1527,12 @@ with tabs[0]:
                 badges_html = "".join([f"<span class='badge'>{b}</span>" for b in row.get('Badges', [])])
 
                 with st.container(border=True):
-                    c1, c2, c3 = st.columns([1.5, 2, 1.8])
+                    c1, c2, c3 = st.columns([1.5, 2.5, 1.8])
                     
                     with c1:
                         st.markdown(f"""
                         <div style="text-align:center;">
-                            <div style="font-size:1.8em; font-weight:bold; color:#ccff00; line-height:1;">#{row['Rank_Num']}</div>
+                            <div style="font-size:1.8em; font-weight:bold; color:#ccff00; line-height:1;">🏆 #{row['Rank']}</div>
                             <div class="glow-square" style="margin-top:8px;">
                                 <img src="{get_img_src(row['Profile'])}">
                             </div>
@@ -1465,28 +1544,21 @@ with tabs[0]:
                     
                     with c2:
                         st.markdown(f"""
-                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:20px;">
-                            <div style="border-left:3px solid #00FF88; background:rgba(0,255,136,0.05); padding:10px; border-radius:4px;">
-                                <div style="font-size:0.65em; color:#aaa; text-transform:uppercase;">Win %</div>
-                                <div style="color:#00FF88; font-weight:bold; font-size:1.1em;">{row['Win %']}%</div>
-                            </div>
-                            <div style="border-left:3px solid #00C0F2; background:rgba(0,192,242,0.05); padding:10px; border-radius:4px;">
-                                <div style="font-size:0.65em; color:#aaa; text-transform:uppercase;">Record</div>
-                                <div style="color:#00C0F2; font-weight:bold; font-size:1.1em;">{row['Wins']}W-{row['Losses']}L</div>
-                            </div>
-                            <div style="border-left:3px solid #FFA500; background:rgba(255,165,0,0.05); padding:10px; border-radius:4px;">
-                                <div style="font-size:0.65em; color:#aaa; text-transform:uppercase;">GDA</div>
-                                <div style="color:#FFA500; font-weight:bold; font-size:1.1em;">{row.get('Game Diff Avg', 0):+.2f}</div>
-                            </div>
-                            <div style="border-left:3px solid #FF4B4B; background:rgba(255,75,75,0.05); padding:10px; border-radius:4px;">
-                                <div style="font-size:0.65em; color:#aaa; text-transform:uppercase;">Clutch</div>
-                                <div style="color:#FF4B4B; font-weight:bold; font-size:1.1em;">{row.get('Clutch Factor', 0)}%</div>
-                            </div>
+                        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-top:15px; align-items: stretch; height:100%;">
+                            <div style="border-left:3px solid #00FF88; background:rgba(0,255,136,0.05); padding:8px; border-radius:4px;"><div style="font-size:0.6em; color:#aaa; text-transform:uppercase;">Win %</div><div style="color:#00FF88; font-weight:bold; font-size:1.0em;">{row['Win %']}%</div></div>
+                            <div style="border-left:3px solid #00C0F2; background:rgba(0,192,242,0.05); padding:8px; border-radius:4px;"><div style="font-size:0.6em; color:#aaa; text-transform:uppercase;">Record</div><div style="color:#00C0F2; font-weight:bold; font-size:1.0em;">{row['Record']}</div></div>
+                            <div style="border-left:3px solid #FF4B4B; background:rgba(255,75,75,0.05); padding:8px; border-radius:4px;"><div style="font-size:0.6em; color:#aaa; text-transform:uppercase;">Clutch</div><div style="color:#FF4B4B; font-weight:bold; font-size:1.0em;">{row.get('Clutch Factor', 0)}%</div></div>
+                            <div style="border-left:3px solid #ccff00; background:rgba(204,255,0,0.05); padding:8px; border-radius:4px;"><div style="font-size:0.6em; color:#aaa; text-transform:uppercase;">Points</div><div style="color:#ccff00; font-weight:bold; font-size:1.0em;">{row.get('Points', 0)}</div></div>
+                            <div style="border-left:3px solid #FFA500; background:rgba(255,165,0,0.05); padding:8px; border-radius:4px;"><div style="font-size:0.6em; color:#aaa; text-transform:uppercase;">GDA</div><div style="color:#FFA500; font-weight:bold; font-size:1.0em;">{row.get('Game Diff Avg', 0):+.2f}</div></div>
+                            <div style="border-left:3px solid #FFFFFF; background:rgba(255,255,255,0.05); padding:8px; border-radius:4px;"><div style="font-size:0.6em; color:#aaa; text-transform:uppercase;">Games Won</div><div style="color:#FFFFFF; font-weight:bold; font-size:1.0em;">{row.get('Games Won', 0)}</div></div>
+                            <div style="border-left:3px solid #9400D3; background:rgba(148,0,211,0.05); padding:8px; border-radius:4px;"><div style="font-size:0.6em; color:#aaa; text-transform:uppercase;">Consistency</div><div style="color:#9400D3; font-weight:bold; font-size:1.0em;">{row.get('Consistency Index', 0):.2f}</div></div>
+                            <div style="border-left:3px solid #32CD32; background:rgba(50,205,50,0.05); padding:8px; border-radius:4px;"><div style="font-size:0.6em; color:#aaa; text-transform:uppercase;">Singles Perf</div><div style="color:#32CD32; font-weight:bold; font-size:1.0em;">{row.get('Singles Perf', 0)}%</div></div>
+                            <div style="border-left:3px solid #1E90FF; background:rgba(30,144,255,0.05); padding:8px; border-radius:4px;"><div style="font-size:0.6em; color:#aaa; text-transform:uppercase;">Doubles Perf</div><div style="color:#1E90FF; font-weight:bold; font-size:1.0em;">{row.get('Doubles Perf', 0)}%</div></div>
                         </div>
                         """, unsafe_allow_html=True)
                     
                     with c3:
-                        st.plotly_chart(create_radar_chart(row), width='stretch', config={'displayModeBar': False}, key=f"rd_{idx}")
+                        st.plotly_chart(create_radar_chart(row), use_container_width=True, config={'displayModeBar': False}, key=f"rd_{idx}")
                     
                     # --- DATA DISPLAY BELOW COLUMNS ---
                     st.divider() # Subtle line separating main stats from form
@@ -1547,13 +1619,28 @@ with tabs[1]:
                 pk = st.session_state.match_post_key
                 pnames = sorted([p for p in st.session_state.players_df["name"].dropna().tolist() if p != "Visitor"])
                 
-                allowed_raw = config.get("match_types", ["Doubles", "Singles"])
+                match_type_settings = config.get("match_type_settings", get_default_config()["match_type_settings"])
                 ui_opts = []
-                if "Doubles" in allowed_raw or "Mixed Doubles" in allowed_raw: ui_opts.append("Doubles")
-                if "Singles" in allowed_raw: ui_opts.append("Singles")
-                if not ui_opts: ui_opts = ["Doubles", "Singles"]
+                if match_type_settings.get("Singles", {}).get("enabled"):
+                    ui_opts.append("Singles")
+                # Group "Doubles" and "Mixed Doubles" under a single "Doubles" UI option
+                if match_type_settings.get("Doubles", {}).get("enabled") or match_type_settings.get("Mixed Doubles", {}).get("enabled"):
+                    ui_opts.append("Doubles")
                 
+                if not ui_opts: 
+                    st.warning("No match types enabled in Chapter Settings.")
+                    ui_opts = ["Singles"] # Fallback
+
                 mt = st.radio("Type", ui_opts, horizontal=True, key=f"mt_{pk}")
+                
+                # Allow admin to specify if it's a Mixed Doubles match, if applicable
+                is_mixed = False
+                if mt == "Doubles" and match_type_settings.get("Mixed Doubles", {}).get("enabled"):
+                    is_mixed = st.checkbox("This is a Mixed Doubles match", key=f"mixed_{pk}")
+                
+                # The actual match_type to be saved
+                final_match_type = "Mixed Doubles" if is_mixed else mt
+
                 md = st.date_input("Date", datetime.now(), key=f"md_{pk}")
                 
                 c1, c2 = st.columns(2)
@@ -1580,7 +1667,7 @@ with tabs[1]:
                         new_row = {
                             "match_id": mid, 
                             "date": md.strftime('%Y-%m-%d'), 
-                            "match_type": mt, 
+                            "match_type": final_match_type, 
                             "team1_player1": t1p1, "team1_player2": t1p2, 
                             "team2_player1": t2p1, "team2_player2": t2p2, 
                             "set1": s1, "set2": s2, "set3": s3, 
@@ -1712,26 +1799,29 @@ with tabs[2]:
                 with c2:
                     if has_stats:
                         badges_html = "".join([f"<span class='badge'>{b}</span>" for b in s.get('Badges', [])])
-                        
-                        # Pre-calculate the values to keep the HTML string clean
-                        wr, elo, mtch, rec = f"{s.get('Win %', 0)}%", s.get('Elo', 0), s.get('Matches', 0), f"{s.get('Wins', 0)}W-{s.get('Losses', 0)}L"
                         rank_val = s.get('Rank', 'N/A')
     
                         st.markdown(f"""
-    <div style="background:rgba(255,255,255,0.08);padding:15px;border-radius:12px;border:1px solid rgba(255,255,255,0.1);">
-        <div style="display:flex;justify-content:space-between;margin-bottom:12px;">
-            <span style="color:#fff500;font-weight:bold;">RANK: #{rank_val}</span>
-            <div>{badges_html}</div>
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-            <div style="border-left:3px solid #00FF88;padding-left:8px;"><small style="color:#aaa;display:block;font-size:10px;">WIN RATE</small><b style="color:#00FF88;font-size:1.1em;">{wr}</b></div>
-            <div style="border-left:3px solid #FF4B4B;padding-left:8px;"><small style="color:#aaa;display:block;font-size:10px;">ELO</small><b style="color:#FF4B4B;font-size:1.1em;">{elo}</b></div>
-            <div style="border-left:3px solid #00C0F2;padding-left:8px;"><small style="color:#aaa;display:block;font-size:10px;">MATCHES</small><b style="color:#00C0F2;font-size:1.1em;">{mtch}</b></div>
-            <div style="border-left:3px solid #FFA500;padding-left:8px;"><small style="color:#aaa;display:block;font-size:10px;">RECORD</small><b style="color:#FFA500;font-size:1.1em;">{rec}</b></div>
-        </div>
-    </div>""", unsafe_allow_html=True)
+                        <div style="background:rgba(255,255,255,0.08);padding:15px;border-radius:12px;border:1px solid rgba(255,255,255,0.1); height: 100%;">
+                            <div style="display:flex;justify-content:space-between;margin-bottom:12px;">
+                                <span style="color:#fff500;font-weight:bold;">🏆 RANK: #{rank_val}</span>
+                                <div>{badges_html}</div>
+                            </div>
+                            <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-top:15px; align-items: stretch; height:100%;">
+                                <div style="border-left:3px solid #00FF88; background:rgba(0,255,136,0.05); padding:8px; border-radius:4px;"><div style="font-size:0.6em; color:#aaa; text-transform:uppercase;">Win %</div><div style="color:#00FF88; font-weight:bold; font-size:1.0em;">{s.get('Win %', 0)}%</div></div>
+                                <div style="border-left:3px solid #00C0F2; background:rgba(0,192,242,0.05); padding:8px; border-radius:4px;"><div style="font-size:0.6em; color:#aaa; text-transform:uppercase;">Record</div><div style="color:#00C0F2; font-weight:bold; font-size:1.0em;">{s.get('Record', '0W-0L')}</div></div>
+                                <div style="border-left:3px solid #FF4B4B; background:rgba(255,75,75,0.05); padding:8px; border-radius:4px;"><div style="font-size:0.6em; color:#aaa; text-transform:uppercase;">Clutch</div><div style="color:#FF4B4B; font-weight:bold; font-size:1.0em;">{s.get('Clutch Factor', 0)}%</div></div>
+                                <div style="border-left:3px solid #ccff00; background:rgba(204,255,0,0.05); padding:8px; border-radius:4px;"><div style="font-size:0.6em; color:#aaa; text-transform:uppercase;">Points</div><div style="color:#ccff00; font-weight:bold; font-size:1.0em;">{s.get('Points', 0)}</div></div>
+                                <div style="border-left:3px solid #FFA500; background:rgba(255,165,0,0.05); padding:8px; border-radius:4px;"><div style="font-size:0.6em; color:#aaa; text-transform:uppercase;">GDA</div><div style="color:#FFA500; font-weight:bold; font-size:1.0em;">{s.get('Game Diff Avg', 0):+.2f}</div></div>
+                                <div style="border-left:3px solid #FFFFFF; background:rgba(255,255,255,0.05); padding:8px; border-radius:4px;"><div style="font-size:0.6em; color:#aaa; text-transform:uppercase;">Games Won</div><div style="color:#FFFFFF; font-weight:bold; font-size:1.0em;">{s.get('Games Won', 0)}</div></div>
+                                <div style="border-left:3px solid #9400D3; background:rgba(148,0,211,0.05); padding:8px; border-radius:4px;"><div style="font-size:0.6em; color:#aaa; text-transform:uppercase;">Consistency</div><div style="color:#9400D3; font-weight:bold; font-size:1.0em;">{s.get('Consistency Index', 0):.2f}</div></div>
+                                <div style="border-left:3px solid #32CD32; background:rgba(50,205,50,0.05); padding:8px; border-radius:4px;"><div style="font-size:0.6em; color:#aaa; text-transform:uppercase;">Singles Perf</div><div style="color:#32CD32; font-weight:bold; font-size:1.0em;">{s.get('Singles Perf', 0)}%</div></div>
+                                <div style="border-left:3px solid #1E90FF; background:rgba(30,144,255,0.05); padding:8px; border-radius:4px;"><div style="font-size:0.6em; color:#aaa; text-transform:uppercase;">Doubles Perf</div><div style="color:#1E90FF; font-weight:bold; font-size:1.0em;">{s.get('Doubles Perf', 0)}%</div></div>
+                            </div>
+                        </div>
+                        """, unsafe_allow_html=True)
                     else:
-                        st.info("No stats")
+                        st.info("No stats yet. Play a match to get started!")
     
                 with c3:
                     if has_stats: 
@@ -1771,15 +1861,52 @@ if st.session_state.is_admin:
     with tabs[6]:
         st.header("Settings")
         with st.form("sets"):
-            rs = st.multiselect("Ranking Systems", ["Elo (Hybrid)", "Points", "UTR"], default=st.session_state.chapter_config.get("ranking_systems"))
+            st.subheader("Ranking Systems")
+            current_ranking_systems = st.session_state.chapter_config.get("ranking_systems", {})
+            ranking_systems = {}
+            for rs in ["Elo (Hybrid)", "Points", "UTR"]:
+                ranking_systems[rs] = st.toggle(rs, value=current_ranking_systems.get(rs, False))
+
+            st.subheader("Match Type Settings")
+            current_match_settings = st.session_state.chapter_config.get("match_type_settings", get_default_config()["match_type_settings"])
+            match_type_settings = {}
+            set_options = ["Single Set", "Best of 3", "Best of 5"]
+
+            for mt in ["Singles", "Doubles", "Mixed Doubles"]:
+                st.markdown(f"--- \n**{mt}**")
+                cols = st.columns([1, 1, 1, 2])
+                mt_config = current_match_settings.get(mt, {"enabled": False, "win_points": 0, "loss_points": 0, "min_sets": "Best of 3"})
+                enabled = cols[0].checkbox("Enabled", value=mt_config.get("enabled", False), key=f"en_edit_{mt}")
+                win_points = cols[1].number_input("Win Pts", value=mt_config.get("win_points", 0), min_value=0, key=f"wp_edit_{mt}")
+                loss_points = cols[2].number_input("Loss Pts", value=mt_config.get("loss_points", 0), min_value=0, key=f"lp_edit_{mt}")
+                
+                try:
+                    set_index = set_options.index(mt_config.get("min_sets", "Best of 3"))
+                except ValueError:
+                    set_index = 1 # Default to "Best of 3"
+                
+                min_sets = cols[3].selectbox("Min Sets", options=set_options, index=set_index, key=f"ms_edit_{mt}")
+                
+                match_type_settings[mt] = {
+                    "enabled": enabled,
+                    "win_points": win_points,
+                    "loss_points": loss_points,
+                    "min_sets": min_sets
+                }
+
             img_req = st.checkbox("Require Match Photo Evidence?", value=st.session_state.chapter_config.get("match_image_required", True))
-            
-            if st.form_submit_button("Save"):
-                if not rs: rs = ["Elo (Hybrid)"]
-                st.session_state.chapter_config['ranking_systems'] = rs
-                st.session_state.chapter_config['match_image_required'] = img_req
-                save_chapter_config(st.session_state.current_chapter['id'], st.session_state.chapter_config)
-                st.success("Saved"); st.rerun()
+
+            if st.form_submit_button("Save Settings"):
+                # Ensure at least one ranking system is enabled
+                if not any(ranking_systems.values()):
+                    st.error("At least one Ranking System must be enabled.")
+                else:
+                    st.session_state.chapter_config['ranking_systems'] = ranking_systems
+                    st.session_state.chapter_config['match_type_settings'] = match_type_settings
+                    st.session_state.chapter_config['match_image_required'] = img_req
+                    save_chapter_config(st.session_state.current_chapter['id'], st.session_state.chapter_config)
+                    st.success("Settings saved successfully!")
+                    st.rerun()
         
         st.subheader("Branding")
         ut = st.file_uploader("Chapter Title Graphic", type=["png", "jpg"])
