@@ -651,6 +651,39 @@ def create_radar_chart(row):
         return fig
     except: return None
 
+@st.dialog("Chapter Login")
+def login_modal(chapter):
+    st.subheader(f"Accessing: {chapter['name']}")
+    
+    # Use a unique key for the input inside the modal
+    pwd = st.text_input("Enter Password", type="password", key=f"login_pwd_{chapter['id']}")
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button("Login", use_container_width=True):
+            # Check for Master Admin
+            if pwd == st.secrets.get("MASTER_PASSWORD"):
+                st.session_state.current_chapter = chapter
+                st.session_state.is_master_admin = True
+                st.session_state.is_admin = True
+                st.session_state.can_write = True
+                st.rerun()
+            # Check for Chapter Admin
+            elif pwd == chapter.get('admin_password'):
+                st.session_state.current_chapter = chapter
+                st.session_state.is_admin = True
+                st.session_state.can_write = True
+                st.rerun()
+            else:
+                st.error("Invalid Password")
+    with col2:
+        # Standard user entry (No password needed to view)
+        if st.button("Enter as Guest", use_container_width=True):
+            st.session_state.current_chapter = chapter
+            st.session_state.is_admin = False
+            st.session_state.can_write = False
+            st.rerun()
+            
 # --- Business Logic ---
 def get_valid_scores():
     if SPORT_TYPE == "Pickleball":
@@ -1209,9 +1242,15 @@ if not check_chapter_selected():
                         st.markdown(card_html, unsafe_allow_html=True)
                         
                         # The button appears immediately under the HTML card
+                        #if st.button("Enter", key=f"ent_{row['id']}", width='stretch'):
+                        #    st.session_state.temp_selected_chapter = row.to_dict()
+                        #    st.rerun()
+
+                        # Locate the block you mentioned and change it to:
                         if st.button("Enter", key=f"ent_{row['id']}", width='stretch'):
-                            st.session_state.temp_selected_chapter = row.to_dict()
-                            st.rerun()
+                            # Instead of setting state and rerunning, open the modal
+                            login_modal(row.to_dict())
+                            
             else:
                 st.info(f"No active {SPORT_TYPE} chapters found. Create one below!")
 
