@@ -1727,13 +1727,35 @@ with tabs[1]:
             scores = " | ".join([str(s) for s in [getattr(row, 'set1',''), getattr(row, 'set2',''), getattr(row, 'set3','')] if s])
             
             st.markdown(f"""
-            <div style="border: 1px solid white; margin: 10px; padding: 10px; border-radius: 10px;">
-                <p>Date: {row.date.strftime('%d %b %Y') if pd.notnull(row.date) else ''}</p>
-                <p>Match Type: {getattr(row, 'match_type', '').upper()}</p>
-                <p>{t1_names} vs {t2_names}</p>
-                <p>Scores: {scores}</p>
-                <p>Winner: {winner_text}</p>
-                <p>Game Diff: {game_diff:+}</p>
+            <div style="background:rgba(255,255,255,0.05); border-radius:12px; margin-bottom:20px; border:1px solid rgba(255,255,255,0.2); overflow:hidden; box-shadow: 0 4px 8px rgba(0,0,0,0.3);">
+                {img_h}
+                <div style="padding:15px;">
+                    <div style="text-align:center; color:#888; font-size:0.8em; margin-bottom:15px;">{row.date.strftime('%d %b %Y') if pd.notnull(row.date) else ''} &bull; {getattr(row, 'match_type', '').upper()}</div>
+                    
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <!-- Team 1 -->
+                        <div style="flex:1; text-align:center;">
+                            {t1_img_html}
+                            <div style="font-weight:bold; color:white; font-size:0.9em; margin-top:5px;">{t1_names}</div>
+                        </div>
+                        
+                        <!-- Score -->
+                        <div style="flex:0.5; text-align:center;">
+                            <div style="font-size:1.4em; font-weight:bold; color:#FF7518;">{scores}</div>
+                        </div>
+
+                        <!-- Team 2 -->
+                        <div style="flex:1; text-align:center;">
+                            {t2_img_html}
+                            <div style="font-weight:bold; color:white; font-size:0.9em; margin-top:5px;">{t2_names}</div>
+                        </div>
+                    </div>
+                    
+                    <div style="background:rgba(0,0,0,0.2); padding:10px; border-radius:8px; text-align:center; margin-top:20px;">
+                        <div style="font-size:1em; font-weight:bold; color:#fff500;">Winner: {winner_text}</div>
+                        <div style="font-size:0.8em; color:#aaa; margin-top:3px;">Game Diff: <span style="color:{game_diff_color}; font-weight:bold;">{game_diff:+}</span></div>
+                    </div>
+                </div>
             </div>
             """, unsafe_allow_html=True)
             
