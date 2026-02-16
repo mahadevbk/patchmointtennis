@@ -316,8 +316,7 @@ if 'match_post_key' not in st.session_state:
 
 # --- Helper Functions ---
 
-@st.cache_resource
-def get_sqlalchemy_engine():
+@st.cache_resourcedef get_sqlalchemy_engine():
     db_url = st.secrets["NEON_DATABASE_URL"]
     if db_url.startswith("postgres://"):
         db_url = db_url.replace("postgres://", "postgresql://", 1)
@@ -687,8 +686,7 @@ def generate_match_id(matches_df, match_datetime):
 def get_player_stats_template():
     return {'wins': 0, 'losses': 0, 'matches': 0, 'games_won': 0, 'gd_sum': 0, 'clutch_wins': 0, 'clutch_matches': 0, 'gd_list': [], 'points': 0, 'singles_wins': 0, 'singles_matches': 0, 'doubles_wins': 0, 'doubles_matches': 0}
 
-@st.cache_data(show_spinner=False)
-def calculate_rankings(matches_to_rank):
+@st.cache_data(show_spinner=False)def calculate_rankings(matches_to_rank):
     stats = defaultdict(get_player_stats_template)
     current_streaks = defaultdict(int)
     last_active_dates = {}
@@ -888,8 +886,7 @@ def calculate_rankings(matches_to_rank):
     return df
 
 
-@st.cache_data(ttl=300)
-def plot_player_performance(player_name, matches_df):
+@st.cache_data(ttl=300)def plot_player_performance(player_name, matches_df):
     if matches_df.empty: return None
     mask = (matches_df['team1_player1'] == player_name) | (matches_df['team1_player2'] == player_name) | \
             (matches_df['team2_player1'] == player_name) | (matches_df['team2_player2'] == player_name)
@@ -1746,6 +1743,8 @@ with tabs[1]:
             img_url = getattr(row, 'match_image_url', '')
             img_h = f'<div style="display:flex; justify-content:center; background:rgba(0,0,0,0.3); padding:10px 0;"><img src="{get_img_src(img_url)}" style="max-height:350px; width:auto; object-fit:contain; border-radius:8px;"></div>' if img_url else ""
             
+            game_diff_color = '#00FF88' if game_diff > 0 else '#FF4B4B' if game_diff < 0 else 'white'
+
             st.markdown(f"""
             <div style="background:rgba(255,255,255,0.05); border-radius:12px; margin-bottom:20px; border:1px solid rgba(255,255,255,0.2); overflow:hidden; box-shadow: 0 4px 8px rgba(0,0,0,0.3);">
                 {img_h}
@@ -1773,7 +1772,7 @@ with tabs[1]:
                     
                     <div style="background:rgba(0,0,0,0.2); padding:10px; border-radius:8px; text-align:center; margin-top:20px;">
                         <div style="font-size:1em; font-weight:bold; color:#fff500;">Winner: {winner_text}</div>
-                        <div style="font-size:0.8em; color:#aaa; margin-top:3px;">Game Diff: <span style="color: {'#00FF88' if game_diff > 0 else '#FF4B4B' if game_diff < 0 else 'white'}; font-weight:bold;">{game_diff:+}</span></div>
+                        <div style="font-size:0.8em; color:#aaa; margin-top:3px;">Game Diff: <span style="color:{game_diff_color}; font-weight:bold;">{game_diff:+}</span></div>
                     </div>
                 </div>
             </div>
