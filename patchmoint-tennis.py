@@ -83,168 +83,179 @@ st.markdown("""
 <link href="https://fonts.googleapis.com/css2?family=Turret+Road:wght@200;300;400;500;700;800&display=swap" rel="stylesheet">
 <style>
     .glow-square {
-        width: 100px; 
-        height: 100px;
-        border: 3px solid #ccff00;
-        border-radius: 12px;
-        overflow: hidden;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        background-color: #262626;
-        box-shadow: 0 0 15px rgba(204, 255, 0, 0.4);
-        margin: 0 auto;
-    }
-    .glow-square img {
-        width: 100%;
-        height: 100%;
-        object-fit: contain;
-        padding: 5px;
-    }
-    html, body, [class*="st-"], .stApp, h1, h2, h3, h4, h5, h6 {
-        font-family: 'Turret Road', sans-serif !important;
-    }
-    .mobile-card {
-        background: linear-gradient(135deg, #071a3d 0%, #0c0014 100%);
-        border: 1px solid rgba(255, 245, 0, 0.2);
-        border-radius: 15px;
-        padding: 15px;
-        margin-bottom: 15px;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-    }
-    .rank-badge {
-        background: #fff500;
-        color: #041136;
-        font-weight: bold;
-        border-radius: 5px;
-        padding: 2px 8px;
-        font-size: 14px;
-    }
-    .trend-dot {
-        height: 10px; width: 10px; border-radius: 50%; display: inline-block; margin-right: 3px;
-    }
-    .dot-w { background-color: #00ff88; box-shadow: 0 0 5px #00ff88; }
-    .dot-l { background-color: #ff4b4b; }
-    .stApp {
-        background-image: url("https://raw.githubusercontent.com/mahadevbk/patchmointtennis/main/assets/background/background.jpg");
-        background-size: cover;
-        background-position: center;
-        background-attachment: fixed;
-    }
-    @media print {
-        html, body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-        body { background-color: #041136 !important; height: 100vh; margin: 0; padding: 0; }
-        header, .stToolbar { display: none; }
-    }
-    [data-testid="stHeader"] {
-        background: black !important;
-        background-image: none !important;
-        border-bottom: 1px solid #333;
-    }
-    .profile-image:hover { transform: scale(1.1); }
-    .court-card {
-        background: linear-gradient(to bottom, #031827, #07314f); border: 1px solid #fff500;
-        border-radius: 10px; padding: 15px; margin: 10px 0; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-        transition: transform 0.2s, box-shadow 0.2s; text-align: center;
-        min-height: 120px; display: flex; flex-direction: column; justify-content: center; align-items: center;
-    }
-    .court-card:hover { transform: scale(1.05); box-shadow: 0 6px 12px rgba(255, 245, 0, 0.3); }
-    .court-card h4 { color: #fff500; margin-bottom: 10px; }
-    .court-card a {
-        background-color: #fff500; color: #031827; padding: 8px 16px; border-radius: 5px;
-        text-decoration: none; font-weight: bold; display: inline-block; margin-top: 10px;
-        transition: background-color 0.2s;
-    }
-    .court-card a:hover { background-color: #ffd700; }
-    h1 { font-size: 24px !important; }
-    h2 { font-size: 22px !important; }
-    h3 { font-size: 16px !important; }
-    .rankings-table-container {
-        width: 100%; margin-top: 0px !important; padding: 5px;
-    }
-    .rank-profile-player-group { display: flex; align-items: center; margin-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px; }
-    .rank-col { font-size: 2em; font-weight: bold; color: #fff500; margin-right: 15px; min-width: 40px; text-align: center; }
-    .player-col { font-size: 1.4em; font-weight: bold; color: #ffffff; flex-grow: 1; }
-    .badge { background: #fff500; color: black; padding: 2px 8px; 
-        border-radius: 10px; font-size: 0.75em; font-weight: bold; margin-left: 5px;
-    }
-    .stat-label { font-size: 0.7em; color: #aaa; text-transform: uppercase; }
-    .metric-value { font-size: 1.1em; font-weight: bold; }
-    .stat-highlight { color: #fff500; }
-    [data-testid="stMetric"] > div:nth-of-type(1) { color: #FF7518 !important; }
-    .block-container { display: flex; flex-wrap: wrap; justify-content: center; }
-    [data-testid="stHorizontalBlock"] { flex: 1 1 100% !important; margin: 10px 0; }
-    .chapter-card {
-        background-image: url("https://raw.githubusercontent.com/mahadevbk/patchmointtennis/main/assets/background/cardbg.png") !important;
-        background-size: cover;
-        background-position: center;
-        border: 2px solid #fff500;
-        border-radius: 12px;
-        text-align: center;
-        transition: transform 0.2s, box-shadow 0.2s;
-        box-shadow: 0 0 10px #fff500;
-        display: flex;
-        flex-direction: column;
-        height: 100%;
-        padding: 0;
-        overflow: hidden;
-    }
-    .chapter-card:hover {
-        transform: translateY(-5px);
-        border-color: #fff500;
-        box-shadow: 0 0 20px #fff500;
-    }
-    .card-content {
-        padding: 15px;
-        display: flex;
-        flex-direction: column;
-        flex-grow: 1;
-    }
-    .card-image-container {
-        height: 150px;
-        width: 100%;
-        overflow: hidden;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background-color: rgba(255, 255, 255, 0.30);
-    }
-    .card-image-container img {
-        width: 100%;
-        height: 100%;
-        object-fit: contain;
-    }
-    .chapter-card h3 {
-        color: #fff500;
-        margin-top: 10px;
-        margin-bottom: 10px;
-        font-size: 24px !important;
-        font-weight: 700;
-    }
-    .chapter-card p {
-        color: #fff500 !important;
-        font-size: 16px;
-        font-weight: 500;
-        margin-bottom: 15px;
-        opacity: 1;
-    }
-    .enter-button {
-        background-color: #fff500;
-        color: #031827;
-        padding: 8px 16px;
-        border-radius: 5px;
-        text-decoration: none;
-        font-weight: bold;
-        display: block;
-        margin-top: auto;
-        transition: background-color 0.2s;
-        width: 100%;
-        box-sizing: border-box;
-    }
-    .enter-button:hover {
-        background-color: #ffd700;
-    }
-    .stat-container {
+            width: 100px; 
+            height: 100px;
+            border: 3px solid #ccff00;
+            border-radius: 12px;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #262626;
+            box-shadow: 0 0 15px rgba(204, 255, 0, 0.4);
+            margin: 0 auto;
+        }
+        .glow-square img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain; /* Ensures the whole image fits without cropping */
+            padding: 5px; /* Creates a small gap between image and border */
+        }
+html, body, [class*="st-"], .stApp, h1, h2, h3, h4, h5, h6 {
+    font-family: 'Turret Road', sans-serif !important;
+}
+.mobile-card {
+    background: linear-gradient(135deg, #071a3d 0%, #0c0014 100%);
+    border: 1px solid rgba(255, 245, 0, 0.2);
+    border-radius: 15px;
+    padding: 15px;
+    margin-bottom: 15px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+}
+.rank-badge {
+    background: #fff500;
+    color: #041136;
+    font-weight: bold;
+    border-radius: 5px;
+    padding: 2px 8px;
+    font-size: 14px;
+}
+.trend-dot {
+    height: 10px; width: 10px; border-radius: 50%; display: inline-block; margin-right: 3px;
+}
+.dot-w { background-color: #00ff88; box-shadow: 0 0 5px #00ff88; }
+.dot-l { background-color: #ff4b4b; }
+.stApp {
+  background-image: url("https://raw.githubusercontent.com/mahadevbk/patchmointtennis/main/assets/background/background.jpg");
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+}
+@media print {
+  html, body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+  body { background-color: #041136 !important; height: 100vh; margin: 0; padding: 0; }
+  header, .stToolbar { display: none; }
+}
+[data-testid="stHeader"] {
+    background: black !important;
+    background-image: none !important;
+    border-bottom: 1px solid #333;
+}
+.profile-image:hover { transform: scale(1.1); }
+.court-card {
+    background: linear-gradient(to bottom, #031827, #07314f); border: 1px solid #fff500;
+    border-radius: 10px; padding: 15px; margin: 10px 0; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    transition: transform 0.2s, box-shadow 0.2s; text-align: center;
+    min-height: 120px; display: flex; flex-direction: column; justify-content: center; align-items: center;
+}
+.court-card:hover { transform: scale(1.05); box-shadow: 0 6px 12px rgba(255, 245, 0, 0.3); }
+.court-card h4 { color: #fff500; margin-bottom: 10px; }
+.court-card a {
+    background-color: #fff500; color: #031827; padding: 8px 16px; border-radius: 5px;
+    text-decoration: none; font-weight: bold; display: inline-block; margin-top: 10px;
+    transition: background-color 0.2s;
+}
+.court-card a:hover { background-color: #ffd700; }
+h1 { font-size: 24px !important; }
+h2 { font-size: 22px !important; }
+h3 { font-size: 16px !important; }
+.rankings-table-container {
+    width: 100%; margin-top: 0px !important; padding: 5px;
+}
+.ranking-row {
+    display: block; padding: 15px; margin-bottom: 15px; border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.30) 0%, rgba(255, 255, 255, 0.26) 100%);
+    overflow: visible; transition: transform 0.2s;
+}
+.ranking-row:hover { transform: translateY(-2px); border-color: rgba(255, 245, 0, 0.5); }
+.rank-profile-player-group { display: flex; align-items: center; margin-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px; }
+.rank-col { font-size: 2em; font-weight: bold; color: #fff500; margin-right: 15px; min-width: 40px; text-align: center; }
+.player-col { font-size: 1.4em; font-weight: bold; color: #ffffff; flex-grow: 1; }
+.badge { background: #fff500; color: black; padding: 2px 8px; 
+    border-radius: 10px; font-size: 0.75em; font-weight: bold; margin-left: 5px;
+}
+.stat-box {
+    background: rgba(255,255,255,0.30); padding: 15px; border-radius: 10px; 
+    border-left: 4px solid #fff500; margin-bottom: 10px;
+}
+.stat-label { font-size: 0.7em; color: #aaa; text-transform: uppercase; }
+.metric-value { font-size: 1.1em; font-weight: bold; }
+.stat-highlight { color: #fff500; }
+[data-testid="stMetric"] > div:nth-of-type(1) { color: #FF7518 !important; }
+.block-container { display: flex; flex-wrap: wrap; justify-content: center; }
+[data-testid="stHorizontalBlock"] { flex: 1 1 100% !important; margin: 10px 0; }
+.chapter-card {
+    background-image: url("https://raw.githubusercontent.com/mahadevbk/patchmointtennis/main/assets/background/cardbg.png") !important;
+    background-size: cover;
+    background-position: center;
+    border: 2px solid #fff500;
+    border-radius: 12px;
+    text-align: center;
+    transition: transform 0.2s, box-shadow 0.2s;
+    box-shadow: 0 0 10px #fff500;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding: 0;
+    overflow: hidden;
+}
+.chapter-card:hover {
+    transform: translateY(-5px);
+    border-color: #fff500;
+    box-shadow: 0 0 20px #fff500;
+}
+.card-content {
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+}
+.card-image-container {
+    height: 150px;
+    width: 100%;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(255, 255, 255, 0.30);
+}
+.card-image-container img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+.chapter-card h3 {
+    color: #fff500;
+    margin-top: 10px;
+    margin-bottom: 10px;
+    font-size: 24px !important; /* Added font-size (16px * 1.5 = 24px) */
+    font-weight: 700;           /* Optional: makes it bold for better visibility */
+}
+.chapter-card p {
+    color: #fff500 !important;
+    font-size: 16px;
+    font-weight: 500;
+    margin-bottom: 15px;
+    opacity: 1; /* Ensures it is fully bright */
+}
+.enter-button {
+    background-color: #fff500;
+    color: #031827;
+    padding: 8px 16px;
+    border-radius: 5px;
+    text-decoration: none;
+    font-weight: bold;
+    display: block;
+    margin-top: auto; /* Pushes button to the bottom */
+    transition: background-color 0.2s;
+    width: 100%;
+    box-sizing: border-box;
+}
+.enter-button:hover {
+    background-color: #ffd700;
+}
+.stat-container {
         display: flex;
         flex-wrap: wrap;
         gap: 8px;
@@ -261,30 +272,6 @@ st.markdown("""
     .win-rate { background: linear-gradient(135deg, #28a745, #1e7e34); }
     .matches { background: linear-gradient(135deg, #007bff, #0056b3); }
     .points { background: linear-gradient(135deg, #fd7e14, #d96101); }
-    .ranking-row {
-        display: block; 
-        padding: 15px; 
-        margin-bottom: 20px; 
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 16px; 
-        box-shadow: 0 4px 6px rgba(0,0,0,0.2);
-        background: linear-gradient(145deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 100%);
-        overflow: visible; 
-        transition: all 0.3s ease;
-    }
-    .ranking-row:hover { 
-        transform: translateY(-3px); 
-        border-color: rgba(255, 95, 31, 0.4);
-        box-shadow: 0 8px 15px rgba(0,0,0,0.4);
-    }
-    .stat-box {
-        background: rgba(255, 255, 255, 0.04); 
-        padding: 12px; 
-        border-radius: 12px; 
-        border: 1px solid rgba(255,255,255,0.05);
-        border-left: 4px solid #FF5F1F;
-        margin-bottom: 10px;
-    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -1376,16 +1363,16 @@ if st.session_state.is_master_admin and st.session_state.current_chapter is None
                     if st.session_state.get(delete_key):
                         st.warning(f"Are you sure you want to permanently delete **{row['name']}** and all its data? This cannot be undone.")
                         c1, c2 = st.columns(2)
-                        if c1.button("CONFIRM DELETION", key=f"ma_conf_del_{row['id']}", type="primary", width='stretch'):
+                        if c1.button("CONFIRM DELETION", key=f"ma_conf_del_{row['id']}", type="primary", use_container_width=True):
                             if delete_chapter_fully(row['id']):
                                 st.success(f"Deleted {row['name']}")
                                 st.session_state[delete_key] = False
                                 st.rerun()
-                        if c2.button("Cancel", key=f"ma_canc_del_{row['id']}", width='stretch'):
+                        if c2.button("Cancel", key=f"ma_canc_del_{row['id']}", use_container_width=True):
                             st.session_state[delete_key] = False
                             st.rerun()
                     else:
-                        if st.button(f"DELETE CHAPTER", key=f"ma_del_{row['id']}", type="primary", width='stretch'):
+                        if st.button(f"DELETE CHAPTER", key=f"ma_del_{row['id']}", type="primary", use_container_width=True):
                             st.session_state[delete_key] = True
                             st.rerun()
 
@@ -1571,7 +1558,7 @@ with tabs[0]:
                         """, unsafe_allow_html=True)
                     
                     with c3:
-                        st.plotly_chart(create_radar_chart(row), width='stretch', config={'displayModeBar': False}, key=f"rd_{idx}")
+                        st.plotly_chart(create_radar_chart(row), use_container_width=True, config={'displayModeBar': False}, key=f"rd_{idx}")
                     
                     # --- DATA DISPLAY BELOW COLUMNS ---
                     st.divider() # Subtle line separating main stats from form
