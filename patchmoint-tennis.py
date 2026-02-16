@@ -316,7 +316,8 @@ if 'match_post_key' not in st.session_state:
 
 # --- Helper Functions ---
 
-@st.cache_resourcedef get_sqlalchemy_engine():
+@st.cache_resource
+def get_sqlalchemy_engine():
     db_url = st.secrets["NEON_DATABASE_URL"]
     if db_url.startswith("postgres://"):
         db_url = db_url.replace("postgres://", "postgresql://", 1)
@@ -686,7 +687,8 @@ def generate_match_id(matches_df, match_datetime):
 def get_player_stats_template():
     return {'wins': 0, 'losses': 0, 'matches': 0, 'games_won': 0, 'gd_sum': 0, 'clutch_wins': 0, 'clutch_matches': 0, 'gd_list': [], 'points': 0, 'singles_wins': 0, 'singles_matches': 0, 'doubles_wins': 0, 'doubles_matches': 0}
 
-@st.cache_data(show_spinner=False)def calculate_rankings(matches_to_rank):
+@st.cache_data(show_spinner=False)
+def calculate_rankings(matches_to_rank):
     stats = defaultdict(get_player_stats_template)
     current_streaks = defaultdict(int)
     last_active_dates = {}
@@ -886,7 +888,8 @@ def get_player_stats_template():
     return df
 
 
-@st.cache_data(ttl=300)def plot_player_performance(player_name, matches_df):
+@st.cache_data(ttl=300)
+def plot_player_performance(player_name, matches_df):
     if matches_df.empty: return None
     mask = (matches_df['team1_player1'] == player_name) | (matches_df['team1_player2'] == player_name) | \
             (matches_df['team2_player1'] == player_name) | (matches_df['team2_player2'] == player_name)
