@@ -1624,7 +1624,7 @@ with tabs[1]:
         .modern-match-card:hover {
             transform: translateY(-2px);
             box-shadow: 0 8px 15px rgba(0,0,0,0.4);
-            border-color: rgba(255, 245, 0, 0.3);
+            border-color: rgba(255, 95, 31, 0.4); /* Orange border on hover */
         }
         .mmc-header {
             display: flex;
@@ -1638,7 +1638,7 @@ with tabs[1]:
         .mmc-body {
             display: flex;
             align-items: center;
-            padding: 20px;
+            padding: 20px 10px; /* Reduced side padding */
             position: relative;
         }
         .mmc-team {
@@ -1659,34 +1659,42 @@ with tabs[1]:
             background: #222;
         }
         .mmc-winner-img {
-            border-color: #ccff00;
-            box-shadow: 0 0 15px rgba(204, 255, 0, 0.4);
+            border-color: #FF5F1F; /* Orange border for winner */
+            box-shadow: 0 0 15px rgba(255, 95, 31, 0.4);
         }
         .mmc-name {
             font-weight: bold;
-            font-size: 1.1em;
+            font-size: 1.0em;
             color: #eee;
             line-height: 1.2;
         }
         .mmc-winner-text {
-            color: #ccff00;
-            text-shadow: 0 0 10px rgba(204,255,0,0.2);
+            color: #FF5F1F; /* Orange text for winner */
+            text-shadow: 0 0 10px rgba(255, 95, 31, 0.2);
         }
-        .mmc-vs {
-            flex: 0 0 120px;
+        .mmc-vs-container {
+            flex: 0 0 140px; /* Wider container for the score */
             text-align: center;
             z-index: 2;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
         }
-        .mmc-score-main {
-            font-size: 2em;
-            font-weight: 800;
-            color: white;
+        .mmc-vs-label {
+            font-size: 0.7em;
+            color: #666;
+            font-weight: bold;
+            margin-bottom: 2px;
             letter-spacing: 2px;
         }
-        .mmc-sets {
-            font-size: 0.85em;
-            color: #aaa;
-            margin-top: 4px;
+        .mmc-score-main {
+            font-size: 2.2em; /* BIGGER */
+            font-weight: 900;
+            color: #FF5F1F; /* BRIGHT ORANGE */
+            letter-spacing: 1px;
+            line-height: 1.1;
+            text-shadow: 0 0 20px rgba(255, 95, 31, 0.3); /* GLOW */
+            white-space: nowrap;
         }
         .mmc-footer {
             padding: 12px 20px;
@@ -1697,8 +1705,8 @@ with tabs[1]:
             border-top: 1px solid rgba(255,255,255,0.05);
         }
         .mmc-tag {
-            background: rgba(255, 245, 0, 0.1);
-            color: #fff500;
+            background: rgba(255, 95, 31, 0.15);
+            color: #FF5F1F;
             padding: 2px 8px;
             border-radius: 4px;
             font-size: 0.75em;
@@ -1708,10 +1716,6 @@ with tabs[1]:
         .mmc-stat {
             color: #aaa;
             font-size: 0.9em;
-        }
-        .mmc-stat span {
-            color: white;
-            font-weight: bold;
         }
     </style>
     """, unsafe_allow_html=True)
@@ -1780,7 +1784,6 @@ with tabs[1]:
                     else: st.error("Score & Photo required")
 
     # --- MATCH HISTORY DISPLAY ---
-    # Create Player Image Lookup
     player_imgs = {}
     if not st.session_state.players_df.empty:
         for _, p_row in st.session_state.players_df.iterrows():
@@ -1792,17 +1795,15 @@ with tabs[1]:
         m_hist = m_hist.sort_values('date', ascending=False)
         
         for row in m_hist.itertuples():
-            # 1. Prepare Player Names and Images
             t1_p1_name = row.team1_player1
             t1_p2_name = getattr(row, 'team1_player2', '')
             t2_p1_name = row.team2_player1
             t2_p2_name = getattr(row, 'team2_player2', '')
 
-            # Helper to get image src
             def get_p_img(name):
                 return get_img_src(player_imgs.get(name, ''))
 
-            # 2. Calculate Stats (Total Games & GD)
+            # Stats Calculation
             t1_games_total = 0
             t2_games_total = 0
             sets_played = 0
@@ -1814,7 +1815,6 @@ with tabs[1]:
                     s_str = str(s)
                     set_scores_display.append(s_str)
                     
-                    # Logic to parse games
                     g1, g2 = 0, 0
                     if "Tie Break" in s_str:
                          nums = re.findall(r'\d+', s_str)
@@ -1829,17 +1829,15 @@ with tabs[1]:
                     t1_games_total += g1
                     t2_games_total += g2
 
-            # Calculate Game Diff
             game_diff = abs(t1_games_total - t2_games_total)
             
-            # 3. Determine Winner Visuals
+            # Winner Logic
             t1_won = (row.winner == "Team 1")
             t1_class = "mmc-winner-text" if t1_won else ""
             t2_class = "mmc-winner-text" if not t1_won else ""
             t1_img_class = "mmc-winner-img" if t1_won else ""
             t2_img_class = "mmc-winner-img" if not t1_won else ""
             
-            # Format Names for HTML
             if t1_p2_name:
                 t1_html = f"""<div style="display:flex; gap:5px; justify-content:center;">
                                 <img src="{get_p_img(t1_p1_name)}" class="mmc-avatar {t1_img_class}">
@@ -1860,7 +1858,7 @@ with tabs[1]:
                 t2_html = f"""<img src="{get_p_img(t2_p1_name)}" class="mmc-avatar {t2_img_class}">
                               <div class="mmc-name {t2_class}">{t2_p1_name}</div>"""
 
-            # 4. Badges / Footer Stats
+            # Badges
             badges = []
             if game_diff >= 8: badges.append("DOMINATION")
             if game_diff <= 2: badges.append("NAIL BITER")
@@ -1868,30 +1866,31 @@ with tabs[1]:
             
             badges_html = "".join([f'<span class="mmc-tag" style="margin-right:5px;">{b}</span>' for b in badges])
             
-            scores_str = "  |  ".join(set_scores_display)
+            # Format Score String (with line breaks if 3 sets to keep it readable)
+            if len(set_scores_display) == 3:
+                # If 3 sets, break line for neatness
+                scores_str = f"{set_scores_display[0]} {set_scores_display[1]}<br>{set_scores_display[2]}"
+            else:
+                scores_str = " ".join(set_scores_display)
             
-            # Calculate Set Score (e.g. 2 - 1)
-            # This is a bit tricky without parsing who won each set exactly, 
-            # but usually sufficient to show the set details in the center.
-            
-            # 5. Render Card HTML
+            # Render Card
             st.markdown(f"""
             <div class="modern-match-card">
                 <div class="mmc-header">
                     <div>📅 {row.date.strftime('%d %b %Y') if pd.notnull(row.date) else ''}</div>
-                    <div style="font-weight:bold; color:#ccff00;">{getattr(row, 'match_type', 'Match').upper()}</div>
+                    <div style="font-weight:bold; color:#FF5F1F;">{getattr(row, 'match_type', 'Match').upper()}</div>
                 </div>
                 <div class="mmc-body">
                     <div class="mmc-team">{t1_html}</div>
-                    <div class="mmc-vs">
-                        <div class="mmc-score-main">VS</div>
-                        <div class="mmc-sets">{scores_str}</div>
+                    <div class="mmc-vs-container">
+                        <div class="mmc-vs-label">VS</div>
+                        <div class="mmc-score-main">{scores_str}</div>
                     </div>
                     <div class="mmc-team">{t2_html}</div>
                 </div>
                 <div class="mmc-footer">
                     <div>{badges_html}</div>
-                    <div class="mmc-stat">Game Diff: <span style="color:#ccff00;">{game_diff}</span></div>
+                    <div class="mmc-stat">Game Diff: <span style="color:#FF5F1F; font-weight:bold;">{game_diff}</span></div>
                 </div>
             </div>
             """, unsafe_allow_html=True)
