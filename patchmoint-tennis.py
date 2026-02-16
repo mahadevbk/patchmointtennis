@@ -165,7 +165,7 @@ h3 { font-size: 16px !important; }
 .ranking-row {
     display: block; padding: 15px; margin-bottom: 15px; border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.30) 0%, rgba(255, 255, 255, 0.26) 100%);
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0.26) 100%);
     overflow: visible; transition: transform 0.2s;
 }
 .ranking-row:hover { transform: translateY(-2px); border-color: rgba(255, 245, 0, 0.5); }
