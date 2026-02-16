@@ -255,6 +255,8 @@ h3 { font-size: 16px !important; }
 .enter-button:hover {
     background-color: #ffd700;
 }
+
+
 .stat-container {
         display: flex;
         flex-wrap: wrap;
@@ -269,9 +271,38 @@ h3 { font-size: 16px !important; }
         color: white;
         box-shadow: 0 2px 4px rgba(0,0,0,0.2);
     }
+    
     .win-rate { background: linear-gradient(135deg, #28a745, #1e7e34); }
     .matches { background: linear-gradient(135deg, #007bff, #0056b3); }
     .points { background: linear-gradient(135deg, #fd7e14, #d96101); }
+.ranking-row {
+            display: block; 
+            padding: 15px; 
+            margin-bottom: 20px; 
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px; 
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+            /* Matching the Matches tab background */
+            background: linear-gradient(145deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 100%);
+            overflow: visible; 
+            transition: all 0.3s ease;
+        }
+        
+        .ranking-row:hover { 
+            transform: translateY(-3px); 
+            border-color: rgba(255, 95, 31, 0.4); /* Neon Orange highlight */
+            box-shadow: 0 8px 15px rgba(0,0,0,0.4);
+        }
+
+        /* Updated Inner Stat Boxes */
+        .stat-box {
+            background: rgba(255, 255, 255, 0.04); 
+            padding: 12px; 
+            border-radius: 12px; 
+            border: 1px solid rgba(255,255,255,0.05);
+            border-left: 4px solid #FF5F1F; /* Neon Orange Accent */
+            margin-bottom: 10px;
+        }
 </style>
 """, unsafe_allow_html=True)
 
