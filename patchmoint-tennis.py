@@ -2097,49 +2097,121 @@ with tabs[2]:
 
     
     
+    
     for idx, row in st.session_state.players_df.sort_values("name").iterrows():
             p_name = row['name']
-            p_stats = rank_df[rank_df['Player'] == p_name] if not rank_df.empty else pd.DataFrame()
+            
+            # Prepare data for profile view using default/first active ranking system
+            # This ensures we have the Score/Label/Rank fields populated
+            profile_view_system = "Elo (Hybrid)"
+            active_systems_dict = st.session_state.chapter_config.get("ranking_systems", {"Elo (Hybrid)": True})
+            active_systems = [k for k, v in active_systems_dict.items() if v]
+            if active_systems: profile_view_system = active_systems[0]
+
+            display_profile_rank_df = rank_df.copy() if not rank_df.empty else pd.DataFrame()
+            if not display_profile_rank_df.empty:
+                sys_key = f"Score_{profile_view_system}"
+                if sys_key in display_profile_rank_df.columns:
+                    display_profile_rank_df = display_profile_rank_df.sort_values(by=[sys_key, "Win %"], ascending=[False, False]).reset_index(drop=True)
+                    display_profile_rank_df['Rank'] = display_profile_rank_df.index + 1
+                    display_profile_rank_df['Score'] = display_profile_rank_df[sys_key]
+                    display_profile_rank_df['Label'] = profile_view_system
+            
+            p_stats = display_profile_rank_df[display_profile_rank_df['Player'] == p_name] if not display_profile_rank_df.empty else pd.DataFrame()
             has_stats = not p_stats.empty
             s = p_stats.iloc[0] if has_stats else {}
     
-            with st.container():
-                c1, c2, c3 = st.columns([1.2, 2.2, 1.8])
-    
-                with c1:
-                    img_src = get_img_src(row['profile_image_url'])
-                    st.markdown(f'<div style="text-align:center;"><div style="width:120px;height:120px;background-color:#262626;border-radius:15px;border:3px solid #fff500;display:flex;justify-content:center;align-items:center;overflow:hidden;margin:0 auto;"><img src="{img_src}" style="max-width:100%;max-height:100%;object-fit:contain;"></div><div style="margin-top:10px;font-weight:bold;font-size:1.2em;color:white;">{p_name}</div></div>', unsafe_allow_html=True)
-    
-                with c2:
-                    if has_stats:
-                        badges_html = "".join([f"<span class='badge'>{b}</span>" for b in s.get('Badges', [])])
-                        rank_val = s.get('Rank', 'N/A')
-    
+            if has_stats:
+                # --- RENDER CARD (MATCHING RANKINGS TAB DESIGN) ---
+                ch = s.get('Last Change', 0)
+                cc = "#00ff88" if ch >= 0 else "#ff4b4b"
+                trend_arrow = "▲" if ch > 0 else "▼" if ch < 0 else "—"
+                cd_html = f"<span style='color:{cc}; font-size:0.8em;'>{trend_arrow} {abs(ch)}</span>" if s['Label'] != 'Points' else ""
+                badges_html = "".join([f"<span class='badge'>{b}</span>" for b in s.get('Badges', [])])
+
+                with st.container(border=True):
+                    c1, c2, c3 = st.columns([1.5, 2.5, 1.8])
+                    
+                    with c1:
                         st.markdown(f"""
-                        <div style="background:rgba(255,255,255,0.08);padding:15px;border-radius:12px;border:1px solid rgba(255,255,255,0.1); height: 100%;">
-                            <div style="display:flex;justify-content:space-between;margin-bottom:12px;">
-                                <span style="color:#fff500;font-weight:bold;">🏆 RANK: #{rank_val}</span>
-                                <div>{badges_html}</div>
+                        <div style="text-align:center;">
+                            <div style="font-size:1.8em; font-weight:bold; color:#ccff00; line-height:1;">🏆 #{s['Rank']}</div>
+                            <div class="glow-square" style="margin-top:8px;">
+                                <img src="{get_img_src(s['Profile'])}">
                             </div>
-                            <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-top:15px; align-items: stretch; height:100%;">
-                                <div style="border-left:3px solid #00FF88; background:rgba(0,255,136,0.05); padding:8px; border-radius:4px;"><div style="font-size:0.6em; color:#aaa; text-transform:uppercase;">Win %</div><div style="color:#00FF88; font-weight:bold; font-size:1.0em;">{s.get('Win %', 0)}%</div></div>
-                                <div style="border-left:3px solid #00C0F2; background:rgba(0,192,242,0.05); padding:8px; border-radius:4px;"><div style="font-size:0.6em; color:#aaa; text-transform:uppercase;">Record</div><div style="color:#00C0F2; font-weight:bold; font-size:1.0em;">{s.get('Record', '0W-0L')}</div></div>
-                                <div style="border-left:3px solid #FF4B4B; background:rgba(255,75,75,0.05); padding:8px; border-radius:4px;"><div style="font-size:0.6em; color:#aaa; text-transform:uppercase;">Clutch</div><div style="color:#FF4B4B; font-weight:bold; font-size:1.0em;">{s.get('Clutch Factor', 0)}%</div></div>
-                                <div style="border-left:3px solid #ccff00; background:rgba(204,255,0,0.05); padding:8px; border-radius:4px;"><div style="font-size:0.6em; color:#aaa; text-transform:uppercase;">Points</div><div style="color:#ccff00; font-weight:bold; font-size:1.0em;">{s.get('Points', 0)}</div></div>
-                                <div style="border-left:3px solid #FFA500; background:rgba(255,165,0,0.05); padding:8px; border-radius:4px;"><div style="font-size:0.6em; color:#aaa; text-transform:uppercase;">GDA</div><div style="color:#FFA500; font-weight:bold; font-size:1.0em;">{s.get('Game Diff Avg', 0):+.2f}</div></div>
-                                <div style="border-left:3px solid #FFFFFF; background:rgba(255,255,255,0.05); padding:8px; border-radius:4px;"><div style="font-size:0.6em; color:#aaa; text-transform:uppercase;">Games Won</div><div style="color:#FFFFFF; font-weight:bold; font-size:1.0em;">{s.get('Games Won', 0)}</div></div>
-                                <div style="border-left:3px solid #9400D3; background:rgba(148,0,211,0.05); padding:8px; border-radius:4px;"><div style="font-size:0.6em; color:#aaa; text-transform:uppercase;">Consistency</div><div style="color:#9400D3; font-weight:bold; font-size:1.0em;">{s.get('Consistency Index', 0):.2f}</div></div>
-                                <div style="border-left:3px solid #32CD32; background:rgba(50,205,50,0.05); padding:8px; border-radius:4px;"><div style="font-size:0.6em; color:#aaa; text-transform:uppercase;">Singles Perf</div><div style="color:#32CD32; font-weight:bold; font-size:1.0em;">{s.get('Singles Perf', 0)}%</div></div>
-                                <div style="border-left:3px solid #1E90FF; background:rgba(30,144,255,0.05); padding:8px; border-radius:4px;"><div style="font-size:0.6em; color:#aaa; text-transform:uppercase;">Doubles Perf</div><div style="color:#1E90FF; font-weight:bold; font-size:1.0em;">{s.get('Doubles Perf', 0)}%</div></div>
-                            </div>
+                            <div style="font-weight:bold; color:white; font-size:1.1em; margin-top:10px;">{s['Player']}</div>
+                            <div style="color:#aaa; font-size:0.8em;">{s['Score']:.2f} {cd_html}</div>
+                            <div style="margin-top:5px;">{badges_html}</div>
                         </div>
                         """, unsafe_allow_html=True)
-                    else:
+                    
+                    with c2:
+                        st.markdown(f"""
+                        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-top:15px; align-items: stretch; height:100%;">
+                            <div style="border-left:3px solid #00FF88; background:rgba(0,255,136,0.05); padding:8px; border-radius:4px;"><div style="font-size:0.6em; color:#aaa; text-transform:uppercase;">Win %</div><div style="color:#00FF88; font-weight:bold; font-size:1.0em;">{s['Win %']}%</div></div>
+                            <div style="border-left:3px solid #00C0F2; background:rgba(0,192,242,0.05); padding:8px; border-radius:4px;"><div style="font-size:0.6em; color:#aaa; text-transform:uppercase;">Record</div><div style="color:#00C0F2; font-weight:bold; font-size:1.0em;">{s['Record']}</div></div>
+                            <div style="border-left:3px solid #FF4B4B; background:rgba(255,75,75,0.05); padding:8px; border-radius:4px;"><div style="font-size:0.6em; color:#aaa; text-transform:uppercase;">Clutch</div><div style="color:#FF4B4B; font-weight:bold; font-size:1.0em;">{s.get('Clutch Factor', 0)}%</div></div>
+                            <div style="border-left:3px solid #ccff00; background:rgba(204,255,0,0.05); padding:8px; border-radius:4px;"><div style="font-size:0.6em; color:#aaa; text-transform:uppercase;">{s['Label']}</div><div style="color:#ccff00; font-weight:bold; font-size:1.0em;">{s.get('Score', 0)}</div></div>
+                            <div style="border-left:3px solid #FFA500; background:rgba(255,165,0,0.05); padding:8px; border-radius:4px;"><div style="font-size:0.6em; color:#aaa; text-transform:uppercase;">GDA</div><div style="color:#FFA500; font-weight:bold; font-size:1.0em;">{s.get('Game Diff Avg', 0):+.2f}</div></div>
+                            <div style="border-left:3px solid #FFFFFF; background:rgba(255,255,255,0.05); padding:8px; border-radius:4px;"><div style="font-size:0.6em; color:#aaa; text-transform:uppercase;">Games Won</div><div style="color:#FFFFFF; font-weight:bold; font-size:1.0em;">{s.get('Games Won', 0)}</div></div>
+                            <div style="border-left:3px solid #9400D3; background:rgba(148,0,211,0.05); padding:8px; border-radius:4px;"><div style="font-size:0.6em; color:#aaa; text-transform:uppercase;">Consistency</div><div style="color:#9400D3; font-weight:bold; font-size:1.0em;">{s.get('Consistency Index', 0):.2f}</div></div>
+                            <div style="border-left:3px solid #32CD32; background:rgba(50,205,50,0.05); padding:8px; border-radius:4px;"><div style="font-size:0.6em; color:#aaa; text-transform:uppercase;">Singles Perf</div><div style="color:#32CD32; font-weight:bold; font-size:1.0em;">{s.get('Singles Perf', 0)}%</div></div>
+                            <div style="border-left:3px solid #1E90FF; background:rgba(30,144,255,0.05); padding:8px; border-radius:4px;"><div style="font-size:0.6em; color:#aaa; text-transform:uppercase;">Doubles Perf</div><div style="color:#1E90FF; font-weight:bold; font-size:1.0em;">{s.get('Doubles Perf', 0)}%</div></div>
+                        </div>
+                        """, unsafe_allow_html=True)
+                    
+                    with c3:
+                        st.plotly_chart(create_radar_chart(s), width='stretch', config={'displayModeBar': False}, key=f"rp_rd_{idx}")
+
+                    # --- DATA DISPLAY BELOW COLUMNS (FORM & POWER) ---
+                    st.divider() 
+                    
+                    # 1. Recent Form Guide
+                    m_df = st.session_state.matches_df
+                    player_matches = m_df[
+                        (m_df['team1_player1'] == p_name) | (m_df['team1_player2'] == p_name) |
+                        (m_df['team2_player1'] == p_name) | (m_df['team2_player2'] == p_name)
+                    ].copy()
+                    
+                    if not player_matches.empty:
+                        player_matches['dt'] = pd.to_datetime(player_matches['date'], errors='coerce')
+                        player_matches = player_matches.sort_values('dt', ascending=False).head(5)
+
+                        streak_html = '<div style="display:flex; gap:12px; justify-content:center; margin-bottom:10px;">'
+                        for _, m in player_matches.iterrows():
+                            is_t1 = (m['team1_player1'] == p_name or m['team1_player2'] == p_name)
+                            won = (is_t1 and m['winner'] == "Team 1") or (not is_t1 and m['winner'] == "Team 2")
+                            color = "#00FF88" if won else "#FF4B4B"
+                            label = "W" if won else "L"
+                            streak_html += f'<div style="width:30px; height:30px; border-radius:50%; background:{color}22; border:2px solid {color}; color:{color}; display:flex; justify-content:center; align-items:center; font-weight:bold; font-size:0.8em; box-shadow:0 0 8px {color}33;">{label}</div>'
+                        streak_html += '</div>'
+                        st.markdown(streak_html, unsafe_allow_html=True)
+                    
+                    # 2. Power Level Bar
+                    max_score = display_profile_rank_df['Score'].max() if not display_profile_rank_df.empty else 1
+                    current_score = s['Score']
+                    percent_of_max = min((current_score / max_score) * 100, 100)
+                    
+                    st.markdown(f"""
+                    <div style="padding: 0 10px 10px 10px;">
+                        <div style="display:flex; justify-content:space-between; font-size:0.65em; color:#aaa; margin-bottom:4px;">
+                            <span style="letter-spacing:1px; font-weight:bold;">PLAYER POTENTIAL / LEAGUE STANDING</span>
+                            <span style="color:#ccff00; font-weight:bold;">{percent_of_max:.1f}%</span>
+                        </div>
+                        <div style="width:100%; height:6px; background:rgba(255,255,255,0.05); border-radius:10px; overflow:hidden; border:1px solid rgba(255,255,255,0.1);">
+                            <div style="width:{percent_of_max}%; height:100%; background:linear-gradient(90deg, #ccff00, #00FF88); border-radius:10px; box-shadow:0 0 12px #ccff00aa;"></div>
+                        </div>
+                    </div>
+                    """, unsafe_allow_html=True)
+            else:
+                # --- NO STATS FALLBACK ---
+                img_src = get_img_src(row['profile_image_url'])
+                with st.container(border=True):
+                    c1, c2 = st.columns([1, 4])
+                    with c1:
+                        st.markdown(f'<div class="glow-square" style="width:80px; height:80px; margin:0 auto;"><img src="{img_src}"></div><div style="text-align:center; font-weight:bold; color:white; margin-top:5px; font-size:0.9em;">{p_name}</div>', unsafe_allow_html=True)
+                    with c2:
                         st.info("No stats yet. Play a match to get started!")
-    
-                with c3:
-                    if has_stats: 
-                        st.plotly_chart(create_radar_chart(s), width='stretch', config={'displayModeBar': False}, key=f"rp_{idx}")
             st.divider()
 
 with tabs[3]:
