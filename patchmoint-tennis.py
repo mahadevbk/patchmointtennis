@@ -2098,6 +2098,7 @@ with tabs[2]:
     
     
     
+    
     for idx, row in st.session_state.players_df.sort_values("name").iterrows():
             p_name = row['name']
             
@@ -2146,14 +2147,36 @@ with tabs[2]:
                         """, unsafe_allow_html=True)
                     
                     with c2:
+                        # Determine what to show in the 2nd row (Ratings)
+                        elo_val = s.get('Score_Elo (Hybrid)')
+                        elo_str = f"{elo_val:.0f}" if pd.notnull(elo_val) else "—"
+                        
+                        utr_val = s.get('Score_UTR (Approx)')
+                        utr_str = f"{utr_val:.2f}" if pd.notnull(utr_val) else "—"
+                        
+                        points_enabled = st.session_state.chapter_config.get("ranking_systems", {}).get("Points", False)
+                        if points_enabled:
+                            pts_val = s.get('Score_Points')
+                            slot6_label = "Points"
+                            slot6_val = f"{pts_val:.0f}" if pd.notnull(pts_val) else "—"
+                            slot6_col = "#FFD700"
+                            slot6_bg = "rgba(255, 215, 0, 0.05)"
+                        else:
+                            slot6_label = "GDA"
+                            slot6_val = f"{s.get('Game Diff Avg', 0):+.2f}"
+                            slot6_col = "#FFFFFF"
+                            slot6_bg = "rgba(255, 255, 255, 0.05)"
+
                         st.markdown(f"""
                         <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-top:15px; align-items: stretch; height:100%;">
                             <div style="border-left:3px solid #00FF88; background:rgba(0,255,136,0.05); padding:8px; border-radius:4px;"><div style="font-size:0.6em; color:#aaa; text-transform:uppercase;">Win %</div><div style="color:#00FF88; font-weight:bold; font-size:1.0em;">{s['Win %']}%</div></div>
                             <div style="border-left:3px solid #00C0F2; background:rgba(0,192,242,0.05); padding:8px; border-radius:4px;"><div style="font-size:0.6em; color:#aaa; text-transform:uppercase;">Record</div><div style="color:#00C0F2; font-weight:bold; font-size:1.0em;">{s['Record']}</div></div>
                             <div style="border-left:3px solid #FF4B4B; background:rgba(255,75,75,0.05); padding:8px; border-radius:4px;"><div style="font-size:0.6em; color:#aaa; text-transform:uppercase;">Clutch</div><div style="color:#FF4B4B; font-weight:bold; font-size:1.0em;">{s.get('Clutch Factor', 0)}%</div></div>
-                            <div style="border-left:3px solid #ccff00; background:rgba(204,255,0,0.05); padding:8px; border-radius:4px;"><div style="font-size:0.6em; color:#aaa; text-transform:uppercase;">{s['Label']}</div><div style="color:#ccff00; font-weight:bold; font-size:1.0em;">{s.get('Score', 0)}</div></div>
-                            <div style="border-left:3px solid #FFA500; background:rgba(255,165,0,0.05); padding:8px; border-radius:4px;"><div style="font-size:0.6em; color:#aaa; text-transform:uppercase;">GDA</div><div style="color:#FFA500; font-weight:bold; font-size:1.0em;">{s.get('Game Diff Avg', 0):+.2f}</div></div>
-                            <div style="border-left:3px solid #FFFFFF; background:rgba(255,255,255,0.05); padding:8px; border-radius:4px;"><div style="font-size:0.6em; color:#aaa; text-transform:uppercase;">Games Won</div><div style="color:#FFFFFF; font-weight:bold; font-size:1.0em;">{s.get('Games Won', 0)}</div></div>
+                            
+                            <div style="border-left:3px solid #ccff00; background:rgba(204,255,0,0.05); padding:8px; border-radius:4px;"><div style="font-size:0.6em; color:#aaa; text-transform:uppercase;">Elo</div><div style="color:#ccff00; font-weight:bold; font-size:1.0em;">{elo_str}</div></div>
+                            <div style="border-left:3px solid #FFA500; background:rgba(255,165,0,0.05); padding:8px; border-radius:4px;"><div style="font-size:0.6em; color:#aaa; text-transform:uppercase;">UTR</div><div style="color:#FFA500; font-weight:bold; font-size:1.0em;">{utr_str}</div></div>
+                            <div style="border-left:3px solid {slot6_col}; background:{slot6_bg}; padding:8px; border-radius:4px;"><div style="font-size:0.6em; color:#aaa; text-transform:uppercase;">{slot6_label}</div><div style="color:{slot6_col}; font-weight:bold; font-size:1.0em;">{slot6_val}</div></div>
+                            
                             <div style="border-left:3px solid #9400D3; background:rgba(148,0,211,0.05); padding:8px; border-radius:4px;"><div style="font-size:0.6em; color:#aaa; text-transform:uppercase;">Consistency</div><div style="color:#9400D3; font-weight:bold; font-size:1.0em;">{s.get('Consistency Index', 0):.2f}</div></div>
                             <div style="border-left:3px solid #32CD32; background:rgba(50,205,50,0.05); padding:8px; border-radius:4px;"><div style="font-size:0.6em; color:#aaa; text-transform:uppercase;">Singles Perf</div><div style="color:#32CD32; font-weight:bold; font-size:1.0em;">{s.get('Singles Perf', 0)}%</div></div>
                             <div style="border-left:3px solid #1E90FF; background:rgba(30,144,255,0.05); padding:8px; border-radius:4px;"><div style="font-size:0.6em; color:#aaa; text-transform:uppercase;">Doubles Perf</div><div style="color:#1E90FF; font-weight:bold; font-size:1.0em;">{s.get('Doubles Perf', 0)}%</div></div>
