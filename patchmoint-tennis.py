@@ -1709,9 +1709,9 @@ with tabs[1]:
             z-index: 2;
         }
         .mmc-avatar {
-            width: 60px;
+            width: 100px;
             height: 120px;
-            border-radius: 35%;
+            border-radius: 15%;
             border: 2px solid #444;
             object-fit: cover;
             margin-bottom: 8px;
