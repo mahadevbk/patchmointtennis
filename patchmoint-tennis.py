@@ -82,6 +82,13 @@ st.markdown("""
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Turret+Road:wght@200;300;400;500;700;800&display=swap" rel="stylesheet">
 <style>
+    /* Target containers that have border=True */
+    [data-testid="stVerticalBlockBorder"] {
+        background-color: rgba(255, 255, 255, 0.05); /* Slight grey tint */
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        border-radius: 16px !important;
+        padding: 20px !important;
+    }
     .glow-square {
             width: 100px; 
             height: 100px;
