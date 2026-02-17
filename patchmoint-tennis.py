@@ -2021,16 +2021,79 @@ with tabs[2]:
                             st.rerun()
             st.markdown("---")
             if not st.session_state.players_df.empty:
-                sel = st.selectbox("Edit Player", st.session_state.players_df['name'].tolist())
+                player_names = [""] + st.session_state.players_df['name'].tolist()
+                sel = st.selectbox("Edit Player", options=player_names, index=0)
+
                 if sel:
-                    row = st.session_state.players_df[st.session_state.players_df['name'] == sel].iloc[0]
-                    ni = st.file_uploader("Image", type=["jpg", "png"], key="pu")
-                    if st.button("Save Img"):
-                        path = save_remote_image(ni, sel, "profile")
-                        idx = st.session_state.players_df[st.session_state.players_df['name'] == sel].index[0]
-                        st.session_state.players_df.at[idx, 'profile_image_url'] = path
-                        save_players(st.session_state.players_df); st.rerun()
-                    if st.button("Delete Player"): delete_player_from_db(sel); st.session_state.players_df = st.session_state.players_df[st.session_state.players_df['name'] != sel]; st.rerun()
+                    row_index = st.session_state.players_df[st.session_state.players_df['name'] == sel].index[0]
+                    row = st.session_state.players_df.loc[row_index]
+
+                    with st.form(key=f"edit_player_{sel}"):
+                        st.subheader(f"Editing: {sel}")
+
+                        # Image uploader
+                        ni = st.file_uploader("Profile Image", type=["jpg", "png"], key=f"pu_{sel}")
+
+                        # Initial UTR
+                        current_utr = row.get('initial_utr')
+                        new_utr = st.number_input(
+                            "Starting UTR",
+                            value=float(current_utr) if pd.notna(current_utr) else None,
+                            min_value=1.0, max_value=16.5, step=0.1, format="%.2f"
+                        )
+
+                        # Admin status
+                        is_p_admin = st.checkbox("Player is Admin", value=row.get('is_admin', False))
+
+                        # Password reset
+                        new_pass = st.text_input("Reset Password", placeholder="Leave blank to keep current")
+
+                        # --- Action Buttons ---
+                        c1, c2 = st.columns([1,1])
+                        update_button = c1.form_submit_button("Update Player", use_container_width=True, type="primary")
+                        delete_button = c2.form_submit_button("Delete Player", use_container_width=True)
+
+                        if update_button:
+                            # --- Update Logic ---
+                            has_changed = False
+
+                            # 1. Update Image
+                            if ni is not None:
+                                path = save_remote_image(ni, sel, "profile")
+                                if path:
+                                    st.session_state.players_df.at[row_index, 'profile_image_url'] = path
+                                    has_changed = True
+
+                            # 2. Update UTR
+                            utr_changed = (pd.isna(current_utr) and pd.notna(new_utr)) or \
+                                          (pd.notna(current_utr) and pd.isna(new_utr)) or \
+                                          (pd.notna(current_utr) and pd.notna(new_utr) and float(current_utr) != new_utr)
+                            if utr_changed:
+                                st.session_state.players_df.at[row_index, 'initial_utr'] = new_utr
+                                has_changed = True
+
+                            # 3. Update Admin Status
+                            if is_p_admin != row.get('is_admin', False):
+                                st.session_state.players_df.at[row_index, 'is_admin'] = is_p_admin
+                                has_changed = True
+
+                            # 4. Save player changes to DB
+                            if has_changed:
+                                save_players(st.session_state.players_df)
+                                st.toast(f"Player {sel} updated!")
+                            
+                            # 5. Update Password
+                            if new_pass:
+                                update_player_password(sel, new_pass)
+                                st.toast(f"Password for {sel} updated.")
+                            
+                            if has_changed or new_pass:
+                                st.rerun()
+
+                        if delete_button:
+                            delete_player_from_db(sel)
+                            st.session_state.players_df = st.session_state.players_df[st.session_state.players_df['name'] != sel]
+                            st.rerun()
 
     
     
