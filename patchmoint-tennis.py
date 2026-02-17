@@ -1596,7 +1596,7 @@ with tabs[0]:
                                 <img src="{get_img_src(row['Profile'])}">
                             </div>
                             <div style="font-weight:bold; color:white; font-size:1.1em; margin-top:10px;">{row['Player']}</div>
-                            <div style="color:#aaa; font-size:0.8em;">{row['Score']:.1f} {cd_html}</div>
+                            <div style="color:#aaa; font-size:0.8em;">{row['Score']:.2f} {cd_html}</div>
                             <div style="margin-top:5px;">{badges_html}</div>
                         </div>
                         """, unsafe_allow_html=True)
