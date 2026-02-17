@@ -674,8 +674,28 @@ def login_modal(chapter):
                 st.session_state.is_admin = True
                 st.session_state.can_write = True
                 st.rerun()
+            # Check for Player password
             else:
-                st.error("Invalid Password")
+                chapter_players_df = fetch_data("players", chapter_id=chapter['id'])
+                player_match = chapter_players_df[chapter_players_df['password'] == pwd]
+                if not player_match.empty:
+                    player_row = player_match.iloc[0]
+                    player_name = player_row['name']
+                    is_player_admin = player_row.get('is_admin', False)
+
+                    st.session_state.current_chapter = chapter
+                    st.session_state.is_admin = is_player_admin
+                    st.session_state.can_write = True 
+                    st.session_state.logged_in_player = player_name
+                    st.session_state.chapter_config = load_chapter_config(chapter['id'])
+                    
+                    if is_player_admin:
+                        st.success(f"Welcome Admin {player_name}!")
+                    else:
+                        st.success(f"Welcome {player_name}!")
+                    time.sleep(0.5); st.rerun()
+                else:
+                    st.error("Invalid Password")
     with col2:
         # Standard user entry (No password needed to view)
         if st.button("Enter as Guest", use_container_width=True):
@@ -2151,26 +2171,42 @@ if st.session_state.is_admin:
             st.success("Updated"); st.rerun()
         
         
-        st.subheader("Passwords")
-        for i, r in st.session_state.players_df.iterrows():
-            st.code(f"{r['name']}: {r['password']}")
+        st.subheader("Player Management")
+        with st.expander("Manage player roles and passwords", expanded=True):
+            if not st.session_state.players_df.empty:
+                # Password Reset
+                st.markdown("#### Generate New Password")
+                players = st.session_state.players_df["name"].tolist()
+                selected_player = st.selectbox("Select Player", players, key="player_select_for_password")
+                if st.button("Generate New Password"):
+                    new_password = str(uuid.uuid4().hex)[:8]
+                    if update_player_password(selected_player, new_password):
+                        st.success(f"New password for {selected_player}: `{new_password}`")
+                        load_players() # Refresh player data
+                    else:
+                        st.error("Failed to update password.")
+                st.divider()
 
-        st.subheader("Manage Player Roles")
-        if not st.session_state.players_df.empty:
-            for idx, player in st.session_state.players_df.iterrows():
-                # Ensure 'is_admin' column exists and has boolean type
-                is_player_admin = player.get('is_admin', False)
-                new_status = st.toggle(f"Promote {player['name']} to Admin", value=is_player_admin, key=f"admin_toggle_{player['name']}")
-                
-                if new_status != is_player_admin:
-                    # Update the dataframe
-                    st.session_state.players_df.loc[idx, 'is_admin'] = new_status
-                    # Save the updated dataframe to the database
-                    save_players(st.session_state.players_df)
-                    st.success(f"{player['name']}'s admin status updated.")
-                    st.rerun()
-        else:
-            st.info("No players to manage yet.")
+                # Display all player passwords for admin
+                st.markdown("#### Current Player Passwords")
+                for i, r in st.session_state.players_df.iterrows():
+                    st.code(f"{r['name']}: {r['password']}")
+                st.divider()
+
+                # Manage Player Roles
+                st.markdown("#### Manage Player Roles")
+                for idx, player in st.session_state.players_df.iterrows():
+                    is_player_admin = player.get('is_admin', False)
+                    new_status = st.toggle(f"Promote {player['name']} to Admin", value=is_player_admin, key=f"admin_toggle_{player['name']}")
+                    
+                    if new_status != is_player_admin:
+                        st.session_state.players_df.loc[idx, 'is_admin'] = new_status
+                        save_players(st.session_state.players_df)
+                        st.success(f"{player['name']}'s admin status updated.")
+                        st.rerun()
+            else:
+                st.info("No players to manage yet.")
+
 
 if st.button("Switch Chapter" if not st.session_state.is_master_admin else "Return Master"):
     st.session_state.current_chapter = None
