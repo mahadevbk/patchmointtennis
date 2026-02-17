@@ -1710,8 +1710,8 @@ with tabs[1]:
         }
         .mmc-avatar {
             width: 60px;
-            height: 90px;
-            border-radius: 5%;
+            height: 120px;
+            border-radius: 35%;
             border: 2px solid #444;
             object-fit: cover;
             margin-bottom: 8px;
