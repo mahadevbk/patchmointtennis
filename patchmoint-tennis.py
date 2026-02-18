@@ -1119,7 +1119,7 @@ if not check_chapter_selected():
         # Use the LOGO_URL directly
         st.markdown(f'<div style="text-align: left;"><img src="{LOGO_URL}" style="height:150px; margin-bottom: 10px;"></div>', unsafe_allow_html=True)
         
-        st.write("Welcome! Select an active chapter or create a new one.")
+        st.header("Create & Manage your own Tennis league.")
         st.caption("Free and Open Source • Create your league and push yourself to get better.")
 
         # --- LOAD CHAPTERS FROM NEON ---
