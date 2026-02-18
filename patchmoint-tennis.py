@@ -1319,12 +1319,13 @@ if not check_chapter_selected():
 
 
 def export_full_database():
-    conn = get_connection()
     try:
-        # Fetch all data from all tables
-        chapters_df = pd.read_sql("SELECT * FROM chapters", conn)
-        players_df = pd.read_sql("SELECT * FROM players", conn)
-        matches_df = pd.read_sql("SELECT * FROM matches", conn)
+        engine = get_sqlalchemy_engine()
+        with engine.connect() as conn:
+            # Fetch all data from all tables
+            chapters_df = pd.read_sql("SELECT * FROM chapters", conn)
+            players_df = pd.read_sql("SELECT * FROM players", conn)
+            matches_df = pd.read_sql("SELECT * FROM matches", conn)
         
         # Create a buffer to hold the ZIP file
         zip_buffer = io.BytesIO()
@@ -1339,8 +1340,6 @@ def export_full_database():
     except Exception as e:
         st.error(f"Export failed: {e}")
         return None
-    finally:
-        conn.close()
 
 
 
@@ -1357,17 +1356,16 @@ if st.session_state.is_master_admin and st.session_state.current_chapter is None
             st.rerun()
 
     # 2. Database Stats & Connection
-    conn = get_connection()
     try:
-        chapters = pd.read_sql("SELECT * FROM chapters", conn)
-        total_players = pd.read_sql("SELECT COUNT(*) FROM players", conn).iloc[0, 0]
-        total_matches = pd.read_sql("SELECT COUNT(*) FROM matches", conn).iloc[0, 0]
+        engine = get_sqlalchemy_engine()
+        with engine.connect() as conn:
+            chapters = pd.read_sql("SELECT * FROM chapters", conn)
+            total_players = pd.read_sql("SELECT COUNT(*) FROM players", conn).iloc[0, 0]
+            total_matches = pd.read_sql("SELECT COUNT(*) FROM matches", conn).iloc[0, 0]
     except Exception as e:
         st.error(f"Error fetching dashboard stats: {e}")
         chapters = pd.DataFrame()
         total_players, total_matches = 0, 0
-    finally:
-        conn.close()
     
     # 3. Metrics Row
     st.markdown("### System-Wide Statistics")
