@@ -1120,9 +1120,7 @@ if not check_chapter_selected():
         st.markdown(f'<div style="text-align: left;"><img src="{LOGO_URL}" style="height:150px; margin-bottom: 10px;"></div>', unsafe_allow_html=True)
         
         st.header("Create & Manage your own Tennis league.")
-        st.write("""Patch Moint allows Singles, Doubles and Mixed doubles matches. Either selectively or all combined in the same Leage. 
-        Use a Points per match based ranking or Elo - Hybrid Ranking ( great for serious social groups)
-        or the UTR Standard for the big dogs who aim hit the felt off the ball.  Patch Moint is Free and Open Source.""")
+        st.write("""Patch Moint allows Singles, Doubles and Mixed doubles matches with Rankings by Points per match or Elo or UTR. Patch Moint is Free and Open Source.""")
 
         # --- LOAD CHAPTERS FROM NEON ---
         try:
