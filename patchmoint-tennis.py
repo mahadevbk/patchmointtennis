@@ -83,7 +83,7 @@ st.markdown("""
 <link href="https://fonts.googleapis.com/css2?family=Turret+Road:wght@200;300;400;500;700;800&display=swap" rel="stylesheet">
 <style>
     /* Target bordered containers */
-    div[data-testid="stVerticalBlockBorderWrapper"] > div {
+div[data-testid="stVerticalBlockBorderWrapper"] > div {
     background: linear-gradient(145deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 100%) !important;
     border: 1px solid rgba(255,255,255,0.1) !important;
     border-radius: 16px !important;
