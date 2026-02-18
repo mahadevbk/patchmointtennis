@@ -82,23 +82,6 @@ st.markdown("""
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Turret+Road:wght@200;300;400;500;700;800&display=swap" rel="stylesheet">
 <style>
-    /* Target bordered containers */
-div[data-testid="stVerticalBlockBorderWrapper"] > div {
-    background: linear-gradient(145deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 100%) !important;
-    border: 1px solid rgba(255,255,255,0.1) !important;
-    border-radius: 16px !important;
-    margin-bottom: 24px !important;
-    overflow: hidden !important;
-    transition: all 0.3s ease !important;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.2) !important;
-}
-
-/* Optional: hover effect */
-div[data-testid="stVerticalBlockBorderWrapper"] > div:hover {
-    box-shadow: 0 8px 20px rgba(0,0,0,0.35) !important;
-    border-color: rgba(255,255,255,0.18) !important;
-    transform: translateY(-2px);
-}
     .glow-square {
             width: 100px; 
             height: 100px;
