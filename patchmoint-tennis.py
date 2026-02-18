@@ -1120,7 +1120,7 @@ if not check_chapter_selected():
         st.markdown(f'<div style="text-align: left;"><img src="{LOGO_URL}" style="height:150px; margin-bottom: 10px;"></div>', unsafe_allow_html=True)
         
         st.header("Create & Manage your own Tennis league.")
-        st.caption("Free and Open Source • Create your league and push yourself to get better.")
+        st.caption("Patch Moint is Free and Open Source.")
 
         # --- LOAD CHAPTERS FROM NEON ---
         try:
