@@ -231,7 +231,7 @@ h3 { font-size: 16px !important; }
 .block-container { display: flex; flex-wrap: wrap; justify-content: center; }
 [data-testid="stHorizontalBlock"] { flex: 1 1 100% !important; margin: 10px 0; }
 .chapter-card {
-    background-image: url("https://raw.githubusercontent.com/mahadevbk/patchmointtennis/main/assets/background/cardbg.png") !important;
+    background-image: url("https://raw.githubusercontent.com/mahadevbk/patchmointtennis/main/assets/background/padelballchapter.jpg") !important;
     background-size: cover;
     background-position: center;
     border: 2px solid #fff500;
