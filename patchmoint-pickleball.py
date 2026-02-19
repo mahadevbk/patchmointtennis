@@ -171,7 +171,7 @@ html, body, [class*="st-"], .stApp, h1, h2, h3, h4, h5, h6 {
 .dot-w { background-color: #00ff88; box-shadow: 0 0 5px #00ff88; }
 .dot-l { background-color: #ff4b4b; }
 .stApp {
-  background-image: url("https://raw.githubusercontent.com/mahadevbk/patchmointtennis/main/assets/background/background.jpg");
+  background-image: url("https://raw.githubusercontent.com/mahadevbk/patchmointtennis/main/assets/background/bgpickleball.jpg");
   background-size: cover;
   background-position: center;
   background-attachment: fixed;
