@@ -19,9 +19,6 @@ import io
 import zipfile
 import warnings
 warnings.filterwarnings("ignore", category=UserWarning, module='pandas')
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
 
 # --- Configuration & Setup ---
 SPORT_TYPE = st.secrets.get("SPORT_TYPE", "Tennis")
@@ -45,9 +42,8 @@ def init_db():
         conn = get_connection()
         with conn.cursor() as cur:
             # 1. Create tables if they don't exist
-            # Removed UNIQUE from name to allow same names across different sports
             queries = [
-                "CREATE TABLE IF NOT EXISTS chapters (id TEXT PRIMARY KEY, name TEXT, admin_password TEXT, created_at TEXT, config TEXT, sport TEXT, title_image_url TEXT, last_active_date TEXT, admin_name TEXT, admin_email TEXT)",
+                "CREATE TABLE IF NOT EXISTS chapters (id TEXT PRIMARY KEY, name TEXT UNIQUE, admin_password TEXT, created_at TEXT, config TEXT, sport TEXT, title_image_url TEXT, last_active_date TEXT)",
                 "CREATE TABLE IF NOT EXISTS players (name TEXT, profile_image_url TEXT, birthday TEXT, chapter_id TEXT, password TEXT, gender TEXT, is_admin BOOLEAN DEFAULT FALSE, initial_utr NUMERIC DEFAULT NULL)",
                 "CREATE TABLE IF NOT EXISTS matches (match_id TEXT PRIMARY KEY, date TEXT, match_type TEXT, team1_player1 TEXT, team1_player2 TEXT, team2_player1 TEXT, team2_player2 TEXT, set1 TEXT, set2 TEXT, set3 TEXT, winner TEXT, match_image_url TEXT, chapter_id TEXT)",
                 "CREATE TABLE IF NOT EXISTS bookings (booking_id TEXT PRIMARY KEY, date TEXT, time TEXT, match_type TEXT, court_name TEXT, player1 TEXT, player2 TEXT, player3 TEXT, player4 TEXT, standby_player TEXT, screenshot_url TEXT, chapter_id TEXT)",
@@ -57,16 +53,14 @@ def init_db():
                 cur.execute(q)
             conn.commit()
 
-            # 2. Run Migrations
+            # 2. Run Migrations (Add columns if they are missing from existing tables)
+            # using IF NOT EXISTS which is supported in Neon/Postgres
             migrations = [
                 "ALTER TABLE players ADD COLUMN IF NOT EXISTS initial_utr NUMERIC DEFAULT NULL",
                 "ALTER TABLE players ADD COLUMN IF NOT EXISTS is_admin BOOLEAN DEFAULT FALSE",
-                "ALTER TABLE chapters ADD COLUMN IF NOT EXISTS sport TEXT",
+                "ALTER TABLE chapters ADD COLUMN IF NOT EXISTS sport TEXT DEFAULT 'Tennis'",
                 "ALTER TABLE chapters ADD COLUMN IF NOT EXISTS last_active_date TEXT DEFAULT ''",
-                "ALTER TABLE chapters ADD COLUMN IF NOT EXISTS title_image_url TEXT DEFAULT ''",
-                "ALTER TABLE chapters ADD COLUMN IF NOT EXISTS admin_name TEXT DEFAULT ''",
-                "ALTER TABLE chapters ADD COLUMN IF NOT EXISTS admin_email TEXT DEFAULT ''",
-                "ALTER TABLE chapters DROP CONSTRAINT IF EXISTS chapters_name_key"
+                "ALTER TABLE chapters ADD COLUMN IF NOT EXISTS title_image_url TEXT DEFAULT ''"
             ]
             
             for migration in migrations:
@@ -82,45 +76,6 @@ def init_db():
         st.error(f"Database Initialization Error: {e}")
 
 init_db()
-
-def send_email(to_email, admin_name, chapter_name, admin_password):
-    # Ensure secrets are available
-    smtp_server = st.secrets.get("SMTP_SERVER", "smtp.gmail.com")
-    smtp_port = st.secrets.get("SMTP_PORT", 587)
-    smtp_user = st.secrets.get("SMTP_USER")
-    smtp_pass = st.secrets.get("SMTP_PASS")
-
-    if not all([smtp_user, smtp_pass]):
-        st.warning("SMTP credentials not configured. Email not sent.")
-        return False
-
-    msg = MIMEMultipart()
-    msg['From'] = smtp_user
-    msg['To'] = to_email
-    msg['Subject'] = f"Welcome to Patch Moint - {chapter_name}"
-
-    body = f"""Hi {admin_name},
-
-Welcome to the Patch Moint League system! Your chapter '{chapter_name}' has been created successfully.
-
-Your Admin Password is: {admin_password}
-
-You can use this password to access the Chapter Settings and manage your players and matches.
-
-Best regards,
-The Patch Moint Team"""
-    msg.attach(MIMEText(body, 'plain'))
-
-    try:
-        server = smtplib.SMTP(smtp_server, smtp_port)
-        server.starttls()
-        server.login(smtp_user, smtp_pass)
-        server.send_message(msg)
-        server.quit()
-        return True
-    except Exception as e:
-        st.error(f"Failed to send email: {e}")
-        return False
 
 st.markdown("""
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -550,7 +505,7 @@ def delete_chapter_fully(chapter_id):
 
 def get_default_config():
     return {
-        "ranking_systems": {"Elo (Hybrid)": True, "Points": True, "DUPR": False},
+        "ranking_systems": {"Elo (Hybrid)": True, "Points": True, "UTR": False},
         "match_type_settings": {
             "Singles": {"enabled": True, "win_points": 2, "loss_points": 1, "min_sets": "Best of 3"},
             "Doubles": {"enabled": True, "win_points": 2, "loss_points": 1, "min_sets": "Best of 3"},
@@ -577,11 +532,9 @@ def load_chapter_config(chapter_id):
                     conf["ranking_systems"] = {
                         "Elo (Hybrid)": "Elo (Hybrid)" in old_ranking_systems,
                         "Points": "Points" in old_ranking_systems,
-                        "DUPR": "DUPR" in old_ranking_systems or "UTR" in old_ranking_systems,
+                        "UTR": "UTR" in old_ranking_systems,
                     }
                 # if it's already a dict, do nothing
-            elif "UTR" in conf["ranking_systems"]:
-                conf["ranking_systems"]["DUPR"] = conf["ranking_systems"].pop("UTR")
             
             # Migration for match_type_settings
             if "match_type_settings" not in conf:
@@ -674,27 +627,7 @@ def get_img_src(path_or_url):
     return DEFAULT_AVATAR
 
 def render_footer():
-    # Icons for Tennis, Pickleball, Padel
-    active_color = "#ccff00"
-    inactive_color = "#888888"
-
-    # Define icons (Simple SVG paths)
-    icons = {
-        "Tennis": f'<svg width="30" height="30" viewBox="0 0 24 24" fill="{active_color if SPORT_TYPE == "Tennis" else inactive_color}"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm0-14c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6-2.69-6-6-6z"/></svg>',
-        "Pickleball": f'<svg width="30" height="30" viewBox="0 0 24 24" fill="{active_color if SPORT_TYPE == "Pickleball" else inactive_color}"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" fill="none"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="8" r="1"/><circle cx="12" cy="16" r="1"/><circle cx="8" cy="12" r="1"/><circle cx="16" cy="12" r="1"/><circle cx="9" cy="9" r="1"/><circle cx="15" cy="15" r="1"/><circle cx="9" cy="15" r="1"/><circle cx="15" cy="9" r="1"/></svg>',
-        "Padel": f'<svg width="30" height="30" viewBox="0 0 24 24" fill="{active_color if SPORT_TYPE == "Padel" else inactive_color}"><path d="M12 2L4 10l2 2 6-6 6 6 2-2-8-8zM6 14v6h12v-6H6z"/></svg>'
-    }
-
-    st.markdown(f"""
-    <div style="text-align: center; margin-top: 30px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 20px;">
-        <div style="display: flex; justify-content: center; gap: 20px; margin-bottom: 15px;">
-            <a href="https://patchmoint-tennis.streamlit.app/" target="_blank" title="Tennis">{icons['Tennis']}</a>
-            <a href="https://patchmoint-pickleball.streamlit.app/" target="_blank" title="Pickleball">{icons['Pickleball']}</a>
-            <a href="https://patchmoint-padel.streamlit.app/" target="_blank" title="Padel">{icons['Padel']}</a>
-        </div>
-        <div style="color: #888; font-size: 0.8em;">Patch Moint League system is free and Open source. Hosted on GitHub and Powered by Streamlit.</div>
-    </div>
-    """, unsafe_allow_html=True)
+    st.markdown('<div style="text-align: center; margin-top: 20px; margin-bottom: 20px; color: #888; font-size: 0.8em;">Patch Moint League system is free and Open source. Hosted on GitHub and Powered by Streamlit.</div>', unsafe_allow_html=True)
 
 def create_radar_chart(row):
     try:
@@ -784,7 +717,7 @@ def get_valid_scores():
         scores.extend(["16-14", "14-16", "17-15", "15-17"])
         return scores
     else:
-        # Pickleball / Tennis / Padel scores
+        # Tennis / Padel scores
         scores = ["6-0", "6-1", "6-2", "6-3", "6-4", "7-5", "7-6", "0-6", "1-6", "2-6", "3-6", "4-6", "5-7", "6-7"]
         for i in range(10): scores.extend([f"Tie Break 7-{i}", f"Tie Break {i}-7"])
         for i in range(6): scores.extend([f"Tie Break 10-{i}", f"Tie Break {i}-10"])
@@ -813,15 +746,15 @@ def calculate_rankings(matches_to_rank):
     current_streaks = defaultdict(int)
     last_active_dates = {}
     elo_ratings = {} 
-    dupr_ratings = {} 
+    utr_ratings = {} 
     last_elo_changes = defaultdict(float) 
     K_FACTOR = 32 
     
-    DUPR_DEFAULT_RATING = 3.5
-    DUPR_K_FACTOR = 0.05 
-    DUPR_SCALE = 3.0   
-    DUPR_MIN = 2.0
-    DUPR_MAX = 8.0
+    UTR_DEFAULT_RATING = 4.0
+    UTR_K_FACTOR = 0.05 
+    UTR_SCALE = 3.0   
+    UTR_MIN = 1.0
+    UTR_MAX = 16.5
 
     players_df = st.session_state.players_df
     config = st.session_state.chapter_config
@@ -831,15 +764,15 @@ def calculate_rankings(matches_to_rank):
         player_name = player_row['name']
         initial_utr = player_row.get('initial_utr')
         if pd.notna(initial_utr) and initial_utr is not None:
-            starting_elo = (initial_utr - 3.5) * 110.0 + 1200.0
+            starting_elo = (initial_utr - 4.0) * 110.0 + 1200.0
             elo_ratings[player_name] = float(starting_elo)
-            dupr_ratings[player_name] = float(initial_utr)
+            utr_ratings[player_name] = float(initial_utr)
         else:
             elo_ratings[player_name] = 1200.0
-            dupr_ratings[player_name] = DUPR_DEFAULT_RATING
+            utr_ratings[player_name] = UTR_DEFAULT_RATING
 
     elo_ratings = defaultdict(lambda: 1200.0, elo_ratings) 
-    dupr_ratings = defaultdict(lambda: DUPR_DEFAULT_RATING, dupr_ratings)
+    utr_ratings = defaultdict(lambda: UTR_DEFAULT_RATING, utr_ratings)
 
     if not matches_to_rank.empty: 
         matches_to_rank = matches_to_rank.sort_values('date')
@@ -893,8 +826,8 @@ def calculate_rankings(matches_to_rank):
 
         t1_elo_avg = sum(elo_ratings[p] for p in t1) / len(t1)
         t2_elo_avg = sum(elo_ratings[p] for p in t2) / len(t2)
-        t1_dupr_avg = sum(dupr_ratings[p] for p in t1) / len(t1)
-        t2_dupr_avg = sum(dupr_ratings[p] for p in t2) / len(t2)
+        t1_utr_avg = sum(utr_ratings[p] for p in t1) / len(t1)
+        t2_utr_avg = sum(utr_ratings[p] for p in t2) / len(t2)
 
         t1_won = row.winner == "Team 1"
 
@@ -905,12 +838,12 @@ def calculate_rankings(matches_to_rank):
                 elo_ratings[p] += elo_change
                 last_elo_changes[p] = round(elo_change, 1)
         
-        def update_dupr(players, own_dupr_avg, opp_dupr_avg, actual_gwp):
-            dupr_diff = own_dupr_avg - opp_dupr_avg
-            expected_gwp = 1 / (1 + np.exp(-dupr_diff / DUPR_SCALE))
-            dupr_change = DUPR_K_FACTOR * (actual_gwp - expected_gwp)
+        def update_utr(players, own_utr_avg, opp_utr_avg, actual_gwp):
+            utr_diff = own_utr_avg - opp_utr_avg
+            expected_gwp = 1 / (1 + np.exp(-utr_diff / UTR_SCALE))
+            utr_change = UTR_K_FACTOR * (actual_gwp - expected_gwp)
             for p in players:
-                dupr_ratings[p] = max(DUPR_MIN, min(DUPR_MAX, dupr_ratings[p] + dupr_change))
+                utr_ratings[p] = max(UTR_MIN, min(UTR_MAX, utr_ratings[p] + utr_change))
 
         def update_common_stats(players, games_won, total_games, is_winner, match_type):
             for p in players:
@@ -941,14 +874,14 @@ def calculate_rankings(matches_to_rank):
             update_common_stats(t1, t1_total_games, total_match_games, True, match_type)
             update_common_stats(t2, t2_total_games, total_match_games, False, match_type)
             update_elo(t1, t1_elo_avg, t2_elo_avg, 1.0); update_elo(t2, t2_elo_avg, t1_elo_avg, 0.0)
-            update_dupr(t1, t1_dupr_avg, t2_dupr_avg, t1_total_games / total_match_games)
-            update_dupr(t2, t2_dupr_avg, t1_dupr_avg, t2_total_games / total_match_games)
+            update_utr(t1, t1_utr_avg, t2_utr_avg, t1_total_games / total_match_games)
+            update_utr(t2, t2_utr_avg, t1_utr_avg, t2_total_games / total_match_games)
         else:
             update_common_stats(t1, t1_total_games, total_match_games, False, match_type)
             update_common_stats(t2, t2_total_games, total_match_games, True, match_type)
             update_elo(t1, t1_elo_avg, t2_elo_avg, 0.0); update_elo(t2, t2_elo_avg, t1_elo_avg, 1.0)
-            update_dupr(t1, t1_dupr_avg, t2_dupr_avg, t1_total_games / total_match_games)
-            update_dupr(t2, t2_dupr_avg, t1_dupr_avg, t2_total_games / total_match_games)
+            update_utr(t1, t1_utr_avg, t2_utr_avg, t1_total_games / total_match_games)
+            update_utr(t2, t2_utr_avg, t1_utr_avg, t2_total_games / total_match_games)
 
     rank_data = []
     for p, s in stats.items():
@@ -972,7 +905,7 @@ def calculate_rankings(matches_to_rank):
             if (s['wins']/m_played) > 0.75: badges.append("🦁 Dominant")
 
         score_elo = round(elo_ratings[p], 1)
-        current_dupr = round(dupr_ratings[p], 2)
+        current_utr = round(utr_ratings[p], 2)
         
         singles_perf = round((s['singles_wins'] / s['singles_matches']) * 100, 1) if s['singles_matches'] > 0 else 0
         doubles_perf = round((s['doubles_wins'] / s['doubles_matches']) * 100, 1) if s['doubles_matches'] > 0 else 0
@@ -980,7 +913,7 @@ def calculate_rankings(matches_to_rank):
         rank_data.append({
             "Player": p, "Points": s['points'], "Score": score_elo, "Label": "Elo", "Elo": score_elo, 
             "Score_Elo (Hybrid)": score_elo, "Score_Points": s['points'], 
-            "Score_DUPR": current_dupr, "Last Change": last_elo_changes.get(p, 0),
+            "Score_UTR": current_utr, "Last Change": last_elo_changes.get(p, 0),
             "Wins": s['wins'], "Losses": s['losses'], "Games Won": s['games_won'],
             "Win %": round((s['wins']/m_played)*100, 1), "Matches": m_played, 
             "Game Diff Avg": round(s['gd_sum']/m_played, 2) if m_played > 0 else 0,
@@ -999,8 +932,8 @@ def calculate_rankings(matches_to_rank):
         df["Rank_Elo (Hybrid)"] = range(1, len(df) + 1)
         df = df.sort_values(by=["Score_Points", "Win %"], ascending=[False, False])
         df["Rank_Points"] = range(1, len(df) + 1)
-        df = df.sort_values(by=["Score_DUPR", "Win %"], ascending=[False, False])
-        df["Rank_DUPR"] = range(1, len(df) + 1)
+        df = df.sort_values(by=["Score_UTR", "Win %"], ascending=[False, False])
+        df["Rank_UTR"] = range(1, len(df) + 1)
         
         # Set default rank based on Elo Hybrid
         df = df.sort_values(by="Score_Elo (Hybrid)", ascending=False).reset_index(drop=True)
@@ -1147,7 +1080,7 @@ if not check_chapter_selected():
         with st.form("initial_setup_form"):
             st.subheader("Ranking Systems")
             ranking_systems = {}
-            for rs in ["Elo (Hybrid)", "Points", "DUPR"]:
+            for rs in ["Elo (Hybrid)", "Points", "UTR"]:
                 ranking_systems[rs] = st.toggle(rs, value=(rs == "Elo (Hybrid)"))
 
             st.subheader("Match Type Settings")
@@ -1287,13 +1220,9 @@ if not check_chapter_selected():
         # --- ACTIVE CHAPTERS ---
         if not chap_df.empty:
             if 'sport' in chap_df.columns:
-                # Filter by sport. Legacy NULLs/empty are treated as 'Tennis' (the original sport)
-                if SPORT_TYPE == "Tennis":
-                    chap_df = chap_df[(chap_df['sport'] == "Tennis") | (chap_df['sport'].isna()) | (chap_df['sport'] == "")]
-                else:
-                    chap_df = chap_df[chap_df['sport'] == SPORT_TYPE]
+                chap_df = chap_df[chap_df['sport'] == SPORT_TYPE]
             else:
-                # Sport column missing. If we are in Pickleball app, don't show any legacy chapters
+                # If 'sport' col is missing, we clear df unless it's Tennis (fallback logic)
                 if SPORT_TYPE != "Tennis":
                     chap_df = pd.DataFrame()
 
@@ -1350,7 +1279,7 @@ if not check_chapter_selected():
         with st.expander("Explore Ranking Systems", expanded=False,icon="🏆"):
             st.markdown("""
             * **🏆 ELO Hybrid:** Best for highly competitive groups.
-            * **📈 DUPR System:** For serious club-level play—the punishing standard.
+            * **📈 UTR System:** For serious club-level play—the punishing standard.
             * **🤝 Points Per Game:** For social games where grinders are rewarded!
             * **🔥 The Trifecta:** Go wild and use all three to measure your tribe.
             """)
@@ -1360,10 +1289,8 @@ if not check_chapter_selected():
         st.divider()
         with st.expander("Create New Chapter", expanded=False, icon="➡️"):
             new_chap_name = st.text_input("New Chapter Name")
-            new_admin_name = st.text_input("Admin Name")
-            new_admin_email = st.text_input("Admin Email Address")
             if st.button("Create Chapter"):
-                if new_chap_name and new_admin_name and new_admin_email:
+                if new_chap_name:
                     if not chap_df.empty and new_chap_name in chap_df['name'].values:
                         st.error("Name exists")
                     else:
@@ -1372,24 +1299,15 @@ if not check_chapter_selected():
                         try:
                             # Try insert, assuming init_db fixed columns
                             with conn.cursor() as cur:
-                                cur.execute("INSERT INTO chapters (id, name, admin_password, created_at, config, sport, last_active_date, admin_name, admin_email) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)",
-                                            (nid, new_chap_name, npass, datetime.now().isoformat(), json.dumps(get_default_config()), SPORT_TYPE, datetime.now().isoformat(), new_admin_name, new_admin_email))
+                                cur.execute("INSERT INTO chapters (id, name, admin_password, created_at, config, sport, last_active_date) VALUES (%s, %s, %s, %s, %s, %s, %s)",
+                                            (nid, new_chap_name, npass, datetime.now().isoformat(), json.dumps(get_default_config()), SPORT_TYPE, datetime.now().isoformat()))
                             conn.commit()
                             conn.close()
-                            
-                            # Send welcome email
-                            if send_email(new_admin_email, new_admin_name, new_chap_name, npass):
-                                st.success(f"Chapter '{new_chap_name}' Created! Admin password sent to {new_admin_email}.")
-                            else:
-                                st.warning(f"Chapter Created, but failed to send email. Admin Password: {npass}")
-                                
                             st.session_state.new_chapter_created = {'name': new_chap_name, 'id': nid, 'password': npass}
                             st.rerun()
                         except Exception as e:
                             st.error(f"Error creating chapter: {e}")
                             st.warning("If this persists, please refresh the page to ensure database migrations have run.")
-                else:
-                    st.warning("Please fill in all fields (Name, Admin Name, and Email).")
         
         with st.expander("Master Admin Login", expanded=False, icon="➡️"):
             m_pass = st.text_input("Master Password", type="password", key="ma_pass")
@@ -1486,7 +1404,6 @@ if st.session_state.is_master_admin and st.session_state.current_chapter is None
                 with col_info:
                     st.markdown(f"### {row['name']}")
                     st.markdown(f"**Sport:** {row.get('sport', 'Tennis')}")
-                    st.markdown(f"**Admin:** {row.get('admin_name', 'N/A')} ({row.get('admin_email', 'N/A')})")
                     st.caption(f"ID: `{row['id']}` | Admin Pass: `{row['admin_password']}`")
                 
                 with col_act:
@@ -1516,20 +1433,8 @@ if st.session_state.is_master_admin and st.session_state.current_chapter is None
                             st.session_state[delete_key] = True
                             st.rerun()
 
-                # Password & Admin Info Reset inside each Chapter card
-                with st.expander(f"Manage Security & Admin for {row['name']}", expanded=False):
-                    new_a_name = st.text_input("Admin Name", value=row.get('admin_name', ''), key=f"ana_{row['id']}")
-                    new_a_email = st.text_input("Admin Email", value=row.get('admin_email', ''), key=f"aem_{row['id']}")
-                    if st.button("Update Admin Info", key=f"uai_{row['id']}"):
-                        conn = get_connection()
-                        with conn.cursor() as cur:
-                            cur.execute("UPDATE chapters SET admin_name = %s, admin_email = %s WHERE id = %s", (new_a_name, new_a_email, row['id']))
-                        conn.commit()
-                        conn.close()
-                        st.success("Admin info updated!")
-                        st.rerun()
-
-                    st.divider()
+                # Password Reset inside each Chapter card
+                with st.expander(f"Manage Security for {row['name']}", expanded=False):
                     npw = st.text_input("New Admin Password", key=f"nap_{row['id']}")
                     if st.button("Update Admin Password", key=f"rap_{row['id']}"):
                         if npw:
@@ -1609,8 +1514,8 @@ with tabs[0]:
             "desc": f"Cumulative system based on match type. ({pts_desc})",
             "scenario": "Ideal for social leagues."
         },
-        "DUPR": {
-            "desc": "Dynamic Universal Pickleball Rating simulation. Focuses on game score margins.",
+        "UTR": {
+            "desc": "Universal Tennis Rating simulation. Focuses on game score margins.",
             "scenario": "Best for technical assessment."
         }
     }
@@ -1913,7 +1818,7 @@ with tabs[1]:
                     t1p2, t2p2 = None, None
                 
                 sc1, sc2, sc3 = st.columns(3)
-                s_list = [""] + get_valid_scores()
+                s_list = [""] + ["6-0","6-1","6-2","6-3","6-4","7-5","7-6","0-6","1-6","2-6","3-6","4-6","5-7","6-7"]
                 s1 = sc1.selectbox("Set 1", s_list, key=f"s1_{pk}"); s2 = sc2.selectbox("Set 2", s_list, key=f"s2_{pk}"); s3 = sc3.selectbox("Set 3", s_list, key=f"s3_{pk}")
                 win = st.radio("Winner", ["Team 1", "Team 2"], horizontal=True, key=f"w_{pk}")
                 img = st.file_uploader("Photo", type=["jpg", "png"], key=f"im_{pk}")
@@ -2076,7 +1981,7 @@ with tabs[2]:
             # Check if new_p already exists to determine if it's a new player or a potential duplicate check for the UI
             # For the purpose of this form, we assume 'new_p' is a new player until added
             
-            initial_dupr_input = st.number_input("Initial DUPR (Optional, for new players)", min_value=2.0, max_value=8.0, value=None, format="%.2f", help="Enter DUPR if player has not played any games yet. Max 8.0, Min 2.0. This can only be set when the player has not played any matches.")
+            initial_utr_input = st.number_input("Initial UTR (Optional, for new players)", min_value=1.0, max_value=16.5, value=None, format="%.2f", help="Enter UTR if player has not played any games yet. Max 16.5, Min 1.0. This can only be set when the player has not played any matches.")
             
             if st.button("Add", key="add_player_btn"):
                 if new_p:
@@ -2093,8 +1998,8 @@ with tabs[2]:
                             (st.session_state.matches_df['team2_player2'] == new_p)
                         ).any()
                         
-                        if initial_dupr_input is not None and player_has_played:
-                            st.warning(f"Initial DUPR can only be set for players who have not played any matches. '{new_p}' has played matches.")
+                        if initial_utr_input is not None and player_has_played:
+                            st.warning(f"Initial UTR can only be set for players who have not played any matches. '{new_p}' has played matches.")
                         else:
                             pw = str(uuid.uuid4().hex)[:8]
                             final_gender = gend if gend else None
@@ -2105,11 +2010,11 @@ with tabs[2]:
                                 "chapter_id": st.session_state.current_chapter['id'],
                                 "password": pw,
                                 "gender": final_gender,
-                                "initial_utr": initial_dupr_input if initial_dupr_input is not None else None
+                                "initial_utr": initial_utr_input if initial_utr_input is not None else None
                             }
                             st.session_state.players_df = pd.concat([st.session_state.players_df, pd.DataFrame([new_player_data])], ignore_index=True)
                             save_players(st.session_state.players_df); load_players()
-                            st.success(f"Added '{new_p}'! Password: {pw}" + (f" (Initial DUPR: {initial_dupr_input})" if initial_dupr_input is not None else ""))
+                            st.success(f"Added '{new_p}'! Password: {pw}" + (f" (Initial UTR: {initial_utr_input})" if initial_utr_input is not None else ""))
                             st.session_state.form_key_suffix += 1 # Increment to reset form state
                             st.rerun()
             st.markdown("---")
@@ -2127,12 +2032,12 @@ with tabs[2]:
                         # Image uploader
                         ni = st.file_uploader("Profile Image", type=["jpg", "png"], key=f"pu_{sel}")
 
-                        # Initial DUPR
-                        current_dupr = row.get('initial_utr')
-                        new_dupr = st.number_input(
-                            "Starting DUPR",
-                            value=float(current_dupr) if pd.notna(current_dupr) else None,
-                            min_value=2.0, max_value=8.0, step=0.1, format="%.2f"
+                        # Initial UTR
+                        current_utr = row.get('initial_utr')
+                        new_utr = st.number_input(
+                            "Starting UTR",
+                            value=float(current_utr) if pd.notna(current_utr) else None,
+                            min_value=1.0, max_value=16.5, step=0.1, format="%.2f"
                         )
 
                         # Admin status
@@ -2157,12 +2062,12 @@ with tabs[2]:
                                     st.session_state.players_df.at[row_index, 'profile_image_url'] = path
                                     has_changed = True
 
-                            # 2. Update DUPR
-                            dupr_changed = (pd.isna(current_dupr) and pd.notna(new_dupr)) or \
-                                          (pd.notna(current_dupr) and pd.isna(new_dupr)) or \
-                                          (pd.notna(current_dupr) and pd.notna(new_dupr) and float(current_dupr) != new_dupr)
-                            if dupr_changed:
-                                st.session_state.players_df.at[row_index, 'initial_utr'] = new_dupr
+                            # 2. Update UTR
+                            utr_changed = (pd.isna(current_utr) and pd.notna(new_utr)) or \
+                                          (pd.notna(current_utr) and pd.isna(new_utr)) or \
+                                          (pd.notna(current_utr) and pd.notna(new_utr) and float(current_utr) != new_utr)
+                            if utr_changed:
+                                st.session_state.players_df.at[row_index, 'initial_utr'] = new_utr
                                 has_changed = True
 
                             # 3. Update Admin Status
@@ -2343,7 +2248,7 @@ if st.session_state.is_admin:
             st.subheader("Ranking Systems")
             current_ranking_systems = st.session_state.chapter_config.get("ranking_systems", {})
             ranking_systems = {}
-            for rs in ["Elo (Hybrid)", "Points", "DUPR"]:
+            for rs in ["Elo (Hybrid)", "Points", "UTR"]:
                 ranking_systems[rs] = st.toggle(rs, value=current_ranking_systems.get(rs, False))
 
             st.subheader("Match Type Settings")
