@@ -19,6 +19,9 @@ import io
 import zipfile
 import warnings
 warnings.filterwarnings("ignore", category=UserWarning, module='pandas')
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
 # --- Configuration & Setup ---
 SPORT_TYPE = st.secrets.get("SPORT_TYPE", "Tennis")
@@ -42,8 +45,9 @@ def init_db():
         conn = get_connection()
         with conn.cursor() as cur:
             # 1. Create tables if they don't exist
+            # Removed UNIQUE from name to allow same names across different sports
             queries = [
-                "CREATE TABLE IF NOT EXISTS chapters (id TEXT PRIMARY KEY, name TEXT UNIQUE, admin_password TEXT, created_at TEXT, config TEXT, sport TEXT, title_image_url TEXT, last_active_date TEXT)",
+                "CREATE TABLE IF NOT EXISTS chapters (id TEXT PRIMARY KEY, name TEXT, admin_password TEXT, created_at TEXT, config TEXT, sport TEXT, title_image_url TEXT, last_active_date TEXT, admin_name TEXT, admin_email TEXT)",
                 "CREATE TABLE IF NOT EXISTS players (name TEXT, profile_image_url TEXT, birthday TEXT, chapter_id TEXT, password TEXT, gender TEXT, is_admin BOOLEAN DEFAULT FALSE, initial_utr NUMERIC DEFAULT NULL)",
                 "CREATE TABLE IF NOT EXISTS matches (match_id TEXT PRIMARY KEY, date TEXT, match_type TEXT, team1_player1 TEXT, team1_player2 TEXT, team2_player1 TEXT, team2_player2 TEXT, set1 TEXT, set2 TEXT, set3 TEXT, winner TEXT, match_image_url TEXT, chapter_id TEXT)",
                 "CREATE TABLE IF NOT EXISTS bookings (booking_id TEXT PRIMARY KEY, date TEXT, time TEXT, match_type TEXT, court_name TEXT, player1 TEXT, player2 TEXT, player3 TEXT, player4 TEXT, standby_player TEXT, screenshot_url TEXT, chapter_id TEXT)",
@@ -53,14 +57,16 @@ def init_db():
                 cur.execute(q)
             conn.commit()
 
-            # 2. Run Migrations (Add columns if they are missing from existing tables)
-            # using IF NOT EXISTS which is supported in Neon/Postgres
+            # 2. Run Migrations
             migrations = [
                 "ALTER TABLE players ADD COLUMN IF NOT EXISTS initial_utr NUMERIC DEFAULT NULL",
                 "ALTER TABLE players ADD COLUMN IF NOT EXISTS is_admin BOOLEAN DEFAULT FALSE",
-                "ALTER TABLE chapters ADD COLUMN IF NOT EXISTS sport TEXT DEFAULT 'Tennis'",
+                "ALTER TABLE chapters ADD COLUMN IF NOT EXISTS sport TEXT",
                 "ALTER TABLE chapters ADD COLUMN IF NOT EXISTS last_active_date TEXT DEFAULT ''",
-                "ALTER TABLE chapters ADD COLUMN IF NOT EXISTS title_image_url TEXT DEFAULT ''"
+                "ALTER TABLE chapters ADD COLUMN IF NOT EXISTS title_image_url TEXT DEFAULT ''",
+                "ALTER TABLE chapters ADD COLUMN IF NOT EXISTS admin_name TEXT DEFAULT ''",
+                "ALTER TABLE chapters ADD COLUMN IF NOT EXISTS admin_email TEXT DEFAULT ''",
+                "ALTER TABLE chapters DROP CONSTRAINT IF EXISTS chapters_name_key"
             ]
             
             for migration in migrations:
@@ -76,6 +82,45 @@ def init_db():
         st.error(f"Database Initialization Error: {e}")
 
 init_db()
+
+def send_email(to_email, admin_name, chapter_name, admin_password):
+    # Ensure secrets are available
+    smtp_server = st.secrets.get("SMTP_SERVER", "smtp.gmail.com")
+    smtp_port = st.secrets.get("SMTP_PORT", 587)
+    smtp_user = st.secrets.get("SMTP_USER")
+    smtp_pass = st.secrets.get("SMTP_PASS")
+
+    if not all([smtp_user, smtp_pass]):
+        st.warning("SMTP credentials not configured. Email not sent.")
+        return False
+
+    msg = MIMEMultipart()
+    msg['From'] = smtp_user
+    msg['To'] = to_email
+    msg['Subject'] = f"Welcome to Patch Moint - {chapter_name}"
+
+    body = f"""Hi {admin_name},
+
+Welcome to the Patch Moint League system! Your chapter '{chapter_name}' has been created successfully.
+
+Your Admin Password is: {admin_password}
+
+You can use this password to access the Chapter Settings and manage your players and matches.
+
+Best regards,
+The Patch Moint Team"""
+    msg.attach(MIMEText(body, 'plain'))
+
+    try:
+        server = smtplib.SMTP(smtp_server, smtp_port)
+        server.starttls()
+        server.login(smtp_user, smtp_pass)
+        server.send_message(msg)
+        server.quit()
+        return True
+    except Exception as e:
+        st.error(f"Failed to send email: {e}")
+        return False
 
 st.markdown("""
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -532,9 +577,11 @@ def load_chapter_config(chapter_id):
                     conf["ranking_systems"] = {
                         "Elo (Hybrid)": "Elo (Hybrid)" in old_ranking_systems,
                         "Points": "Points" in old_ranking_systems,
-                        "UTR": "UTR" in old_ranking_systems,
+                        "UTR": "UTR" in old_ranking_systems or "DUPR" in old_ranking_systems,
                     }
                 # if it's already a dict, do nothing
+            elif "DUPR" in conf["ranking_systems"]:
+                conf["ranking_systems"]["UTR"] = conf["ranking_systems"].pop("DUPR")
             
             # Migration for match_type_settings
             if "match_type_settings" not in conf:
@@ -627,7 +674,27 @@ def get_img_src(path_or_url):
     return DEFAULT_AVATAR
 
 def render_footer():
-    st.markdown('<div style="text-align: center; margin-top: 20px; margin-bottom: 20px; color: #888; font-size: 0.8em;">Patch Moint League system is free and Open source. Hosted on GitHub and Powered by Streamlit.</div>', unsafe_allow_html=True)
+    # Icons for Tennis, Pickleball, Padel
+    active_color = "#ccff00"
+    inactive_color = "#888888"
+
+    # Define icons (Simple SVG paths)
+    icons = {
+        "Tennis": f'<svg width="30" height="30" viewBox="0 0 24 24" fill="{active_color if SPORT_TYPE == "Tennis" else inactive_color}"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm0-14c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6-2.69-6-6-6z"/></svg>',
+        "Pickleball": f'<svg width="30" height="30" viewBox="0 0 24 24" fill="{active_color if SPORT_TYPE == "Pickleball" else inactive_color}"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" fill="none"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="8" r="1"/><circle cx="12" cy="16" r="1"/><circle cx="8" cy="12" r="1"/><circle cx="16" cy="12" r="1"/><circle cx="9" cy="9" r="1"/><circle cx="15" cy="15" r="1"/><circle cx="9" cy="15" r="1"/><circle cx="15" cy="9" r="1"/></svg>',
+        "Padel": f'<svg width="30" height="30" viewBox="0 0 24 24" fill="{active_color if SPORT_TYPE == "Padel" else inactive_color}"><path d="M12 2L4 10l2 2 6-6 6 6 2-2-8-8zM6 14v6h12v-6H6z"/></svg>'
+    }
+
+    st.markdown(f"""
+    <div style="text-align: center; margin-top: 30px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 20px;">
+        <div style="display: flex; justify-content: center; gap: 20px; margin-bottom: 15px;">
+            <a href="https://patchmoint-tennis.streamlit.app/" target="_blank" title="Tennis">{icons['Tennis']}</a>
+            <a href="https://patchmoint-pickleball.streamlit.app/" target="_blank" title="Pickleball">{icons['Pickleball']}</a>
+            <a href="https://patchmoint-padel.streamlit.app/" target="_blank" title="Padel">{icons['Padel']}</a>
+        </div>
+        <div style="color: #888; font-size: 0.8em;">Patch Moint League system is free and Open source. Hosted on GitHub and Powered by Streamlit.</div>
+    </div>
+    """, unsafe_allow_html=True)
 
 def create_radar_chart(row):
     try:
@@ -1220,9 +1287,13 @@ if not check_chapter_selected():
         # --- ACTIVE CHAPTERS ---
         if not chap_df.empty:
             if 'sport' in chap_df.columns:
-                chap_df = chap_df[chap_df['sport'] == SPORT_TYPE]
+                # Filter by sport. Legacy NULLs/empty are treated as 'Tennis' (the original sport)
+                if SPORT_TYPE == "Tennis":
+                    chap_df = chap_df[(chap_df['sport'] == "Tennis") | (chap_df['sport'].isna()) | (chap_df['sport'] == "")]
+                else:
+                    chap_df = chap_df[chap_df['sport'] == SPORT_TYPE]
             else:
-                # If 'sport' col is missing, we clear df unless it's Tennis (fallback logic)
+                # Sport column missing. If we are in Pickleball app, don't show any legacy chapters
                 if SPORT_TYPE != "Tennis":
                     chap_df = pd.DataFrame()
 
@@ -1289,8 +1360,10 @@ if not check_chapter_selected():
         st.divider()
         with st.expander("Create New Chapter", expanded=False, icon="➡️"):
             new_chap_name = st.text_input("New Chapter Name")
+            new_admin_name = st.text_input("Admin Name")
+            new_admin_email = st.text_input("Admin Email Address")
             if st.button("Create Chapter"):
-                if new_chap_name:
+                if new_chap_name and new_admin_name and new_admin_email:
                     if not chap_df.empty and new_chap_name in chap_df['name'].values:
                         st.error("Name exists")
                     else:
@@ -1299,15 +1372,24 @@ if not check_chapter_selected():
                         try:
                             # Try insert, assuming init_db fixed columns
                             with conn.cursor() as cur:
-                                cur.execute("INSERT INTO chapters (id, name, admin_password, created_at, config, sport, last_active_date) VALUES (%s, %s, %s, %s, %s, %s, %s)",
-                                            (nid, new_chap_name, npass, datetime.now().isoformat(), json.dumps(get_default_config()), SPORT_TYPE, datetime.now().isoformat()))
+                                cur.execute("INSERT INTO chapters (id, name, admin_password, created_at, config, sport, last_active_date, admin_name, admin_email) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)",
+                                            (nid, new_chap_name, npass, datetime.now().isoformat(), json.dumps(get_default_config()), SPORT_TYPE, datetime.now().isoformat(), new_admin_name, new_admin_email))
                             conn.commit()
                             conn.close()
+                            
+                            # Send welcome email
+                            if send_email(new_admin_email, new_admin_name, new_chap_name, npass):
+                                st.success(f"Chapter '{new_chap_name}' Created! Admin password sent to {new_admin_email}.")
+                            else:
+                                st.warning(f"Chapter Created, but failed to send email. Admin Password: {npass}")
+                                
                             st.session_state.new_chapter_created = {'name': new_chap_name, 'id': nid, 'password': npass}
                             st.rerun()
                         except Exception as e:
                             st.error(f"Error creating chapter: {e}")
                             st.warning("If this persists, please refresh the page to ensure database migrations have run.")
+                else:
+                    st.warning("Please fill in all fields (Name, Admin Name, and Email).")
         
         with st.expander("Master Admin Login", expanded=False, icon="➡️"):
             m_pass = st.text_input("Master Password", type="password", key="ma_pass")
@@ -1404,6 +1486,7 @@ if st.session_state.is_master_admin and st.session_state.current_chapter is None
                 with col_info:
                     st.markdown(f"### {row['name']}")
                     st.markdown(f"**Sport:** {row.get('sport', 'Tennis')}")
+                    st.markdown(f"**Admin:** {row.get('admin_name', 'N/A')} ({row.get('admin_email', 'N/A')})")
                     st.caption(f"ID: `{row['id']}` | Admin Pass: `{row['admin_password']}`")
                 
                 with col_act:
@@ -1433,8 +1516,20 @@ if st.session_state.is_master_admin and st.session_state.current_chapter is None
                             st.session_state[delete_key] = True
                             st.rerun()
 
-                # Password Reset inside each Chapter card
-                with st.expander(f"Manage Security for {row['name']}", expanded=False):
+                # Password & Admin Info Reset inside each Chapter card
+                with st.expander(f"Manage Security & Admin for {row['name']}", expanded=False):
+                    new_a_name = st.text_input("Admin Name", value=row.get('admin_name', ''), key=f"ana_{row['id']}")
+                    new_a_email = st.text_input("Admin Email", value=row.get('admin_email', ''), key=f"aem_{row['id']}")
+                    if st.button("Update Admin Info", key=f"uai_{row['id']}"):
+                        conn = get_connection()
+                        with conn.cursor() as cur:
+                            cur.execute("UPDATE chapters SET admin_name = %s, admin_email = %s WHERE id = %s", (new_a_name, new_a_email, row['id']))
+                        conn.commit()
+                        conn.close()
+                        st.success("Admin info updated!")
+                        st.rerun()
+
+                    st.divider()
                     npw = st.text_input("New Admin Password", key=f"nap_{row['id']}")
                     if st.button("Update Admin Password", key=f"rap_{row['id']}"):
                         if npw:
@@ -1818,7 +1913,7 @@ with tabs[1]:
                     t1p2, t2p2 = None, None
                 
                 sc1, sc2, sc3 = st.columns(3)
-                s_list = [""] + ["6-0","6-1","6-2","6-3","6-4","7-5","7-6","0-6","1-6","2-6","3-6","4-6","5-7","6-7"]
+                s_list = [""] + get_valid_scores()
                 s1 = sc1.selectbox("Set 1", s_list, key=f"s1_{pk}"); s2 = sc2.selectbox("Set 2", s_list, key=f"s2_{pk}"); s3 = sc3.selectbox("Set 3", s_list, key=f"s3_{pk}")
                 win = st.radio("Winner", ["Team 1", "Team 2"], horizontal=True, key=f"w_{pk}")
                 img = st.file_uploader("Photo", type=["jpg", "png"], key=f"im_{pk}")
