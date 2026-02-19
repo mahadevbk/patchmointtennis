@@ -27,6 +27,31 @@ from email.mime.multipart import MIMEMultipart
 SPORT_TYPE = st.secrets.get("SPORT_TYPE", "Padel")
 LOGO_URL = "https://raw.githubusercontent.com/mahadevbk/patchmointtennis/main/logo.png"
 
+LOCATION_TIMEZONES = {
+    "Dubai, UAE": "Asia/Dubai",
+    "Abu Dhabi, UAE": "Asia/Dubai",
+    "London, UK": "Europe/London",
+    "New York, USA": "America/New_York",
+    "Los Angeles, USA": "America/Los_Angeles",
+    "Singapore": "Asia/Singapore",
+    "Riyadh, Saudi Arabia": "Asia/Riyadh",
+    "Doha, Qatar": "Asia/Qatar",
+    "Mumbai, India": "Asia/Kolkata",
+    "Sydney, Australia": "Australia/Sydney",
+    "Paris, France": "Europe/Paris",
+    "Berlin, Germany": "Europe/Berlin",
+    "Tokyo, Japan": "Asia/Tokyo",
+    "Hong Kong": "Asia/Hong_Kong",
+}
+DEFAULT_LOCATION = "Dubai, UAE"
+DEFAULT_TIMEZONE = "Asia/Dubai"
+
+def get_chapter_timezone():
+    if 'chapter_config' in st.session_state and st.session_state.chapter_config:
+        loc = st.session_state.chapter_config.get('location', DEFAULT_LOCATION)
+        return LOCATION_TIMEZONES.get(loc, DEFAULT_TIMEZONE)
+    return DEFAULT_TIMEZONE
+
 st.set_page_config(page_title=f"Patch Moint {SPORT_TYPE} League", layout="centered")
 os.environ["STREAMLIT_SERVER_FILE_WATCHER_TYPE"] = "none"
 
@@ -548,8 +573,9 @@ def delete_chapter_fully(chapter_id):
         st.error(f"Error: {e}")
         return False
 
-def get_default_config():
+def get_default_config(location=DEFAULT_LOCATION):
     return {
+        "location": location,
         "ranking_systems": {"Elo (Hybrid)": True, "Points": True, "Padel Rating": False},
         "match_type_settings": {
             "Singles": {"enabled": True, "win_points": 2, "loss_points": 1, "min_sets": "Best of 3"},
@@ -1053,11 +1079,12 @@ def load_bookings():
     for c in cols: 
         if c not in df.columns: df[c] = None
     if not df.empty:
+        tz_name = get_chapter_timezone()
         try: df['dt_combo'] = pd.to_datetime(df['date'].astype(str) + ' ' + df['time'].astype(str), format='%Y-%m-%d %H:%M', errors='coerce')
         except: df['dt_combo'] = pd.to_datetime(df['date'].astype(str) + ' ' + df['time'].astype(str), errors='coerce')
-        if isinstance(df['dt_combo'].dtype, pd.DatetimeTZDtype): df['dt_combo'] = df['dt_combo'].dt.tz_convert('Asia/Dubai')
-        else: df['dt_combo'] = df['dt_combo'].dt.tz_localize('Asia/Dubai', ambiguous='infer')
-        cutoff = pd.Timestamp.now(tz='Asia/Dubai') - timedelta(hours=4)
+        if isinstance(df['dt_combo'].dtype, pd.DatetimeTZDtype): df['dt_combo'] = df['dt_combo'].dt.tz_convert(tz_name)
+        else: df['dt_combo'] = df['dt_combo'].dt.tz_localize(tz_name, ambiguous='infer')
+        cutoff = pd.Timestamp.now(tz=tz_name) - timedelta(hours=4)
         expired_ids = df[df['dt_combo'] < cutoff]['booking_id'].tolist()
         if expired_ids:
             try:
@@ -1320,7 +1347,14 @@ if not check_chapter_selected():
                         title_html = f'<h3>{row["name"]}</h3>'
                         num_players = player_counts.get(row['id'], 0)
                         num_matches = match_counts.get(row['id'], 0)
-                        stats_html = f'<p style="margin: 10px 0; color: #aaa; font-size: 0.9em;">{num_players} players / {num_matches} games</p>'
+                        
+                        try:
+                            config_data = json.loads(row['config']) if row['config'] else {}
+                            chapter_loc = config_data.get('location', DEFAULT_LOCATION)
+                        except:
+                            chapter_loc = DEFAULT_LOCATION
+
+                        stats_html = f'<p style="margin: 10px 0; color: #aaa; font-size: 0.9em;">📍 {chapter_loc}<br>{num_players} players / {num_matches} games</p>'
                         
                         card_html = (
                             '<div class="chapter-card" style="height: auto; min-height: 200px; padding-bottom: 10px;">'
@@ -1362,6 +1396,7 @@ if not check_chapter_selected():
         st.divider()
         with st.expander("Create New Chapter", expanded=False, icon="➡️"):
             new_chap_name = st.text_input("New Chapter Name")
+            new_location = st.selectbox("Location", options=list(LOCATION_TIMEZONES.keys()), index=0)
             new_admin_name = st.text_input("Admin Name")
             new_admin_email = st.text_input("Admin Email Address")
             if st.button("Create Chapter"):
@@ -1375,7 +1410,7 @@ if not check_chapter_selected():
                             # Try insert, assuming init_db fixed columns
                             with conn.cursor() as cur:
                                 cur.execute("INSERT INTO chapters (id, name, admin_password, created_at, config, sport, last_active_date, admin_name, admin_email) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)",
-                                            (nid, new_chap_name, npass, datetime.now().isoformat(), json.dumps(get_default_config()), SPORT_TYPE, datetime.now().isoformat(), new_admin_name, new_admin_email))
+                                            (nid, new_chap_name, npass, datetime.now().isoformat(), json.dumps(get_default_config(new_location)), SPORT_TYPE, datetime.now().isoformat(), new_admin_name, new_admin_email))
                             conn.commit()
                             conn.close()
                             
@@ -2342,6 +2377,14 @@ if st.session_state.is_admin:
     with tabs[6]:
         st.header("Settings")
         with st.form("sets"):
+            st.subheader("Chapter Info")
+            current_loc = st.session_state.chapter_config.get('location', DEFAULT_LOCATION)
+            try:
+                loc_index = list(LOCATION_TIMEZONES.keys()).index(current_loc)
+            except ValueError:
+                loc_index = 0
+            new_loc = st.selectbox("Chapter Location", options=list(LOCATION_TIMEZONES.keys()), index=loc_index)
+
             st.subheader("Ranking Systems")
             current_ranking_systems = st.session_state.chapter_config.get("ranking_systems", {})
             ranking_systems = {}
@@ -2382,6 +2425,7 @@ if st.session_state.is_admin:
                 if not any(ranking_systems.values()):
                     st.error("At least one Ranking System must be enabled.")
                 else:
+                    st.session_state.chapter_config['location'] = new_loc
                     st.session_state.chapter_config['ranking_systems'] = ranking_systems
                     st.session_state.chapter_config['match_type_settings'] = match_type_settings
                     st.session_state.chapter_config['match_image_required'] = img_req
