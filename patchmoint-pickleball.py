@@ -150,44 +150,46 @@ The Patch Moint Team"""
 
 st.markdown("""
 <style>
-    /* 1. Target the label container and force it to be a flexible row */
-    [data-testid="stExpander"] details summary > div:first-child {
+    /* 1. Target the grid container in the expander header */
+    [data-testid="stExpander"] summary > div {
+        grid-template-columns: 1fr auto !important; /* Forces the text to take all space, icon stays at end */
+        display: grid !important;
+        gap: 10px !important;
+    }
+
+    /* 2. Target the button/label area specifically */
+    [data-testid="stExpander"] summary div[role="button"] {
         display: flex !important;
         flex-direction: row !important;
-        align-items: center !important;
         width: 100% !important;
-        max-width: 100% !important;
+        overflow: visible !important;
     }
 
-    /* 2. Target the specific wrapper around the text (the middle element) */
-    [data-testid="stExpander"] details summary div[role="button"] > div:nth-child(2) {
+    /* 3. Force the text container to stay within bounds and not collapse */
+    [data-testid="stExpander"] summary div[role="button"] > div:nth-child(2) {
         flex: 1 1 auto !important;
-        display: flex !important;
-        min-width: 0 !important; /* Critical for flex-shrink to work */
+        min-width: 0 !important;
         overflow: visible !important;
     }
 
-    /* 3. Force the paragraph to not wrap and stay away from the icon */
-    [data-testid="stExpander"] details summary p {
+    /* 4. Handle the wide Turret Road font and the hover state */
+    [data-testid="stExpander"] summary p {
         font-family: 'Turret Road', sans-serif !important;
-        white-space: nowrap !important;
+        white-space: nowrap !important; /* Keeps text on one line */
         margin: 0 !important;
-        padding-right: 45px !important; /* Forces a gap so text can't hit the arrow */
-        width: auto !important;
-        overflow: visible !important;
+        padding-right: 20px !important; /* Hard buffer from the arrow */
         display: inline-block !important;
+        line-height: 1.4 !important;
     }
 
-    /* 4. Kill the hover 'squash' - Stop Streamlit from adding borders that shrink the box */
-    [data-testid="stExpander"] details summary:hover {
-        background-color: rgba(204, 255, 0, 0.1) !important;
-        outline: none !important;
+    /* 5. Visual cleanup for the Optic Yellow theme */
+    [data-testid="stExpander"] summary:hover p {
+        color: #ccff00 !important;
     }
-
-    /* 5. Ensure the arrow icon stays on the far right */
-    [data-testid="stExpander"] details summary svg {
-        flex-shrink: 0 !important;
-        margin-left: auto !important;
+    
+    [data-testid="stExpander"] {
+        border-color: rgba(204, 255, 0, 0.2) !important;
+        background-color: rgba(0, 0, 0, 0.2) !important;
     }
 </style>
 """, unsafe_allow_html=True)
