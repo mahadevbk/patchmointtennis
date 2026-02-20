@@ -706,9 +706,9 @@ def render_footer():
 
     # Define icons (Simple SVG paths)
     icons = {
-        "Tennis": f'<svg width="30" height="30" viewBox="0 0 24 24" fill="{active_color if SPORT_TYPE == "Tennis" else inactive_color}"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm0-14c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6-2.69-6-6-6z"/></svg>',
+        "Tennis": f'<svg width="30" height="30" viewBox="0 0 24 24" fill="{active_color if SPORT_TYPE == "Tennis" else inactive_color}"><path d="M19.07 4.93a7.226 7.226 0 0 0-10.21 0c-2.28 2.28-2.73 5.79-1.34 8.53L2 19.07l2.93 2.93 5.61-5.61c2.74 1.39 6.25.94 8.53-1.34a7.226 7.226 0 0 0 0-10.21zM16.95 13.24c-1.65 1.65-4.34 1.65-6 0-1.65-1.65-1.65-4.34 0-6 1.65-1.65 4.34-1.65 6 0 1.65 1.65 1.65 4.34 0 6z"/></svg>',
         "Pickleball": f'<svg width="30" height="30" viewBox="0 0 24 24" fill="{active_color if SPORT_TYPE == "Pickleball" else inactive_color}"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" fill="none"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="8" r="1"/><circle cx="12" cy="16" r="1"/><circle cx="8" cy="12" r="1"/><circle cx="16" cy="12" r="1"/><circle cx="9" cy="9" r="1"/><circle cx="15" cy="15" r="1"/><circle cx="9" cy="15" r="1"/><circle cx="15" cy="9" r="1"/></svg>',
-        "Padel": f'<svg width="30" height="30" viewBox="0 0 24 24" fill="{active_color if SPORT_TYPE == "Padel" else inactive_color}"><path d="M12 2a7 7 0 0 0-7 7c0 3.37 2.34 6.18 5.5 6.83V22h3v-6.17c3.16-.65 5.5-3.46 5.5-6.83a7 7 0 0 0-7-7zm0 12a5 5 0 1 1 0-10 5 5 0 0 1 0 10z"/></svg>'
+        "Padel": f'<svg width="30" height="30" viewBox="0 0 24 24" fill="{active_color if SPORT_TYPE == "Padel" else inactive_color}"><path d="M12 2C8.13 2 5 5.13 5 9c0 3.1 2.02 5.72 4.8 6.64L9 22h6l-.8-6.36C16.98 14.72 19 12.1 19 9c0-3.87-3.13-7-7-7z"/></svg>'
     }
 
     st.markdown(f"""
