@@ -469,6 +469,60 @@ def update_chapter_admin_password(chapter_id, new_pass):
         return True
     except: return False
 
+def reset_chapter_league_db(chapter_id, rank_df):
+    try:
+        conn = get_connection()
+        with conn.cursor() as cur:
+            # 1. Update initial_utr with current Padel Rating
+            if rank_df is not None and not rank_df.empty:
+                for _, row in rank_df.iterrows():
+                    p_name = row['Player']
+                    c_rating = row.get('Score_Padel Rating', row.get('Score_DUPR', 3.5))
+                    cur.execute("UPDATE players SET initial_utr = %s WHERE name = %s AND chapter_id = %s", (c_rating, p_name, chapter_id))
+            
+            # 2. Delete matches
+            cur.execute("DELETE FROM matches WHERE chapter_id = %s", (chapter_id,))
+            
+            # 3. Delete bookings
+            cur.execute("DELETE FROM bookings WHERE chapter_id = %s", (chapter_id,))
+            
+        conn.commit()
+        conn.close()
+        return True
+    except Exception as e:
+        st.error(f"Error resetting league: {e}")
+        return False
+
+def get_league_data_zip(chapter_id):
+    try:
+        conn = get_connection()
+        data = {}
+        tables = ["players", "matches", "bookings", "courts", "join_requests"]
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            for table in tables:
+                try:
+                    cur.execute(f"SELECT * FROM {table} WHERE chapter_id = %s", (chapter_id,))
+                    data[table] = cur.fetchall()
+                except: continue
+            
+            cur.execute("SELECT * FROM chapters WHERE id = %s", (chapter_id,))
+            data['chapter'] = cur.fetchall()
+        conn.close()
+
+        buf = io.BytesIO()
+        with zipfile.ZipFile(buf, "w") as zf:
+            for table, rows in data.items():
+                if rows:
+                    df = pd.DataFrame(rows)
+                    csv_data = df.to_csv(index=False)
+                    zf.writestr(f"{table}.csv", csv_data)
+        
+        buf.seek(0)
+        return buf
+    except Exception as e:
+        st.error(f"Error downloading league data: {e}")
+        return None
+
 def load_matches():
     cid = st.session_state.current_chapter['id'] if st.session_state.current_chapter else None
     st.session_state.matches_df = fetch_data("matches", cid)
@@ -2535,6 +2589,29 @@ if st.session_state.is_admin:
             else:
                 st.info("No players to manage yet.")
         
+        st.subheader("League Control")
+        with st.expander("Reset or Download League Data", expanded=True, icon="⚙️"):
+            c1, c2 = st.columns(2)
+            with c1:
+                zip_data = get_league_data_zip(st.session_state.current_chapter['id'])
+                if zip_data:
+                    st.download_button(
+                        label="Download League Data (.zip)",
+                        data=zip_data,
+                        file_name=f"{st.session_state.current_chapter['name']}_data.zip",
+                        mime="application/zip",
+                        use_container_width=True,
+                        key="dl_btn_league"
+                    )
+            with c2:
+                st.markdown("⚠️ **Danger Zone**")
+                confirm_reset = st.checkbox("Confirm: Reset all matches and bookings for this Chapter?", key="confirm_reset_chk")
+                if st.button("Reset League for New Season", type="primary", use_container_width=True, disabled=not confirm_reset, help="This will delete all matches and bookings, but retain player ELO/UTR/DUPR ratings."):
+                    if reset_chapter_league_db(st.session_state.current_chapter['id'], rank_df):
+                        st.success("League Reset! Rankings retained, matches cleared.")
+                        time.sleep(1)
+                        st.rerun()
+
         st.subheader("Join Requests")
         with st.expander("View and manage guest join requests", expanded=True, icon="➡️"):
             jr_df = load_join_requests(st.session_state.current_chapter['id'])
