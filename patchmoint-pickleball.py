@@ -150,43 +150,44 @@ The Patch Moint Team"""
 
 st.markdown("""
 <style>
-    /* 1. Target the main header button */
-    [data-testid="stExpander"] summary div[role="button"] {
+    /* 1. Target the label container and force it to be a flexible row */
+    [data-testid="stExpander"] details summary > div:first-child {
         display: flex !important;
         flex-direction: row !important;
         align-items: center !important;
-        justify-content: flex-start !important;
         width: 100% !important;
-        gap: 0 !important; /* We will use margins instead for precision */
+        max-width: 100% !important;
     }
 
-    /* 2. Target the text container (the middle part) */
-    [data-testid="stExpander"] summary div[role="button"] > div:nth-child(2) {
-        flex: 1 0 auto !important; /* GROW, NEVER SHRINK */
-        margin-right: 40px !important; /* PHYSICAL GAP for the arrow */
+    /* 2. Target the specific wrapper around the text (the middle element) */
+    [data-testid="stExpander"] details summary div[role="button"] > div:nth-child(2) {
+        flex: 1 1 auto !important;
+        display: flex !important;
+        min-width: 0 !important; /* Critical for flex-shrink to work */
         overflow: visible !important;
     }
 
-    /* 3. Handle the 'Turret Road' font specifically */
-    [data-testid="stExpander"] summary p {
+    /* 3. Force the paragraph to not wrap and stay away from the icon */
+    [data-testid="stExpander"] details summary p {
         font-family: 'Turret Road', sans-serif !important;
         white-space: nowrap !important;
+        margin: 0 !important;
+        padding-right: 45px !important; /* Forces a gap so text can't hit the arrow */
+        width: auto !important;
         overflow: visible !important;
-        text-overflow: clip !important;
-        line-height: 1.2 !important;
+        display: inline-block !important;
     }
 
-    /* 4. Fix the Hover/Focus squash */
-    [data-testid="stExpander"] summary:hover, 
-    [data-testid="stExpander"] summary:focus {
+    /* 4. Kill the hover 'squash' - Stop Streamlit from adding borders that shrink the box */
+    [data-testid="stExpander"] details summary:hover {
         background-color: rgba(204, 255, 0, 0.1) !important;
+        outline: none !important;
     }
 
-    /* 5. Color the arrow and text Optic Yellow on hover */
-    [data-testid="stExpander"] summary:hover p,
-    [data-testid="stExpander"] summary:hover svg {
-        color: #ccff00 !important;
-        fill: #ccff00 !important;
+    /* 5. Ensure the arrow icon stays on the far right */
+    [data-testid="stExpander"] details summary svg {
+        flex-shrink: 0 !important;
+        margin-left: auto !important;
     }
 </style>
 """, unsafe_allow_html=True)
