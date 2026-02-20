@@ -148,51 +148,7 @@ The Patch Moint Team"""
         st.error(f"Failed to send email: {e}")
         return False
 
-st.markdown("""
-<style>
-    /* 1. Target the grid container in the expander header */
-    [data-testid="stExpander"] summary > div {
-        grid-template-columns: 1fr auto !important; /* Forces the text to take all space, icon stays at end */
-        display: grid !important;
-        gap: 10px !important;
-    }
 
-    /* 2. Target the button/label area specifically */
-    [data-testid="stExpander"] summary div[role="button"] {
-        display: flex !important;
-        flex-direction: row !important;
-        width: 100% !important;
-        overflow: visible !important;
-    }
-
-    /* 3. Force the text container to stay within bounds and not collapse */
-    [data-testid="stExpander"] summary div[role="button"] > div:nth-child(2) {
-        flex: 1 1 auto !important;
-        min-width: 0 !important;
-        overflow: visible !important;
-    }
-
-    /* 4. Handle the wide Turret Road font and the hover state */
-    [data-testid="stExpander"] summary p {
-        font-family: 'Turret Road', sans-serif !important;
-        white-space: nowrap !important; /* Keeps text on one line */
-        margin: 0 !important;
-        padding-right: 20px !important; /* Hard buffer from the arrow */
-        display: inline-block !important;
-        line-height: 1.4 !important;
-    }
-
-    /* 5. Visual cleanup for the Optic Yellow theme */
-    [data-testid="stExpander"] summary:hover p {
-        color: #ccff00 !important;
-    }
-    
-    [data-testid="stExpander"] {
-        border-color: rgba(204, 255, 0, 0.2) !important;
-        background-color: rgba(0, 0, 0, 0.2) !important;
-    }
-</style>
-""", unsafe_allow_html=True)
 
 
 st.markdown("""
@@ -393,7 +349,50 @@ h3 { font-size: 16px !important; }
 </style>
 """, unsafe_allow_html=True)
 
+st.markdown("""
+<style>
+    /* 1. Force the expander header to ignore the 'st-' global font width calculations */
+    [data-testid="stExpander"] summary {
+        display: flex !important;
+        align-items: center !important;
+        padding-right: 1rem !important;
+    }
 
+    /* 2. This targets the container holding the text */
+    [data-testid="stExpander"] summary div[role="button"] {
+        display: flex !important;
+        flex: 1 1 auto !important;
+        min-width: 0 !important;
+        overflow: visible !important;
+    }
+
+    /* 3. The 'Magic' Fix: Force a large right margin on the text paragraph */
+    /* This prevents the text from physically being able to touch the arrow icon */
+    [data-testid="stExpander"] summary p {
+        font-family: 'Turret Road', sans-serif !important;
+        flex: 1 0 auto !important;
+        margin-right: 50px !important; /* Huge gap for the arrow */
+        white-space: nowrap !important;
+        overflow: visible !important;
+        display: block !important;
+    }
+
+    /* 4. Stop the Hover Jump */
+    /* We override the Streamlit hover transition that causes the text to shift */
+    [data-testid="stExpander"] summary:hover [data-testid="stExpanderIcon"] {
+        transform: none !important; /* Stops the arrow from jittering the layout */
+    }
+
+    [data-testid="stExpander"] summary:hover {
+        background-color: rgba(204, 255, 0, 0.1) !important;
+    }
+    
+    /* 5. Color the text optic yellow on hover to match your theme */
+    [data-testid="stExpander"] summary:hover p {
+        color: #ccff00 !important;
+    }
+</style>
+""", unsafe_allow_html=True)
 
 
 # --- Constants ---
