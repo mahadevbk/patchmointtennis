@@ -1552,7 +1552,7 @@ if st.session_state.is_master_admin and st.session_state.current_chapter is None
                             st.rerun()
 
                 # Password & Admin Info Reset inside each Chapter card
-                with st.expander(f"Manage Security & Admin for {row['name']}", expanded=False):
+                with st.expander(f"Manage Security & Admin for {row['name']}", expanded=False, icon="➡️"):
                     new_a_name = st.text_input("Admin Name", value=row.get('admin_name', ''), key=f"ana_{row['id']}")
                     new_a_email = st.text_input("Admin Email", value=row.get('admin_email', ''), key=f"aem_{row['id']}")
                     if st.button("Update Admin Info", key=f"uai_{row['id']}"):
@@ -2085,7 +2085,7 @@ with tabs[1]:
             # Match Photo Expander
             img_url = getattr(row, 'match_image_url', '')
             if img_url:
-                with st.expander("📷 View Match Photo", expanded=False):
+                with st.expander("📷 View Match Photo", expanded=False, icon="➡️"):
                     st.image(img_url, use_container_width=True)
 
             # Edit/Delete Logic
@@ -2096,7 +2096,7 @@ with tabs[1]:
                 if me in [t1_p1_name, t1_p2_name, t2_p1_name, t2_p2_name]: can_edit_match = True
             
             if can_edit_match:
-                with st.expander(f"⚙️ Manage Result ({row.match_id})", expanded=False):
+                with st.expander(f"⚙️ Manage Result ({row.match_id})", expanded=False, icon="➡️"):
                     if st.button("Delete Match Record", key=f"del_{row.match_id}"): 
                         delete_match_from_db(row.match_id)
                         st.rerun()                         
@@ -2444,7 +2444,7 @@ if st.session_state.is_admin:
         
         
         st.subheader("Player Management")
-        with st.expander("Manage player roles and passwords", expanded=True):
+        with st.expander("Manage player roles and passwords", expanded=True, icon="➡️"):
             if not st.session_state.players_df.empty:
                 # Password Reset
                 st.markdown("#### Generate New Password")
