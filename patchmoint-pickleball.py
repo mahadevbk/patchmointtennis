@@ -150,32 +150,37 @@ The Patch Moint Team"""
 
 st.markdown("""
 <style>
-    /* 1. Target the flex container inside the expander header */
+    /* 1. Target the specific label container in the expander */
     [data-testid="stExpander"] summary div[role="button"] {
         display: flex !important;
+        flex-direction: row !important;
+        align-items: center !important;
+        gap: 15px !important;
         width: 100% !important;
-        overflow: visible !important;
     }
 
-    /* 2. Force the text container to grow and never shrink */
+    /* 2. Force the text part to never shrink, even if the font is wide */
     [data-testid="stExpander"] summary div[role="button"] div:nth-child(2) {
-        flex-grow: 1 !important;
-        flex-shrink: 0 !important;
-        min-width: 0 !important;
+        flex: 1 0 auto !important;
+        max-width: 85% !important; /* Leaves room for the arrow icon */
     }
 
-    /* 3. Ensure the text itself doesn't wrap or overlap icons */
+    /* 3. Adjust the Paragraph inside to handle the Turret Road font spacing */
     [data-testid="stExpander"] summary p {
-        word-break: normal !important;
-        overflow-wrap: normal !important;
-        white-space: nowrap !important; /* Prevents text from jumping to a new line on hover */
+        font-family: 'Turret Road', sans-serif !important;
+        line-height: 1.4 !important;
         margin: 0 !important;
-        padding-right: 10px !important;
+        white-space: normal !important; /* Allows wrapping if title is very long */
+        overflow: visible !important;
     }
 
-    /* 4. Fix for the hover state overlap */
+    /* 4. Kill the hover "squash" effect */
+    [data-testid="stExpander"] summary:hover {
+        border-color: #ccff00 !important;
+    }
+    
     [data-testid="stExpander"] summary:hover p {
-        overflow: visible !important;
+        color: #ccff00 !important;
     }
 </style>
 """, unsafe_allow_html=True)
