@@ -150,37 +150,43 @@ The Patch Moint Team"""
 
 st.markdown("""
 <style>
-    /* 1. Target the specific label container in the expander */
+    /* 1. Target the main header button */
     [data-testid="stExpander"] summary div[role="button"] {
         display: flex !important;
         flex-direction: row !important;
         align-items: center !important;
-        gap: 15px !important;
+        justify-content: flex-start !important;
         width: 100% !important;
+        gap: 0 !important; /* We will use margins instead for precision */
     }
 
-    /* 2. Force the text part to never shrink, even if the font is wide */
-    [data-testid="stExpander"] summary div[role="button"] div:nth-child(2) {
-        flex: 1 0 auto !important;
-        max-width: 85% !important; /* Leaves room for the arrow icon */
-    }
-
-    /* 3. Adjust the Paragraph inside to handle the Turret Road font spacing */
-    [data-testid="stExpander"] summary p {
-        font-family: 'Turret Road', sans-serif !important;
-        line-height: 1.4 !important;
-        margin: 0 !important;
-        white-space: normal !important; /* Allows wrapping if title is very long */
+    /* 2. Target the text container (the middle part) */
+    [data-testid="stExpander"] summary div[role="button"] > div:nth-child(2) {
+        flex: 1 0 auto !important; /* GROW, NEVER SHRINK */
+        margin-right: 40px !important; /* PHYSICAL GAP for the arrow */
         overflow: visible !important;
     }
 
-    /* 4. Kill the hover "squash" effect */
-    [data-testid="stExpander"] summary:hover {
-        border-color: #ccff00 !important;
+    /* 3. Handle the 'Turret Road' font specifically */
+    [data-testid="stExpander"] summary p {
+        font-family: 'Turret Road', sans-serif !important;
+        white-space: nowrap !important;
+        overflow: visible !important;
+        text-overflow: clip !important;
+        line-height: 1.2 !important;
     }
-    
-    [data-testid="stExpander"] summary:hover p {
+
+    /* 4. Fix the Hover/Focus squash */
+    [data-testid="stExpander"] summary:hover, 
+    [data-testid="stExpander"] summary:focus {
+        background-color: rgba(204, 255, 0, 0.1) !important;
+    }
+
+    /* 5. Color the arrow and text Optic Yellow on hover */
+    [data-testid="stExpander"] summary:hover p,
+    [data-testid="stExpander"] summary:hover svg {
         color: #ccff00 !important;
+        fill: #ccff00 !important;
     }
 </style>
 """, unsafe_allow_html=True)
