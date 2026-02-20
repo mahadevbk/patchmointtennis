@@ -150,28 +150,32 @@ The Patch Moint Team"""
 
 st.markdown("""
 <style>
-    /* 1. Prevent the expander header from collapsing height */
-    [data-testid="stExpander"] details summary {
-        min-height: 3rem !important;
-        align-items: center !important;
+    /* 1. Target the flex container inside the expander header */
+    [data-testid="stExpander"] summary div[role="button"] {
+        display: flex !important;
+        width: 100% !important;
+        overflow: visible !important;
     }
 
-    /* 2. Force the text container to have its own space and not overlap the icon */
-    [data-testid="stExpander"] details summary div[role="button"] {
-        gap: 15px !important;
+    /* 2. Force the text container to grow and never shrink */
+    [data-testid="stExpander"] summary div[role="button"] div:nth-child(2) {
+        flex-grow: 1 !important;
+        flex-shrink: 0 !important;
+        min-width: 0 !important;
     }
 
-    /* 3. Specifically target the text paragraph inside the expander */
-    [data-testid="stExpander"] details summary p {
-        line-height: 1.5 !important;
+    /* 3. Ensure the text itself doesn't wrap or overlap icons */
+    [data-testid="stExpander"] summary p {
+        word-break: normal !important;
+        overflow-wrap: normal !important;
+        white-space: nowrap !important; /* Prevents text from jumping to a new line on hover */
         margin: 0 !important;
-        padding-right: 25px !important; /* Creates a 'dead zone' so text can't hit the arrow */
-        display: block !important;
+        padding-right: 10px !important;
     }
 
-    /* 4. Fix the Hover State specifically */
-    [data-testid="stExpander"] details summary:hover p {
-        color: #ccff00 !important; /* Optional: makes text optic yellow on hover */
+    /* 4. Fix for the hover state overlap */
+    [data-testid="stExpander"] summary:hover p {
+        overflow: visible !important;
     }
 </style>
 """, unsafe_allow_html=True)
