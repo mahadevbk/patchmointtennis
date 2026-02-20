@@ -1156,6 +1156,55 @@ def remove_court_db(name):
     conn.commit()
     conn.close()
 
+def load_join_requests(chapter_id):
+    try:
+        engine = get_sqlalchemy_engine()
+        query = "SELECT * FROM join_requests WHERE chapter_id = :chapter_id ORDER BY created_at DESC"
+        with engine.connect() as conn:
+            df = pd.read_sql(text(query), conn, params={"chapter_id": chapter_id})
+        return df
+    except Exception as e:
+        return pd.DataFrame()
+
+def save_join_request(name, message, chapter_id):
+    try:
+        conn = get_connection()
+        with conn.cursor() as cur:
+            rid = str(uuid.uuid4())
+            now = datetime.now().isoformat()
+            cur.execute("INSERT INTO join_requests (id, name, message, chapter_id, created_at) VALUES (%s, %s, %s, %s, %s)",
+                        (rid, name, message, chapter_id, now))
+        conn.commit()
+        conn.close()
+        return True
+    except Exception as e:
+        st.error(f"Error saving request: {e}")
+        return False
+
+def delete_join_request_db(request_id):
+    try:
+        conn = get_connection()
+        with conn.cursor() as cur:
+            cur.execute("DELETE FROM join_requests WHERE id = %s", (request_id,))
+        conn.commit()
+        conn.close()
+        return True
+    except: return False
+
+@st.dialog("Request to Join")
+def join_request_modal():
+    st.write(f"Send a message to the admin of **{st.session_state.current_chapter['name']}** to request joining this chapter.")
+    name = st.text_input("Your Name")
+    message = st.text_area("Message (optional)")
+    if st.button("Submit Request", type="primary"):
+        if name:
+            if save_join_request(name, message, st.session_state.current_chapter['id']):
+                st.success("Request sent successfully!")
+                time.sleep(2)
+                st.rerun()
+        else:
+            st.warning("Please enter your name.")
+
 # --- CHAPTER SELECTION & LANDING PAGE ---
 def check_chapter_selected():
     if 'new_chapter_created' in st.session_state: return False
@@ -1609,6 +1658,10 @@ if not chap_data.empty and chap_data.iloc[0]['title_image_url']:
     st.markdown(f'<img src="{src}" style="height:150px; width:auto; object-fit:contain; margin-bottom:10px;">', unsafe_allow_html=True)
 else:
     st.title(f"{st.session_state.current_chapter['name']}")
+
+if not st.session_state.can_write:
+    if st.button("Request to Join Chapter", type="primary"):
+        join_request_modal()
 
 
 
@@ -2478,6 +2531,28 @@ if st.session_state.is_admin:
                         st.rerun()
             else:
                 st.info("No players to manage yet.")
+        
+        st.subheader("Join Requests")
+        with st.expander("View and manage guest join requests", expanded=True, icon="➡️"):
+            jr_df = load_join_requests(st.session_state.current_chapter['id'])
+            if not jr_df.empty:
+                for idx, r in jr_df.iterrows():
+                    with st.container(border=True):
+                        c1, c2 = st.columns([4, 1])
+                        with c1:
+                            st.markdown(f"**From:** {r['name']}")
+                            st.markdown(f"**Message:** {r['message']}")
+                            try:
+                                dt = datetime.fromisoformat(r['created_at']).strftime("%d %b %Y, %H:%M")
+                                st.caption(f"Sent on: {dt}")
+                            except: pass
+                        with c2:
+                            if st.button("Delete", key=f"del_jr_{r['id']}"):
+                                if delete_join_request_db(r['id']):
+                                    st.success("Deleted")
+                                    st.rerun()
+            else:
+                st.info("No pending join requests.")
 
 
 if st.button("Switch Chapter" if not st.session_state.is_master_admin else "Return Master"):
