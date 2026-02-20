@@ -351,43 +351,38 @@ h3 { font-size: 16px !important; }
 
 st.markdown("""
 <style>
-    /* 1. Force the expander header to ignore the 'st-' global font width calculations */
-    [data-testid="stExpander"] summary {
-        display: flex !important;
-        align-items: center !important;
-        padding-right: 1rem !important;
-    }
-
-    /* 2. This targets the container holding the text */
+    /* 1. Target the flex container and push all content to the right */
     [data-testid="stExpander"] summary div[role="button"] {
         display: flex !important;
-        flex: 1 1 auto !important;
-        min-width: 0 !important;
-        overflow: visible !important;
+        flex-direction: row !important;
+        justify-content: flex-end !important; /* Pushes text to the right */
+        gap: 10px !important;
+        width: 100% !important;
     }
 
-    /* 3. The 'Magic' Fix: Force a large right margin on the text paragraph */
-    /* This prevents the text from physically being able to touch the arrow icon */
+    /* 2. Ensure the text container doesn't try to fill the whole width */
+    [data-testid="stExpander"] summary div[role="button"] > div:nth-child(2) {
+        flex: 0 1 auto !important; /* Allows it to take only the space it needs */
+        text-align: right !important;
+        order: 1 !important; /* Keeps text before the arrow */
+    }
+
+    /* 3. Style the text for the Turret Road font */
     [data-testid="stExpander"] summary p {
         font-family: 'Turret Road', sans-serif !important;
-        flex: 1 0 auto !important;
-        margin-right: 50px !important; /* Huge gap for the arrow */
         white-space: nowrap !important;
-        overflow: visible !important;
-        display: block !important;
+        margin: 0 !important;
+        direction: rtl !important; /* Forces alignment logic to the right */
+        unicode-bidi: bidi-override !important;
     }
 
-    /* 4. Stop the Hover Jump */
-    /* We override the Streamlit hover transition that causes the text to shift */
-    [data-testid="stExpander"] summary:hover [data-testid="stExpanderIcon"] {
-        transform: none !important; /* Stops the arrow from jittering the layout */
+    /* 4. Ensure the arrow icon stays at the very far right */
+    [data-testid="stExpander"] [data-testid="stExpanderIcon"] {
+        order: 2 !important;
+        margin-left: 0 !important;
     }
 
-    [data-testid="stExpander"] summary:hover {
-        background-color: rgba(204, 255, 0, 0.1) !important;
-    }
-    
-    /* 5. Color the text optic yellow on hover to match your theme */
+    /* 5. Optic Yellow Hover State */
     [data-testid="stExpander"] summary:hover p {
         color: #ccff00 !important;
     }
