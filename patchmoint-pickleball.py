@@ -149,6 +149,35 @@ The Patch Moint Team"""
         return False
 
 st.markdown("""
+<style>
+    /* 1. Prevent the expander header from collapsing height */
+    [data-testid="stExpander"] details summary {
+        min-height: 3rem !important;
+        align-items: center !important;
+    }
+
+    /* 2. Force the text container to have its own space and not overlap the icon */
+    [data-testid="stExpander"] details summary div[role="button"] {
+        gap: 15px !important;
+    }
+
+    /* 3. Specifically target the text paragraph inside the expander */
+    [data-testid="stExpander"] details summary p {
+        line-height: 1.5 !important;
+        margin: 0 !important;
+        padding-right: 25px !important; /* Creates a 'dead zone' so text can't hit the arrow */
+        display: block !important;
+    }
+
+    /* 4. Fix the Hover State specifically */
+    [data-testid="stExpander"] details summary:hover p {
+        color: #ccff00 !important; /* Optional: makes text optic yellow on hover */
+    }
+</style>
+""", unsafe_allow_html=True)
+
+
+st.markdown("""
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Turret+Road:wght@200;300;400;500;700;800&display=swap" rel="stylesheet">
@@ -346,28 +375,7 @@ h3 { font-size: 16px !important; }
 </style>
 """, unsafe_allow_html=True)
 
-st.markdown("""
-    <style>
-    /* Force spacing in expander headers to prevent overlap */
-    .st-emotion-cache-p5msec e1f1d6gn2 {
-        line-height: 1.6 !0important;
-        padding-top: 5px !important;
-        padding-bottom: 5px !important;
-    }
-    
-    /* Target the text container inside the expander toggle */
-    div[data-testid="stExpander"] details summary p {
-        margin-bottom: 0px !important;
-        line-height: 1.5 !important;
-        overflow: visible !important;
-    }
 
-    /* Ensure hover doesn't collapse the height */
-    div[data-testid="stExpander"] details summary:hover {
-        background-color: rgba(255, 255, 255, 0.05);
-    }
-    </style>
-""", unsafe_allow_html=True)
 
 
 # --- Constants ---
