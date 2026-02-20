@@ -349,45 +349,7 @@ h3 { font-size: 16px !important; }
 </style>
 """, unsafe_allow_html=True)
 
-st.markdown("""
-<style>
-    /* 1. Target the flex container and push all content to the right */
-    [data-testid="stExpander"] summary div[role="button"] {
-        display: flex !important;
-        flex-direction: row !important;
-        justify-content: flex-end !important; /* Pushes text to the right */
-        gap: 10px !important;
-        width: 100% !important;
-    }
 
-    /* 2. Ensure the text container doesn't try to fill the whole width */
-    [data-testid="stExpander"] summary div[role="button"] > div:nth-child(2) {
-        flex: 0 1 auto !important; /* Allows it to take only the space it needs */
-        text-align: right !important;
-        order: 1 !important; /* Keeps text before the arrow */
-    }
-
-    /* 3. Style the text for the Turret Road font */
-    [data-testid="stExpander"] summary p {
-        font-family: 'Turret Road', sans-serif !important;
-        white-space: nowrap !important;
-        margin: 0 !important;
-        direction: rtl !important; /* Forces alignment logic to the right */
-        unicode-bidi: bidi-override !important;
-    }
-
-    /* 4. Ensure the arrow icon stays at the very far right */
-    [data-testid="stExpander"] [data-testid="stExpanderIcon"] {
-        order: 2 !important;
-        margin-left: 0 !important;
-    }
-
-    /* 5. Optic Yellow Hover State */
-    [data-testid="stExpander"] summary:hover p {
-        color: #ccff00 !important;
-    }
-</style>
-""", unsafe_allow_html=True)
 
 
 # --- Constants ---
