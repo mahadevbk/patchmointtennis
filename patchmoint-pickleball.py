@@ -349,7 +349,40 @@ h3 { font-size: 16px !important; }
 </style>
 """, unsafe_allow_html=True)
 
+st.markdown("""
+<style>
+    /* 1. Reset the font for all expander headers to default */
+    [data-testid="stExpander"] summary p {
+        font-family: "Source Sans Pro", sans-serif !important;
+        font-weight: 400 !important;
+        letter-spacing: normal !important;
+        text-transform: none !important;
+        font-size: 1rem !important;
+        line-height: 1.5 !important;
+        /* Re-ensure left justification */
+        direction: ltr !important;
+        text-align: left !important;
+    }
 
+    /* 2. Fix the spacing so text doesn't hit the arrow icon */
+    [data-testid="stExpander"] summary div[role="button"] {
+        gap: 10px !important;
+        display: flex !important;
+        align-items: center !important;
+    }
+
+    /* 3. Add the Optic Yellow touch on hover since we are editing this */
+    [data-testid="stExpander"] summary:hover p {
+        color: #ccff00 !important;
+    }
+
+    /* 4. Ensure the body of the expander still uses your custom font if you want */
+    [data-testid="stExpander"] [data-testid="stVerticalBlock"] p {
+        /* Uncomment below if you want Turret Road inside the expander content */
+        /* font-family: 'Turret Road', sans-serif !important; */
+    }
+</style>
+""", unsafe_allow_html=True)
 
 
 # --- Constants ---
