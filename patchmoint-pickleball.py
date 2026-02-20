@@ -719,7 +719,7 @@ def render_footer():
             <a href="https://patchmoint-pickleball.streamlit.app/" target="_blank" title="Pickleball">{icons['Pickleball']}</a>
             <a href="https://patchmoint-padel.streamlit.app/" target="_blank" title="Padel">{icons['Padel']}</a>
         </div>
-        <div style="color: #888; font-size: 0.8em;">Patch Moint League system is free and Open source. Hosted on GitHub and Powered by Streamlit.</div>
+        <div style="color: #ccff00; font-size: 0.8em;">Patch Moint League system is free and Open source. Hosted on GitHub and Powered by Streamlit.</div>
     </div>
     """, unsafe_allow_html=True)
 
