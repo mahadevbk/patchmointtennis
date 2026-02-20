@@ -346,6 +346,30 @@ h3 { font-size: 16px !important; }
 </style>
 """, unsafe_allow_html=True)
 
+st.markdown("""
+    <style>
+    /* Force spacing in expander headers to prevent overlap */
+    .st-emotion-cache-p5msec e1f1d6gn2 {
+        line-height: 1.6 !0important;
+        padding-top: 5px !important;
+        padding-bottom: 5px !important;
+    }
+    
+    /* Target the text container inside the expander toggle */
+    div[data-testid="stExpander"] details summary p {
+        margin-bottom: 0px !important;
+        line-height: 1.5 !important;
+        overflow: visible !important;
+    }
+
+    /* Ensure hover doesn't collapse the height */
+    div[data-testid="stExpander"] details summary:hover {
+        background-color: rgba(255, 255, 255, 0.05);
+    }
+    </style>
+""", unsafe_allow_html=True)
+
+
 # --- Constants ---
 PLAYERS_TABLE = "players"
 MATCHES_TABLE = "matches"
