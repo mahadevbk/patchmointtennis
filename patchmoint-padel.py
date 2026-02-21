@@ -758,14 +758,13 @@ def get_img_src(path_or_url):
 
 def render_footer():
     # Icons for Tennis, Pickleball, Padel
-    active_color = "#ccff00"
-    inactive_color = "#888888"
+    logo_base_url = "https://raw.githubusercontent.com/mahadevbk/patchmointtennis/main/assets/sportlogos/"
 
-    # Define icons (Simple SVG paths)
+    # Define icons (PNG files)
     icons = {
-        "Tennis": f'<svg width="30" height="30" viewBox="0 0 24 24" fill="{active_color if SPORT_TYPE == "Tennis" else inactive_color}"><path d="M19.07 4.93a7.226 7.226 0 0 0-10.21 0c-2.28 2.28-2.73 5.79-1.34 8.53L2 19.07l2.93 2.93 5.61-5.61c2.74 1.39 6.25.94 8.53-1.34a7.226 7.226 0 0 0 0-10.21zM16.95 13.24c-1.65 1.65-4.34 1.65-6 0-1.65-1.65-1.65-4.34 0-6 1.65-1.65 4.34-1.65 6 0 1.65 1.65 1.65 4.34 0 6z"/></svg>',
-        "Pickleball": f'<svg width="30" height="30" viewBox="0 0 24 24" fill="{active_color if SPORT_TYPE == "Pickleball" else inactive_color}"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" fill="none"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="8" r="1"/><circle cx="12" cy="16" r="1"/><circle cx="8" cy="12" r="1"/><circle cx="16" cy="12" r="1"/><circle cx="9" cy="9" r="1"/><circle cx="15" cy="15" r="1"/><circle cx="9" cy="15" r="1"/><circle cx="15" cy="9" r="1"/></svg>',
-        "Padel": f'<svg width="30" height="30" viewBox="0 0 24 24" fill="{active_color if SPORT_TYPE == "Padel" else inactive_color}"><path d="M12 2C8.13 2 5 5.13 5 9c0 3.1 2.02 5.72 4.8 6.64L9 22h6l-.8-6.36C16.98 14.72 19 12.1 19 9c0-3.87-3.13-7-7-7z"/></svg>'
+        "Tennis": f'<img src="{logo_base_url}tennis-{"on" if SPORT_TYPE == "Tennis" else "off"}.png" width="30">',
+        "Pickleball": f'<img src="{logo_base_url}pickleball-{"on" if SPORT_TYPE == "Pickleball" else "off"}.png" width="30">',
+        "Padel": f'<img src="{logo_base_url}padel-{"on" if SPORT_TYPE == "Padel" else "off"}.png" width="30">'
     }
 
     st.markdown(f"""
