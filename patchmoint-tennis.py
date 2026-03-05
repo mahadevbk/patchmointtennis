@@ -1072,7 +1072,7 @@ def calculate_rankings(matches_to_rank):
             if (s['wins']/m_played) > 0.75: badges.append("🦁 Dominant")
 
         score_elo = round(elo_ratings[p], 1)
-        current_utr = round(utr_ratings[p], 2)
+        current_utr = int(round(utr_ratings[p]))
         
         singles_perf = round((s['singles_wins'] / s['singles_matches']) * 100, 1) if s['singles_matches'] > 0 else 0
         doubles_perf = round((s['doubles_wins'] / s['doubles_matches']) * 100, 1) if s['doubles_matches'] > 0 else 0
