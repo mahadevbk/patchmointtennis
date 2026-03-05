@@ -2153,7 +2153,7 @@ with tabs[1]:
             t1_sets = 0
             t2_sets = 0
             sets_played = 0
-            set_scores_display = []
+            set_scores_data = [] # List of dicts for structured score data
             
             for s in [getattr(row, 'set1',''), getattr(row, 'set2',''), getattr(row, 'set3','')]:
                 if s:
@@ -2164,21 +2164,21 @@ with tabs[1]:
                     if "Tie Break" in s_str:
                          nums = re.findall(r'\d+', s_str)
                          if len(nums) >= 2:
-                             if int(nums[0]) > int(nums[1]): 
+                             g1_tb, g2_tb = int(nums[0]), int(nums[1])
+                             if g1_tb > g2_tb: 
                                  g1, g2 = 7, 6
                                  t1_sets += 1
-                                 set_scores_display.append(f"7-6 ({s_str})")
                              else: 
                                  g1, g2 = 6, 7
                                  t2_sets += 1
-                                 set_scores_display.append(f"6-7 ({s_str})")
+                             set_scores_data.append({"g1": g1, "g2": g2, "is_tb": True, "g1_tb": g1_tb, "g2_tb": g2_tb})
                     elif '-' in s_str:
                         try:
                             parts = s_str.split('-')
                             g1, g2 = int(parts[0]), int(parts[1])
                             if g1 > g2: t1_sets += 1
                             elif g2 > g1: t2_sets += 1
-                            set_scores_display.append(s_str)
+                            set_scores_data.append({"g1": g1, "g2": g2, "is_tb": False})
                         except: pass
                     t1_games_total += g1
                     t2_games_total += g2
@@ -2227,20 +2227,36 @@ with tabs[1]:
                 left_html, right_html = t2_html, t1_html
                 left_sets, right_sets = t2_sets, t1_sets
                 vs_label = "def."
+                flip_score = True
             elif t1_won:
                 left_html, right_html = t1_html, t2_html
                 left_sets, right_sets = t1_sets, t2_sets
                 vs_label = "def."
+                flip_score = False
             else:
                 left_html, right_html = t1_html, t2_html
                 left_sets, right_sets = t1_sets, t2_sets
                 vs_label = "TIE"
+                flip_score = False
+
+            # Re-orient scores relative to displayed sides
+            final_scores_list = []
+            for item in set_scores_data:
+                if flip_score:
+                    lg, rg = item['g2'], item['g1']
+                    if item['is_tb']: detail = f"{lg}-{rg} (Tie Break {item['g2_tb']}-{item['g1_tb']})"
+                    else: detail = f"{lg}-{rg}"
+                else:
+                    lg, rg = item['g1'], item['g2']
+                    if item['is_tb']: detail = f"{lg}-{rg} (Tie Break {item['g1_tb']}-{item['g2_tb']})"
+                    else: detail = f"{lg}-{rg}"
+                final_scores_list.append(detail)
 
             # Format Score Detail String (with line breaks if 3 sets to keep it readable)
-            if len(set_scores_display) == 3:
-                scores_detail = f"{set_scores_display[0]} {set_scores_display[1]}<br>{set_scores_display[2]}"
+            if len(final_scores_list) == 3:
+                scores_detail = f"{final_scores_list[0]} {final_scores_list[1]}<br>{final_scores_list[2]}"
             else:
-                scores_detail = " ".join(set_scores_display)
+                scores_detail = " ".join(final_scores_list)
             
             main_score = f"{left_sets}-{right_sets}"
             
