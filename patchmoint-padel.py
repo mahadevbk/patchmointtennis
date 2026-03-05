@@ -1791,6 +1791,10 @@ with tabs[0]:
                                         "Singles Perf": st.column_config.ProgressColumn(format="%.1f%%", min_value=0, max_value=100),
                                         "Doubles Perf": st.column_config.ProgressColumn(format="%.1f%%", min_value=0, max_value=100)})
         else:
+            # --- DATE AND SYSTEM HEADER ---
+            today_str = datetime.now().strftime("%B %d, %Y")
+            st.markdown(f"**Rankings as of {today_str}, {view_system} View**")
+
             # --- OPTIC YELLOW PODIUM ---
             if len(display_rank_df) >= 3:
                 top3 = display_rank_df.head(3).to_dict('records')
