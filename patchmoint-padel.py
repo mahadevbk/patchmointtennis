@@ -2189,9 +2189,41 @@ with tabs[1]:
             game_diff = abs(t1_games_total - t2_games_total)
             
             # Winner Logic
-            is_tie = (row.winner == "Tie")
-            t1_won = (row.winner == "Team 1")
-            t2_won = (row.winner == "Team 2")
+            match_winner = getattr(row, 'winner', 'Team 1')
+            t1_won = (match_winner == "Team 1")
+            t2_won = (match_winner == "Team 2")
+            is_tie = (match_winner == "Tie")
+
+            t1_class = "mmc-winner-text" if t1_won else ""
+            t2_class = "mmc-winner-text" if t2_won else ""
+            t1_img_class = "mmc-winner-img" if t1_won else ""
+            t2_img_class = "mmc-winner-img" if t2_won else ""
+
+            if is_tie:
+                t1_class = "mmc-tie-text"
+                t2_class = "mmc-tie-text"
+                t1_img_class = "mmc-tie-img"
+                t2_img_class = "mmc-tie-img"
+            
+            if t1_p2_name:
+                t1_html = f"""<div style="display:flex; gap:5px; justify-content:center;">
+                                <img src="{get_p_img(t1_p1_name)}" class="mmc-avatar {t1_img_class}">
+                                <img src="{get_p_img(t1_p2_name)}" class="mmc-avatar {t1_img_class}">
+                              </div>
+                              <div class="mmc-name {t1_class}">{t1_p1_name}<br>& {t1_p2_name}</div>"""
+            else:
+                t1_html = f"""<img src="{get_p_img(t1_p1_name)}" class="mmc-avatar {t1_img_class}">
+                              <div class="mmc-name {t1_class}">{t1_p1_name}</div>"""
+
+            if t2_p2_name:
+                t2_html = f"""<div style="display:flex; gap:5px; justify-content:center;">
+                                <img src="{get_p_img(t2_p1_name)}" class="mmc-avatar {t2_img_class}">
+                                <img src="{get_p_img(t2_p2_name)}" class="mmc-avatar {t2_img_class}">
+                              </div>
+                              <div class="mmc-name {t2_class}">{t2_p1_name}<br>& {t2_p2_name}</div>"""
+            else:
+                t2_html = f"""<img src="{get_p_img(t2_p1_name)}" class="mmc-avatar {t2_img_class}">
+                              <div class="mmc-name {t2_class}">{t2_p1_name}</div>"""
 
             # Determine display order: Winner on left
             if t2_won:
