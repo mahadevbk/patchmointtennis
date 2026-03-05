@@ -1725,7 +1725,7 @@ tabs = st.tabs(tab_names)
 
 with tabs[0]:
     conf = st.session_state.chapter_config
-    with st.expander("Rankings", expanded=False,, icon="➡️"):
+    with st.expander("Rankings", expanded=False, icon="➡️"):
         st.header(f"Rankings")
         
         active_systems_dict = conf.get("ranking_systems", {"Elo (Hybrid)": True})
