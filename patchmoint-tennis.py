@@ -245,6 +245,9 @@ h3 { font-size: 16px !important; }
 .badge { background: #fff500; color: black; padding: 2px 8px; 
     border-radius: 10px; font-size: 0.75em; font-weight: bold; margin-left: 5px;
 }
+.trend-w { color: #00ff88; font-weight: bold; margin-right: 2px; }
+.trend-l { color: #ff4b4b; font-weight: bold; margin-right: 2px; }
+.trend-t { color: #FFA500; font-weight: bold; margin-right: 2px; }
 .stat-box {
     background: rgba(255,255,255,0.30); padding: 15px; border-radius: 10px; 
     border-left: 4px solid #fff500; margin-bottom: 10px;
@@ -636,7 +639,8 @@ def get_default_config(location=DEFAULT_LOCATION):
             "Doubles": {"enabled": True, "win_points": 2, "loss_points": 1, "min_sets": "Best of 3"},
             "Mixed Doubles": {"enabled": False, "win_points": 3, "loss_points": 0, "min_sets": "Best of 3"}
         },
-        "match_image_required": True
+        "match_image_required": True,
+        "allow_ties": False
     }
 
 def load_chapter_config(chapter_id):
@@ -884,7 +888,7 @@ def generate_match_id(matches_df, match_datetime):
         serial += 1
 
 def get_player_stats_template():
-    return {'wins': 0, 'losses': 0, 'matches': 0, 'games_won': 0, 'gd_sum': 0, 'clutch_wins': 0, 'clutch_matches': 0, 'gd_list': [], 'points': 0, 'singles_wins': 0, 'singles_matches': 0, 'doubles_wins': 0, 'doubles_matches': 0}
+    return {'wins': 0, 'losses': 0, 'ties': 0, 'matches': 0, 'games_won': 0, 'gd_sum': 0, 'clutch_wins': 0, 'clutch_matches': 0, 'gd_list': [], 'points': 0, 'singles_wins': 0, 'singles_matches': 0, 'doubles_wins': 0, 'doubles_matches': 0, 'trend': []}
 
 @st.cache_data(show_spinner=False)
 def calculate_rankings(matches_to_rank):
@@ -905,6 +909,7 @@ def calculate_rankings(matches_to_rank):
     players_df = st.session_state.players_df
     config = st.session_state.chapter_config
     match_type_settings = config.get("match_type_settings", get_default_config()["match_type_settings"])
+    allow_ties = config.get("allow_ties", False)
 
     for _, player_row in players_df.iterrows():
         player_name = player_row['name']
@@ -933,8 +938,9 @@ def calculate_rankings(matches_to_rank):
         if not type_config.get("enabled", False):
             continue
 
-        pts_win = type_config.get("win_points", 1)
+        pts_win = type_config.get("win_points", 2)
         pts_loss = type_config.get("loss_points", 0)
+        pts_tie = (pts_win + pts_loss) / 2
 
         current_match_date = row.date
         for p in t1 + t2: 
@@ -975,7 +981,9 @@ def calculate_rankings(matches_to_rank):
         t1_utr_avg = sum(utr_ratings[p] for p in t1) / len(t1)
         t2_utr_avg = sum(utr_ratings[p] for p in t2) / len(t2)
 
-        t1_won = row.winner == "Team 1"
+        match_winner = row.winner 
+        is_tie = (match_winner == "Tie")
+        t1_won = (match_winner == "Team 1")
 
         def update_elo(players, own_elo_avg, opp_elo_avg, actual_score):
             expected = 1 / (1 + 10 ** ((opp_elo_avg - own_elo_avg) / 400))
@@ -991,7 +999,7 @@ def calculate_rankings(matches_to_rank):
             for p in players:
                 utr_ratings[p] = max(UTR_MIN, min(UTR_MAX, utr_ratings[p] + utr_change))
 
-        def update_common_stats(players, games_won, total_games, is_winner, match_type):
+        def update_common_stats(players, games_won, total_games, result, match_type):
             for p in players:
                 stats[p]['matches'] += 1
                 stats[p]['games_won'] += games_won
@@ -1004,27 +1012,40 @@ def calculate_rankings(matches_to_rank):
                 else: # Doubles and Mixed Doubles
                     stats[p]['doubles_matches'] += 1
 
-                if is_winner:
+                if result == 1:
                     stats[p]['wins'] += 1
                     if is_clutch: stats[p]['clutch_wins'] += 1
                     if match_type == "Singles": stats[p]['singles_wins'] += 1
                     else: stats[p]['doubles_wins'] += 1
                     current_streaks[p] = max(0, current_streaks[p]) + 1
                     stats[p]['points'] += pts_win
-                else:
+                    stats[p]['trend'].append('W')
+                elif result == 0:
                     stats[p]['losses'] += 1
                     current_streaks[p] = min(0, current_streaks[p]) - 1
                     stats[p]['points'] += pts_loss
+                    stats[p]['trend'].append('L')
+                else: # Tie
+                    stats[p]['ties'] += 1
+                    current_streaks[p] = 0
+                    stats[p]['points'] += pts_tie
+                    stats[p]['trend'].append('T')
 
-        if t1_won:
-            update_common_stats(t1, t1_total_games, total_match_games, True, match_type)
-            update_common_stats(t2, t2_total_games, total_match_games, False, match_type)
+        if is_tie:
+            update_common_stats(t1, t1_total_games, total_match_games, 0.5, match_type)
+            update_common_stats(t2, t2_total_games, total_match_games, 0.5, match_type)
+            update_elo(t1, t1_elo_avg, t2_elo_avg, 0.5); update_elo(t2, t2_elo_avg, t1_elo_avg, 0.5)
+            update_utr(t1, t1_utr_avg, t2_utr_avg, t1_total_games / total_match_games)
+            update_utr(t2, t2_utr_avg, t1_utr_avg, t2_total_games / total_match_games)
+        elif t1_won:
+            update_common_stats(t1, t1_total_games, total_match_games, 1, match_type)
+            update_common_stats(t2, t2_total_games, total_match_games, 0, match_type)
             update_elo(t1, t1_elo_avg, t2_elo_avg, 1.0); update_elo(t2, t2_elo_avg, t1_elo_avg, 0.0)
             update_utr(t1, t1_utr_avg, t2_utr_avg, t1_total_games / total_match_games)
             update_utr(t2, t2_utr_avg, t1_utr_avg, t2_total_games / total_match_games)
         else:
-            update_common_stats(t1, t1_total_games, total_match_games, False, match_type)
-            update_common_stats(t2, t2_total_games, total_match_games, True, match_type)
+            update_common_stats(t1, t1_total_games, total_match_games, 0, match_type)
+            update_common_stats(t2, t2_total_games, total_match_games, 1, match_type)
             update_elo(t1, t1_elo_avg, t2_elo_avg, 0.0); update_elo(t2, t2_elo_avg, t1_elo_avg, 1.0)
             update_utr(t1, t1_utr_avg, t2_utr_avg, t1_total_games / total_match_games)
             update_utr(t2, t2_utr_avg, t1_utr_avg, t2_total_games / total_match_games)
@@ -1056,18 +1077,24 @@ def calculate_rankings(matches_to_rank):
         singles_perf = round((s['singles_wins'] / s['singles_matches']) * 100, 1) if s['singles_matches'] > 0 else 0
         doubles_perf = round((s['doubles_wins'] / s['doubles_matches']) * 100, 1) if s['doubles_matches'] > 0 else 0
 
+        # Record and Trend
+        record_str = f"{s['wins']}W-{s['losses']}L"
+        if allow_ties: record_str = f"{s['wins']}W-{s['losses']}L-{s['ties']}T"
+        trend_str = "".join([f"<span class='trend-{r.lower()}'>{r}</span>" for r in s['trend'][-5:]])
+
         rank_data.append({
             "Player": p, "Points": s['points'], "Score": score_elo, "Label": "Elo", "Elo": score_elo, 
             "Score_Elo (Hybrid)": score_elo, "Score_Points": s['points'], 
             "Score_UTR": current_utr, "Last Change": last_elo_changes.get(p, 0),
-            "Wins": s['wins'], "Losses": s['losses'], "Games Won": s['games_won'],
+            "Wins": s['wins'], "Losses": s['losses'], "Ties": s['ties'], "Games Won": s['games_won'],
             "Win %": round((s['wins']/m_played)*100, 1), "Matches": m_played, 
             "Game Diff Avg": round(s['gd_sum']/m_played, 2) if m_played > 0 else 0,
             "Clutch Factor": round(clutch_pct, 1), 
             "Consistency Index": round(consistency, 2), "Last Active": l_date if l_date else "N/A",
             "Badges": badges, 
             "Profile": players_df.set_index('name')['profile_image_url'].get(p, DEFAULT_AVATAR),
-            "Record": f"{s['wins']}W-{s['losses']}L",
+            "Record": record_str,
+            "Trend": trend_str,
             "Singles Perf": singles_perf,
             "Doubles Perf": doubles_perf,
         })
@@ -1118,6 +1145,7 @@ def plot_player_performance(player_name, matches_df):
         w = row.winner; res = "Tie"
         if w == "Team 1": res = "Win" if is_t1 else "Loss"
         elif w == "Team 2": res = "Win" if not is_t1 else "Loss"
+        elif w == "Tie": res = "Tie"
         history.append({"Date": row.date, "Match": f"Match {matches_count}", "Cumulative Game Diff": cum_gd, "Result": res})
     fig = px.line(history, x="Match", y="Cumulative Game Diff", hover_data=["Date", "Result"], title=f"Trend - {player_name}", markers=True)
     fig.update_layout(height=300, margin=dict(l=20, r=20, t=40, b=20))
@@ -1876,9 +1904,16 @@ with tabs[0]:
                         streak_html = '<div style="display:flex; gap:12px; justify-content:center; margin-bottom:10px;">'
                         for _, m in player_matches.iterrows():
                             is_t1 = (m['team1_player1'] == p_name or m['team1_player2'] == p_name)
-                            won = (is_t1 and m['winner'] == "Team 1") or (not is_t1 and m['winner'] == "Team 2")
-                            color = "#00FF88" if won else "#FF4B4B"
-                            label = "W" if won else "L"
+                            m_winner = m['winner']
+                            
+                            if m_winner == "Tie":
+                                color = "#FFA500"
+                                label = "T"
+                            else:
+                                won = (is_t1 and m_winner == "Team 1") or (not is_t1 and m_winner == "Team 2")
+                                color = "#00FF88" if won else "#FF4B4B"
+                                label = "W" if won else "L"
+                            
                             streak_html += f'<div style="width:30px; height:30px; border-radius:50%; background:{color}22; border:2px solid {color}; color:{color}; display:flex; justify-content:center; align-items:center; font-weight:bold; font-size:0.8em; box-shadow:0 0 8px {color}33;">{label}</div>'
                         streak_html += '</div>'
                         st.markdown(streak_html, unsafe_allow_html=True)
@@ -1960,6 +1995,10 @@ with tabs[1]:
             border-color: #FF5F1F; /* Orange border for winner */
             box-shadow: 0 0 15px rgba(255, 95, 31, 0.4);
         }
+        .mmc-tie-img {
+            border-color: #FFA500;
+            box-shadow: 0 0 15px rgba(255, 165, 0, 0.4);
+        }
         .mmc-name {
             font-weight: bold;
             font-size: 1.0em;
@@ -1969,6 +2008,10 @@ with tabs[1]:
         .mmc-winner-text {
             color: #FF5F1F; /* Orange text for winner */
             text-shadow: 0 0 10px rgba(255, 95, 31, 0.2);
+        }
+        .mmc-tie-text {
+            color: #FFA500;
+            text-shadow: 0 0 10px rgba(255, 165, 0, 0.2);
         }
         .mmc-vs-container {
             flex: 0 0 140px; /* Wider container for the score */
@@ -2061,7 +2104,10 @@ with tabs[1]:
                 sc1, sc2, sc3 = st.columns(3)
                 s_list = [""] + get_valid_scores()
                 s1 = sc1.selectbox("Set 1", s_list, key=f"s1_{pk}"); s2 = sc2.selectbox("Set 2", s_list, key=f"s2_{pk}"); s3 = sc3.selectbox("Set 3", s_list, key=f"s3_{pk}")
-                win = st.radio("Winner", ["Team 1", "Team 2"], horizontal=True, key=f"w_{pk}")
+                
+                win_opts = ["Team 1", "Team 2"]
+                if config.get("allow_ties", False): win_opts.append("Tie")
+                win = st.radio("Winner", win_opts, horizontal=True, key=f"w_{pk}")
                 img = st.file_uploader("Photo", type=["jpg", "png"], key=f"im_{pk}")
 
                 if st.button("Post Match", key=f"bp_{pk}"):
@@ -2130,11 +2176,21 @@ with tabs[1]:
             game_diff = abs(t1_games_total - t2_games_total)
             
             # Winner Logic
-            t1_won = (row.winner == "Team 1")
+            match_winner = getattr(row, 'winner', 'Team 1')
+            t1_won = (match_winner == "Team 1")
+            t2_won = (match_winner == "Team 2")
+            is_tie = (match_winner == "Tie")
+
             t1_class = "mmc-winner-text" if t1_won else ""
-            t2_class = "mmc-winner-text" if not t1_won else ""
+            t2_class = "mmc-winner-text" if t2_won else ""
             t1_img_class = "mmc-winner-img" if t1_won else ""
-            t2_img_class = "mmc-winner-img" if not t1_won else ""
+            t2_img_class = "mmc-winner-img" if t2_won else ""
+
+            if is_tie:
+                t1_class = "mmc-tie-text"
+                t2_class = "mmc-tie-text"
+                t1_img_class = "mmc-tie-img"
+                t2_img_class = "mmc-tie-img"
             
             if t1_p2_name:
                 t1_html = f"""<div style="display:flex; gap:5px; justify-content:center;">
@@ -2158,6 +2214,7 @@ with tabs[1]:
 
             # Badges
             badges = []
+            if is_tie: badges.append("TIE MATCH")
             if game_diff >= 8: badges.append("DOMINATION")
             if game_diff <= 2: badges.append("NAIL BITER")
             if sets_played == 2 and (t1_won and t1_games_total > t2_games_total): badges.append("STRAIGHT SETS")
@@ -2419,9 +2476,16 @@ with tabs[2]:
                         streak_html = '<div style="display:flex; gap:12px; justify-content:center; margin-bottom:10px;">'
                         for _, m in player_matches.iterrows():
                             is_t1 = (m['team1_player1'] == p_name or m['team1_player2'] == p_name)
-                            won = (is_t1 and m['winner'] == "Team 1") or (not is_t1 and m['winner'] == "Team 2")
-                            color = "#00FF88" if won else "#FF4B4B"
-                            label = "W" if won else "L"
+                            m_winner = m['winner']
+                            
+                            if m_winner == "Tie":
+                                color = "#FFA500"
+                                label = "T"
+                            else:
+                                won = (is_t1 and m_winner == "Team 1") or (not is_t1 and m_winner == "Team 2")
+                                color = "#00FF88" if won else "#FF4B4B"
+                                label = "W" if won else "L"
+                            
                             streak_html += f'<div style="width:30px; height:30px; border-radius:50%; background:{color}22; border:2px solid {color}; color:{color}; display:flex; justify-content:center; align-items:center; font-weight:bold; font-size:0.8em; box-shadow:0 0 8px {color}33;">{label}</div>'
                         streak_html += '</div>'
                         st.markdown(streak_html, unsafe_allow_html=True)
@@ -2528,6 +2592,7 @@ if st.session_state.is_admin:
                 }
 
             img_req = st.checkbox("Require Match Photo Evidence?", value=st.session_state.chapter_config.get("match_image_required", True))
+            allow_ties = st.checkbox("Allow Tie Matches?", value=st.session_state.chapter_config.get("allow_ties", False))
 
             if st.form_submit_button("Save Settings"):
                 # Ensure at least one ranking system is enabled
@@ -2538,6 +2603,7 @@ if st.session_state.is_admin:
                     st.session_state.chapter_config['ranking_systems'] = ranking_systems
                     st.session_state.chapter_config['match_type_settings'] = match_type_settings
                     st.session_state.chapter_config['match_image_required'] = img_req
+                    st.session_state.chapter_config['allow_ties'] = allow_ties
                     save_chapter_config(st.session_state.current_chapter['id'], st.session_state.chapter_config)
                     st.success("Settings saved successfully!")
                     st.rerun()
