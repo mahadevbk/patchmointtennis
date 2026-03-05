@@ -1863,7 +1863,7 @@ with tabs[0]:
                                 <img src="{get_img_src(row['Profile'])}">
                             </div>
                             <div style="font-weight:bold; color:white; font-size:1.1em; margin-top:10px;">{row['Player']}</div>
-                            <div style="color:#aaa; font-size:0.8em;">{row['Score']:.2f} {cd_html}</div>
+                            <div style="color:#ccff00; font-size:1.1em; font-weight:bold;">{row['Score']:.2f} {cd_html}</div>
                             <div style="margin-top:5px;">{badges_html}</div>
                         </div>
                         """, unsafe_allow_html=True)
@@ -1874,7 +1874,7 @@ with tabs[0]:
                             <div style="border-left:3px solid #00FF88; background:rgba(0,255,136,0.05); padding:8px; border-radius:4px;"><div style="font-size:0.6em; color:#aaa; text-transform:uppercase;">Win %</div><div style="color:#00FF88; font-weight:bold; font-size:1.0em;">{row['Win %']}%</div></div>
                             <div style="border-left:3px solid #00C0F2; background:rgba(0,192,242,0.05); padding:8px; border-radius:4px;"><div style="font-size:0.6em; color:#aaa; text-transform:uppercase;">Record</div><div style="color:#00C0F2; font-weight:bold; font-size:1.0em;">{row['Record']}</div></div>
                             <div style="border-left:3px solid #FF4B4B; background:rgba(255,75,75,0.05); padding:8px; border-radius:4px;"><div style="font-size:0.6em; color:#aaa; text-transform:uppercase;">Clutch</div><div style="color:#FF4B4B; font-weight:bold; font-size:1.0em;">{row.get('Clutch Factor', 0)}%</div></div>
-                            <div style="border-left:3px solid #ccff00; background:rgba(204,255,0,0.05); padding:8px; border-radius:4px;"><div style="font-size:0.6em; color:#aaa; text-transform:uppercase;">{row['Label']}</div><div style="color:#ccff00; font-weight:bold; font-size:1.0em;">{row.get('Score', 0)}</div></div>
+                            <div style="border-left:3px solid #ccff00; background:rgba(204,255,0,0.05); padding:8px; border-radius:4px;"><div style="font-size:0.6em; color:#aaa; text-transform:uppercase;">{row['Label']}</div><div style="color:#ccff00; font-weight:bold; font-size:1.2em;">{row.get('Score', 0)}</div></div>
                             <div style="border-left:3px solid #FFA500; background:rgba(255,165,0,0.05); padding:8px; border-radius:4px;"><div style="font-size:0.6em; color:#aaa; text-transform:uppercase;">GDA</div><div style="color:#FFA500; font-weight:bold; font-size:1.0em;">{row.get('Game Diff Avg', 0):+.2f}</div></div>
                             <div style="border-left:3px solid #FFFFFF; background:rgba(255,255,255,0.05); padding:8px; border-radius:4px;"><div style="font-size:0.6em; color:#aaa; text-transform:uppercase;">Games Won</div><div style="color:#FFFFFF; font-weight:bold; font-size:1.0em;">{row.get('Games Won', 0)}</div></div>
                             <div style="border-left:3px solid #9400D3; background:rgba(148,0,211,0.05); padding:8px; border-radius:4px;"><div style="font-size:0.6em; color:#aaa; text-transform:uppercase;">Consistency</div><div style="color:#9400D3; font-weight:bold; font-size:1.0em;">{row.get('Consistency Index', 0):.2f}</div></div>
@@ -1965,7 +1965,7 @@ with tabs[1]:
             padding: 12px 20px;
             background: rgba(0,0,0,0.2);
             font-size: 0.85em;
-            color: #888;
+            color: #ccff00;
             border-bottom: 1px solid rgba(255,255,255,0.05);
         }
         .mmc-body {
@@ -2023,7 +2023,7 @@ with tabs[1]:
         }
         .mmc-vs-label {
             font-size: 0.7em;
-            color: #666;
+            color: #ccff00;
             font-weight: bold;
             margin-bottom: 2px;
             letter-spacing: 2px;
@@ -2272,7 +2272,7 @@ with tabs[1]:
                     <div class="mmc-vs-container">
                         <div class="mmc-score-main">{main_score}</div>
                         <div class="mmc-vs-label">{vs_label}</div>
-                        <div style="font-size:0.8em; color:#aaa; margin-top:5px;">{scores_detail}</div>
+                        <div style="font-size:0.8em; color:#ccff00; margin-top:5px;">{scores_detail}</div>
                     </div>
                     <div class="mmc-team">{right_html}</div>
                 </div>
@@ -2469,7 +2469,7 @@ with tabs[2]:
                                 <img src="{get_img_src(s['Profile'])}">
                             </div>
                             <div style="font-weight:bold; color:white; font-size:1.1em; margin-top:10px;">{s['Player']}</div>
-                            <div style="color:#aaa; font-size:0.8em;">{s['Score']:.2f} {cd_html}</div>
+                            <div style="color:#ccff00; font-size:1.1em; font-weight:bold;">{s['Score']:.2f} {cd_html}</div>
                             <div style="margin-top:5px;">{badges_html}</div>
                         </div>
                         """, unsafe_allow_html=True)
@@ -2480,7 +2480,7 @@ with tabs[2]:
                             <div style="border-left:3px solid #00FF88; background:rgba(0,255,136,0.05); padding:8px; border-radius:4px;"><div style="font-size:0.6em; color:#aaa; text-transform:uppercase;">Win %</div><div style="color:#00FF88; font-weight:bold; font-size:1.0em;">{s['Win %']}%</div></div>
                             <div style="border-left:3px solid #00C0F2; background:rgba(0,192,242,0.05); padding:8px; border-radius:4px;"><div style="font-size:0.6em; color:#aaa; text-transform:uppercase;">Record</div><div style="color:#00C0F2; font-weight:bold; font-size:1.0em;">{s['Record']}</div></div>
                             <div style="border-left:3px solid #FF4B4B; background:rgba(255,75,75,0.05); padding:8px; border-radius:4px;"><div style="font-size:0.6em; color:#aaa; text-transform:uppercase;">Clutch</div><div style="color:#FF4B4B; font-weight:bold; font-size:1.0em;">{s.get('Clutch Factor', 0)}%</div></div>
-                            <div style="border-left:3px solid #ccff00; background:rgba(204,255,0,0.05); padding:8px; border-radius:4px;"><div style="font-size:0.6em; color:#aaa; text-transform:uppercase;">{s['Label']}</div><div style="color:#ccff00; font-weight:bold; font-size:1.0em;">{s.get('Score', 0)}</div></div>
+                            <div style="border-left:3px solid #ccff00; background:rgba(204,255,0,0.05); padding:8px; border-radius:4px;"><div style="font-size:0.6em; color:#aaa; text-transform:uppercase;">{s['Label']}</div><div style="color:#ccff00; font-weight:bold; font-size:1.2em;">{s.get('Score', 0)}</div></div>
                             <div style="border-left:3px solid #FFA500; background:rgba(255,165,0,0.05); padding:8px; border-radius:4px;"><div style="font-size:0.6em; color:#aaa; text-transform:uppercase;">GDA</div><div style="color:#FFA500; font-weight:bold; font-size:1.0em;">{s.get('Game Diff Avg', 0):+.2f}</div></div>
                             <div style="border-left:3px solid #FFFFFF; background:rgba(255,255,255,0.05); padding:8px; border-radius:4px;"><div style="font-size:0.6em; color:#aaa; text-transform:uppercase;">Games Won</div><div style="color:#FFFFFF; font-weight:bold; font-size:1.0em;">{s.get('Games Won', 0)}</div></div>
                             <div style="border-left:3px solid #9400D3; background:rgba(148,0,211,0.05); padding:8px; border-radius:4px;"><div style="font-size:0.6em; color:#aaa; text-transform:uppercase;">Consistency</div><div style="color:#9400D3; font-weight:bold; font-size:1.0em;">{s.get('Consistency Index', 0):.2f}</div></div>
