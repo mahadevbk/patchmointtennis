@@ -2150,6 +2150,8 @@ with tabs[1]:
             # Stats Calculation
             t1_games_total = 0
             t2_games_total = 0
+            t1_sets = 0
+            t2_sets = 0
             sets_played = 0
             set_scores_display = []
             
@@ -2157,18 +2159,26 @@ with tabs[1]:
                 if s:
                     sets_played += 1
                     s_str = str(s)
-                    set_scores_display.append(s_str)
                     
                     g1, g2 = 0, 0
                     if "Tie Break" in s_str:
                          nums = re.findall(r'\d+', s_str)
                          if len(nums) >= 2:
-                             if int(nums[0]) > int(nums[1]): g1, g2 = 7, 6
-                             else: g1, g2 = 6, 7
+                             if int(nums[0]) > int(nums[1]): 
+                                 g1, g2 = 7, 6
+                                 t1_sets += 1
+                                 set_scores_display.append(f"7-6 ({s_str})")
+                             else: 
+                                 g1, g2 = 6, 7
+                                 t2_sets += 1
+                                 set_scores_display.append(f"6-7 ({s_str})")
                     elif '-' in s_str:
                         try:
                             parts = s_str.split('-')
                             g1, g2 = int(parts[0]), int(parts[1])
+                            if g1 > g2: t1_sets += 1
+                            elif g2 > g1: t2_sets += 1
+                            set_scores_display.append(s_str)
                         except: pass
                     t1_games_total += g1
                     t2_games_total += g2
@@ -2181,52 +2191,27 @@ with tabs[1]:
             t2_won = (match_winner == "Team 2")
             is_tie = (match_winner == "Tie")
 
-            t1_class = "mmc-winner-text" if t1_won else ""
-            t2_class = "mmc-winner-text" if t2_won else ""
-            t1_img_class = "mmc-winner-img" if t1_won else ""
-            t2_img_class = "mmc-winner-img" if t2_won else ""
-
-            if is_tie:
-                t1_class = "mmc-tie-text"
-                t2_class = "mmc-tie-text"
-                t1_img_class = "mmc-tie-img"
-                t2_img_class = "mmc-tie-img"
-            
-            if t1_p2_name:
-                t1_html = f"""<div style="display:flex; gap:5px; justify-content:center;">
-                                <img src="{get_p_img(t1_p1_name)}" class="mmc-avatar {t1_img_class}">
-                                <img src="{get_p_img(t1_p2_name)}" class="mmc-avatar {t1_img_class}">
-                              </div>
-                              <div class="mmc-name {t1_class}">{t1_p1_name}<br>& {t1_p2_name}</div>"""
+            # Determine display order: Winner on left
+            if t2_won:
+                left_html, right_html = t2_html, t1_html
+                left_sets, right_sets = t2_sets, t1_sets
+                vs_label = "def."
+            elif t1_won:
+                left_html, right_html = t1_html, t2_html
+                left_sets, right_sets = t1_sets, t2_sets
+                vs_label = "def."
             else:
-                t1_html = f"""<img src="{get_p_img(t1_p1_name)}" class="mmc-avatar {t1_img_class}">
-                              <div class="mmc-name {t1_class}">{t1_p1_name}</div>"""
+                left_html, right_html = t1_html, t2_html
+                left_sets, right_sets = t1_sets, t2_sets
+                vs_label = "TIE"
 
-            if t2_p2_name:
-                t2_html = f"""<div style="display:flex; gap:5px; justify-content:center;">
-                                <img src="{get_p_img(t2_p1_name)}" class="mmc-avatar {t2_img_class}">
-                                <img src="{get_p_img(t2_p2_name)}" class="mmc-avatar {t2_img_class}">
-                              </div>
-                              <div class="mmc-name {t2_class}">{t2_p1_name}<br>& {t2_p2_name}</div>"""
-            else:
-                t2_html = f"""<img src="{get_p_img(t2_p1_name)}" class="mmc-avatar {t2_img_class}">
-                              <div class="mmc-name {t2_class}">{t2_p1_name}</div>"""
-
-            # Badges
-            badges = []
-            if is_tie: badges.append("TIE MATCH")
-            if game_diff >= 8: badges.append("DOMINATION")
-            if game_diff <= 2: badges.append("NAIL BITER")
-            if sets_played == 2 and (t1_won and t1_games_total > t2_games_total): badges.append("STRAIGHT SETS")
-            
-            badges_html = "".join([f'<span class="mmc-tag" style="margin-right:5px;">{b}</span>' for b in badges])
-            
             # Format Score String (with line breaks if 3 sets to keep it readable)
             if len(set_scores_display) == 3:
-                # If 3 sets, break line for neatness
-                scores_str = f"{set_scores_display[0]} {set_scores_display[1]}<br>{set_scores_display[2]}"
+                scores_detail = f"{set_scores_display[0]} {set_scores_display[1]}<br>{set_scores_display[2]}"
             else:
-                scores_str = " ".join(set_scores_display)
+                scores_detail = " ".join(set_scores_display)
+            
+            main_score = f"{left_sets}-{right_sets}"
             
             # Render Card
             st.markdown(f"""
@@ -2236,12 +2221,13 @@ with tabs[1]:
                     <div style="font-weight:bold; color:#FF5F1F;">{getattr(row, 'match_type', 'Match').upper()}</div>
                 </div>
                 <div class="mmc-body">
-                    <div class="mmc-team">{t1_html}</div>
+                    <div class="mmc-team">{left_html}</div>
                     <div class="mmc-vs-container">
-                        <div class="mmc-vs-label">VS</div>
-                        <div class="mmc-score-main">{scores_str}</div>
+                        <div class="mmc-score-main">{main_score}</div>
+                        <div class="mmc-vs-label">{vs_label}</div>
+                        <div style="font-size:0.8em; color:#aaa; margin-top:5px;">{scores_detail}</div>
                     </div>
-                    <div class="mmc-team">{t2_html}</div>
+                    <div class="mmc-team">{right_html}</div>
                 </div>
                 <div class="mmc-footer">
                     <div>{badges_html}</div>
