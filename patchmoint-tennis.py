@@ -248,6 +248,21 @@ h3 { font-size: 16px !important; }
 .trend-w { color: #00ff88; font-weight: bold; margin-right: 2px; }
 .trend-l { color: #ff4b4b; font-weight: bold; margin-right: 2px; }
 .trend-t { color: #FFA500; font-weight: bold; margin-right: 2px; }
+
+/* Image Hover Zoom Effect */
+.img-hover-zoom {
+    overflow: hidden;
+    border-radius: 15%;
+    display: inline-block;
+    cursor: pointer;
+    transition: transform .3s ease;
+}
+.img-hover-zoom:hover {
+    transform: scale(2.5);
+    z-index: 999;
+    position: relative;
+    box-shadow: 0 0 20px rgba(0,0,0,0.5);
+}
 .stat-box {
     background: rgba(255,255,255,0.30); padding: 15px; border-radius: 10px; 
     border-left: 4px solid #fff500; margin-bottom: 10px;
@@ -1746,6 +1761,15 @@ if not st.session_state.can_write:
 
 
 
+if "active_tab_index" not in st.session_state:
+    st.session_state.active_tab_index = 0
+
+# Check for player query parameter to navigate to profile
+query_player = st.query_params.get("player")
+if query_player:
+    st.session_state.active_tab_index = 2 # Player Profile tab
+    st.session_state.selected_player_for_profile = query_player # We'll use this in the profile tab
+
 tab_names = ["Rankings", "Matches", "Player Profile", "Court Locations", "Bookings", "Hall of Fame"]
 if st.session_state.is_admin: tab_names.append("Chapter Settings")
 tabs = st.tabs(tab_names)
@@ -1859,8 +1883,8 @@ with tabs[0]:
                         st.markdown(f"""
                         <div style="text-align:center;">
                             <div style="font-size:1.8em; font-weight:bold; color:#ccff00; line-height:1;">🏆 #{row['Rank']}</div>
-                            <div class="glow-square" style="margin-top:8px;">
-                                <img src="{get_img_src(row['Profile'])}">
+                            <div class="img-hover-zoom" style="margin-top:8px;">
+                                <img src="{get_img_src(row['Profile'])}" style="width:100px; height:120px; object-fit:cover; border-radius:15%;">
                             </div>
                             <div style="font-weight:bold; color:white; font-size:1.1em; margin-top:10px;">{row['Player']}</div>
                             <div style="color:#ccff00; font-size:1.1em; font-weight:bold;">{row['Score']:.2f} {cd_html}</div>
@@ -1990,6 +2014,14 @@ with tabs[1]:
             object-fit: cover;
             margin-bottom: 8px;
             background: #222;
+            cursor: pointer;
+            transition: transform .3s ease;
+        }
+        .mmc-avatar:hover {
+            transform: scale(2.0);
+            z-index: 1000;
+            position: relative;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
         }
         .mmc-winner-img {
             border-color: #FF5F1F; /* Orange border for winner */
@@ -2202,25 +2234,28 @@ with tabs[1]:
                 t1_img_class = "mmc-tie-img"
                 t2_img_class = "mmc-tie-img"
             
+            def player_link(name, html_content):
+                return f'<a href="?player={name}#player_{name.replace(" ", "_")}" target="_self" style="text-decoration:none; color:inherit;">{html_content}</a>'
+
             if t1_p2_name:
                 t1_html = f"""<div style="display:flex; gap:5px; justify-content:center;">
-                                <img src="{get_p_img(t1_p1_name)}" class="mmc-avatar {t1_img_class}">
-                                <img src="{get_p_img(t1_p2_name)}" class="mmc-avatar {t1_img_class}">
+                                {player_link(t1_p1_name, f'<img src="{get_p_img(t1_p1_name)}" class="mmc-avatar {t1_img_class}">')}
+                                {player_link(t1_p2_name, f'<img src="{get_p_img(t1_p2_name)}" class="mmc-avatar {t1_img_class}">')}
                               </div>
-                              <div class="mmc-name {t1_class}">{t1_p1_name}<br>& {t1_p2_name}</div>"""
+                              <div class="mmc-name {t1_class}">{player_link(t1_p1_name, t1_p1_name)}<br>& {player_link(t1_p2_name, t1_p2_name)}</div>"""
             else:
-                t1_html = f"""<img src="{get_p_img(t1_p1_name)}" class="mmc-avatar {t1_img_class}">
-                              <div class="mmc-name {t1_class}">{t1_p1_name}</div>"""
+                t1_html = f"""{player_link(t1_p1_name, f'<img src="{get_p_img(t1_p1_name)}" class="mmc-avatar {t1_img_class}">')}
+                              <div class="mmc-name {t1_class}">{player_link(t1_p1_name, t1_p1_name)}</div>"""
 
             if t2_p2_name:
                 t2_html = f"""<div style="display:flex; gap:5px; justify-content:center;">
-                                <img src="{get_p_img(t2_p1_name)}" class="mmc-avatar {t2_img_class}">
-                                <img src="{get_p_img(t2_p2_name)}" class="mmc-avatar {t2_img_class}">
+                                {player_link(t2_p1_name, f'<img src="{get_p_img(t2_p1_name)}" class="mmc-avatar {t2_img_class}">')}
+                                {player_link(t2_p2_name, f'<img src="{get_p_img(t2_p2_name)}" class="mmc-avatar {t2_img_class}">')}
                               </div>
-                              <div class="mmc-name {t2_class}">{t2_p1_name}<br>& {t2_p2_name}</div>"""
+                              <div class="mmc-name {t2_class}">{player_link(t2_p1_name, t2_p1_name)}<br>& {player_link(t2_p2_name, t2_p2_name)}</div>"""
             else:
-                t2_html = f"""<img src="{get_p_img(t2_p1_name)}" class="mmc-avatar {t2_img_class}">
-                              <div class="mmc-name {t2_class}">{t2_p1_name}</div>"""
+                t2_html = f"""{player_link(t2_p1_name, f'<img src="{get_p_img(t2_p1_name)}" class="mmc-avatar {t2_img_class}">')}
+                              <div class="mmc-name {t2_class}">{player_link(t2_p1_name, t2_p1_name)}</div>"""
 
             # Determine display order: Winner on left
             if t2_won:
@@ -2287,7 +2322,11 @@ with tabs[1]:
             img_url = getattr(row, 'match_image_url', '')
             if img_url:
                 with st.expander("📷 View Match Photo", expanded=False, icon="➡️"):
-                    st.image(img_url, use_container_width=True)
+                    st.markdown(f"""
+                    <div class="img-hover-zoom" style="width:100%;">
+                        <img src="{get_img_src(img_url)}" style="width:100%; border-radius:10px;">
+                    </div>
+                    """, unsafe_allow_html=True)
 
             # Edit/Delete Logic
             can_edit_match = False
@@ -2459,14 +2498,16 @@ with tabs[2]:
                 badges_html = "".join([f"<span class='badge'>{b}</span>" for b in s.get('Badges', [])])
 
                 with st.container(border=True):
+                    # Anchor for navigation
+                    st.markdown(f'<div id="player_{p_name.replace(" ", "_")}"></div>', unsafe_allow_html=True)
                     c1, c2, c3 = st.columns([1.5, 2.5, 1.8])
                     
                     with c1:
                         st.markdown(f"""
                         <div style="text-align:center;">
                             <div style="font-size:1.8em; font-weight:bold; color:#ccff00; line-height:1;">🏆 #{s['Rank']}</div>
-                            <div class="glow-square" style="margin-top:8px;">
-                                <img src="{get_img_src(s['Profile'])}">
+                            <div class="img-hover-zoom" style="margin-top:8px;">
+                                <img src="{get_img_src(s['Profile'])}" style="width:100px; height:120px; object-fit:cover; border-radius:15%;">
                             </div>
                             <div style="font-weight:bold; color:white; font-size:1.1em; margin-top:10px;">{s['Player']}</div>
                             <div style="color:#ccff00; font-size:1.1em; font-weight:bold;">{s['Score']:.2f} {cd_html}</div>
