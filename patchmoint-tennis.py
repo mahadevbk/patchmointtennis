@@ -848,7 +848,7 @@ def login_modal(chapter):
                     st.error("Invalid Password")
     with col2:
         # Standard user entry (No password needed to view)
-        if st.button("Enter as Guest", use_container_width=True):
+        if st.button("View as Guest", use_container_width=True):
             st.session_state.current_chapter = chapter
             st.session_state.is_admin = False
             st.session_state.can_write = False
