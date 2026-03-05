@@ -1725,44 +1725,45 @@ tabs = st.tabs(tab_names)
 
 with tabs[0]:
     conf = st.session_state.chapter_config
-    st.header(f"Rankings")
+    with st.expander("Rankings", expanded=False):
+        st.header(f"Rankings")
+        
+        active_systems_dict = conf.get("ranking_systems", {"Elo (Hybrid)": True})
+        active_systems = [k for k, v in active_systems_dict.items() if v]
+        if not active_systems: active_systems = ["Elo (Hybrid)"] 
+        
+        view_system = st.radio("Ranking System", active_systems, horizontal=True) if len(active_systems) > 1 else active_systems[0]
+        
+        # --- Ranking System Explanations ---
+        # This part can be improved by dynamically creating descriptions based on match_type_settings
+        pts_desc = "Varies by match type"
+        if "match_type_settings" in conf:
+            s_pts = conf["match_type_settings"].get("Singles", {})
+            d_pts = conf["match_type_settings"].get("Doubles", {})
+            pts_desc = f"S:{s_pts.get('win_points',0)}W/{s_pts.get('loss_points',0)}L, D:{d_pts.get('win_points',0)}W/{d_pts.get('loss_points',0)}L"
     
-    active_systems_dict = conf.get("ranking_systems", {"Elo (Hybrid)": True})
-    active_systems = [k for k, v in active_systems_dict.items() if v]
-    if not active_systems: active_systems = ["Elo (Hybrid)"] 
-    
-    view_system = st.radio("Ranking System", active_systems, horizontal=True) if len(active_systems) > 1 else active_systems[0]
-    
-    # --- Ranking System Explanations ---
-    # This part can be improved by dynamically creating descriptions based on match_type_settings
-    pts_desc = "Varies by match type"
-    if "match_type_settings" in conf:
-        s_pts = conf["match_type_settings"].get("Singles", {})
-        d_pts = conf["match_type_settings"].get("Doubles", {})
-        pts_desc = f"S:{s_pts.get('win_points',0)}W/{s_pts.get('loss_points',0)}L, D:{d_pts.get('win_points',0)}W/{d_pts.get('loss_points',0)}L"
-
-    ranking_descriptions = {
-        "Elo (Hybrid)": {
-            "desc": "A dynamic rating system that adjusts based on opponent quality. This hybrid version rewards Game Difference.",
-            "scenario": "Best for competitive leagues."
-        },
-        "Points": {
-            "desc": f"Cumulative system based on match type. ({pts_desc})",
-            "scenario": "Ideal for social leagues."
-        },
-        "UTR": {
-            "desc": "Universal Tennis Rating simulation. Focuses on game score margins.",
-            "scenario": "Best for technical assessment."
+        ranking_descriptions = {
+            "Elo (Hybrid)": {
+                "desc": "A dynamic rating system that adjusts based on opponent quality. This hybrid version rewards Game Difference.",
+                "scenario": "Best for competitive leagues."
+            },
+            "Points": {
+                "desc": f"Cumulative system based on match type. ({pts_desc})",
+                "scenario": "Ideal for social leagues."
+            },
+            "UTR": {
+                "desc": "Universal Tennis Rating simulation. Focuses on game score margins.",
+                "scenario": "Best for technical assessment."
+            }
         }
-    }
+        
+        current_desc = ranking_descriptions.get(view_system, {"desc": "Custom ranking system.", "scenario": "General usage."})
+        
+        with st.expander(f"About {view_system}", expanded=False, icon="➡️"):
+            st.markdown(f"**How it works:** {current_desc['desc']}")
+            st.markdown(f"**Best for:** *{current_desc['scenario']}*")
     
-    current_desc = ranking_descriptions.get(view_system, {"desc": "Custom ranking system.", "scenario": "General usage."})
-    
-    with st.expander(f"About {view_system}", expanded=False, icon="➡️"):
-        st.markdown(f"**How it works:** {current_desc['desc']}")
-        st.markdown(f"**Best for:** *{current_desc['scenario']}*")
-
-    ranking_view = st.radio("View", ["Combined", "Doubles", "Singles", "Table View"], horizontal=True)
+        ranking_view = st.radio("View", ["Combined", "Doubles", "Singles", "Table View"], horizontal=True)
     display_rank_df = rank_df.copy() if not rank_df.empty else pd.DataFrame()
 
     if not st.session_state.matches_df.empty:
