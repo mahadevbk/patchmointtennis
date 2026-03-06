@@ -919,7 +919,7 @@ def get_player_stats_template():
         'wins': 0, 'losses': 0, 'ties': 0, 'matches': 0, 'games_won': 0, 'gd_sum': 0, 
         'clutch_wins': 0, 'clutch_matches': 0, 'gd_list': [], 'points': 0, 
         'singles_wins': 0, 'singles_matches': 0, 'doubles_wins': 0, 'doubles_matches': 0, 
-        'trend': [], 'giant_kills': 0, 'comebacks': 0, 'daily_matches': defaultdict(int), 'sets_won': 0
+        'trend': [], 'giant_kills': 0, 'comebacks': 0, 'daily_matches': defaultdict(int), 'sets_won': 0, 'tb_wins': 0
     }
 
 @st.cache_data(show_spinner=False)
@@ -1058,10 +1058,18 @@ def calculate_rankings(matches_to_rank):
                 stats[p]['gd_list'].append(games_won - (total_games - games_won))
                 if is_clutch: stats[p]['clutch_matches'] += 1
                 
-                # Sets won tracking
+                # Sets won tracking & Tie Break wins
                 for s_val in [row.set1, row.set2, row.set3]:
                     if not s_val: continue
+                    s_str = str(s_val)
                     try:
+                        is_this_set_tb = "Tie Break" in s_str
+                        if is_this_set_tb:
+                            nums = [int(x) for x in re.findall(r'\d+', s_str)]
+                            if len(nums) >= 2:
+                                if is_winner_team and nums[0] > nums[1]: stats[p]['tb_wins'] += 1
+                                elif not is_winner_team and nums[1] > nums[0]: stats[p]['tb_wins'] += 1
+
                         pts = str(s_val).split('-')
                         if is_winner_team and int(pts[0]) > int(pts[1]): stats[p]['sets_won'] += 1
                         elif not is_winner_team and int(pts[1]) > int(pts[0]): stats[p]['sets_won'] += 1
@@ -1142,7 +1150,9 @@ def calculate_rankings(matches_to_rank):
         if s.get('comebacks', 0) > 0: badges.append("🔄 Comeback Kid")
         if any(v >= 3 for v in s['daily_matches'].values()): badges.append("⛓️ Iron Player")
         if s.get('sets_won', 0) >= 20: badges.append("🏆 Set Collector")
+        if s.get('tb_wins', 0) >= 3: badges.append("🎯 Sniper")
         if m_played >= 50: badges.append("🎖️ Veteran")
+        if m_played >= 100: badges.append("💯 Century Club")
         
         # Participation Badge (Played in last 7 days)
         try:
@@ -1186,6 +1196,10 @@ def calculate_rankings(matches_to_rank):
         # Set default rank based on Elo Hybrid
         df = df.sort_values(by="Score_Elo (Hybrid)", ascending=False).reset_index(drop=True)
         df["Rank"] = df.index + 1
+        
+        # Award #1 Rank Badge
+        if not df.empty:
+            df.at[0, 'Badges'] = df.at[0, 'Badges'] + ["👑 King/Queen of the Court"]
     return df
 
 
