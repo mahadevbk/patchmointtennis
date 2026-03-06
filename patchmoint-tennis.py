@@ -14,6 +14,7 @@ import psycopg2
 from sqlalchemy import create_engine, text
 from psycopg2.extras import RealDictCursor, execute_values
 from datetime import datetime, timedelta
+from itertools import combinations
 from collections import defaultdict
 import io
 import zipfile
@@ -244,11 +245,6 @@ html, body, [class*="st-"], .stApp, h1, h2, h3, h4, h5, h6 {
 }
 .court-card:hover { transform: scale(1.05); box-shadow: 0 6px 12px rgba(255, 245, 0, 0.3); }
 .court-card h4 { color: #fff500; margin-bottom: 10px; }
-.court-card a {
-    background-color: #fff500; color: #031827; padding: 8px 16px; border-radius: 5px;
-    text-decoration: none; font-weight: bold; display: inline-block; margin-top: 10px;
-    transition: background-color 0.2s;
-}
 .court-card a:hover { background-color: #ffd700; }
 h1 { font-size: 24px !important; }
 h2 { font-size: 22px !important; }
@@ -880,28 +876,16 @@ def login_modal(chapter):
             
 # --- Business Logic ---
 def get_valid_scores():
-    if SPORT_TYPE == "Pickleball":
-        # Pickleball scores: typically games to 11, 15, or 21. Win by 2.
-        scores = []
-        # Games to 11
-        for i in range(10): scores.extend([f"11-{i}", f"{i}-11"])
-        scores.extend(["12-10", "10-12", "13-11", "11-13", "14-12", "12-14"]) # Common tie breaks
-        # Games to 15
-        for i in range(14): scores.extend([f"15-{i}", f"{i}-15"])
-        scores.extend(["16-14", "14-16", "17-15", "15-17"])
-        scores.append("Custom Pickleball Score (Win by 2)")
-        return scores
-    else:
-        # Tennis / Padel scores
-        scores = ["6-0", "6-1", "6-2", "6-3", "6-4", "7-5", "7-6", "0-6", "1-6", "2-6", "3-6", "4-6", "5-7", "6-7"]
-        # Standard Tie Breaks
-        for i in range(7): scores.extend([f"Tie Break 7-{i}", f"Tie Break {i}-7"])
-        # Standard Super Tie Breaks
-        for i in range(10): scores.extend([f"Super Tie Break 10-{i}", f"Super Tie Break {i}-10"])
-        
-        scores.append("Custom Tie Break Entry")
-        scores.append("Custom Super Tie Break Entry")
-        return scores
+    # Tennis / Padel scores
+    scores = ["6-0", "6-1", "6-2", "6-3", "6-4", "7-5", "7-6", "0-6", "1-6", "2-6", "3-6", "4-6", "5-7", "6-7"]
+    # Standard Tie Breaks
+    for i in range(7): scores.extend([f"Tie Break 7-{i}", f"Tie Break {i}-7"])
+    # Standard Super Tie Breaks
+    for i in range(10): scores.extend([f"Super Tie Break 10-{i}", f"Super Tie Break {i}-10"])
+    
+    scores.append("Custom Tie Break Entry")
+    scores.append("Custom Super Tie Break Entry")
+    return scores
 
 def generate_match_id(matches_df, match_datetime):
     year = match_datetime.year
@@ -1180,6 +1164,159 @@ def plot_player_performance(player_name, matches_df):
     fig = px.line(history, x="Match", y="Cumulative Game Diff", hover_data=["Date", "Result"], title=f"Trend - {player_name}", markers=True)
     fig.update_layout(height=300, margin=dict(l=20, r=20, t=40, b=20))
     return fig
+
+# ==============================================================================
+# START: ODDS CALCULATION FUNCTIONS
+# ==============================================================================
+
+def _calculate_performance_score(player_stats, full_dataset):
+    """
+    Calculates a weighted performance score for a player based on normalized stats.
+    """
+    # Define weights for each component
+    w_wp = 0.50  # Win Percentage
+    w_agd = 0.35 # Average Game Difference
+    w_ef = 0.15  # Experience Factor (Matches Played)
+
+    # --- 1. Normalize Win Percentage (WP) ---
+    max_wp = full_dataset['Win %'].max()
+    wp_norm = player_stats['Win %'] / max_wp if max_wp > 0 else 0
+
+    # --- 2. Normalize Average Game Difference (AGD) ---
+    max_agd = full_dataset['Game Diff Avg'].max()
+    min_agd = full_dataset['Game Diff Avg'].min()
+    if max_agd == min_agd:
+        agd_norm = 0.5 # Avoid division by zero if all values are the same
+    else:
+        agd_norm = (player_stats['Game Diff Avg'] - min_agd) / (max_agd - min_agd)
+
+    # --- 3. Normalize Experience Factor (EF) ---
+    max_matches = full_dataset['Matches'].max()
+    ef_norm = player_stats['Matches'] / max_matches if max_matches > 0 else 0
+
+    # --- 4. Calculate Final Performance Score ---
+    performance_score = (w_wp * wp_norm) + (w_agd * agd_norm) + (w_ef * ef_norm)
+    
+    return performance_score
+
+def calculate_enhanced_doubles_odds(players, doubles_rank_df):
+    """
+    Calculates balanced teams and odds for a doubles match using a multi-factor Performance Score.
+    """
+    if len(players) != 4 or "" in players or doubles_rank_df.empty:
+        return ("Please select four players with doubles match history.", None, None)
+
+    player_scores = {}
+    for player in players:
+        player_data = doubles_rank_df[doubles_rank_df["Player"] == player]
+        if not player_data.empty:
+            # Calculate performance score for this player
+            player_scores[player] = _calculate_performance_score(player_data.iloc[0], doubles_rank_df)
+        else:
+            # Player has no doubles history, assign a baseline score (e.g., 0)
+            player_scores[player] = 0
+
+    # Find the most balanced pairing based on the new Performance Score
+    min_diff = float('inf')
+    best_pairing = None
+    
+    for team1_combo in combinations(players, 2):
+        team2_combo = tuple(p for p in players if p not in team1_combo)
+        
+        team1_score = sum(player_scores.get(p, 0) for p in team1_combo)
+        team2_score = sum(player_scores.get(p, 0) for p in team2_combo)
+        
+        diff = abs(team1_score - team2_score)
+        
+        if diff < min_diff:
+            min_diff = diff
+            best_pairing = (team1_combo, team2_combo)
+
+    if not best_pairing:
+        return ("Could not determine a balanced pairing.", None, None)
+
+    team1, team2 = best_pairing
+    team1_total_score = sum(player_scores.get(p, 0) for p in team1)
+    team2_total_score = sum(player_scores.get(p, 0) for p in team2)
+    total_match_score = team1_total_score + team2_total_score
+
+    team1_odds = (team1_total_score / total_match_score) * 100 if total_match_score > 0 else 50.0
+    team2_odds = (team2_total_score / total_match_score) * 100 if total_match_score > 0 else 50.0
+
+    # Styled output
+    t1p1_styled = f"<span style='font-weight:bold; color:#ccff00;'>{team1[0]}</span>"
+    t1p2_styled = f"<span style='font-weight:bold; color:#ccff00;'>{team1[1]}</span>"
+    t2p1_styled = f"<span style='font-weight:bold; color:#ccff00;'>{team2[0]}</span>"
+    t2p2_styled = f"<span style='font-weight:bold; color:#ccff00;'>{team2[1]}</span>"
+    pairing_text = f"Team 1: {t1p1_styled} & {t1p2_styled} vs Team 2: {t2p1_styled} & {t2p2_styled}"
+    
+    return (pairing_text, team1_odds, team2_odds)
+
+def calculate_enhanced_singles_odds(players, singles_rank_df):
+    """
+    Calculates odds for a singles match using a multi-factor Performance Score.
+    """
+    if len(players) != 2 or "" in players or singles_rank_df.empty:
+        return (None, None)
+
+    player_scores = {}
+    for player in players:
+        player_data = singles_rank_df[singles_rank_df["Player"] == player]
+        if not player_data.empty:
+            player_scores[player] = _calculate_performance_score(player_data.iloc[0], singles_rank_df)
+        else:
+            player_scores[player] = 0
+
+    p1_score = player_scores.get(players[0], 0)
+    p2_score = player_scores.get(players[1], 0)
+    total_score = p1_score + p2_score
+
+    p1_odds = (p1_score / total_score) * 100 if total_score > 0 else 50.0
+    p2_odds = (p2_score / total_score) * 100 if total_score > 0 else 50.0
+
+    return (p1_odds, p2_odds)
+
+def suggest_balanced_pairing(players, doubles_rank_df):
+    """Suggests balanced doubles teams. This function now calls the enhanced odds calculation."""
+    if len(players) != 4 or "" in players:
+        return ("Please select all four players for a doubles match.", None, None)
+    return calculate_enhanced_doubles_odds(players, doubles_rank_df)
+
+def suggest_singles_odds(players, singles_rank_df):
+    """Calculates winning odds for a singles match. This function now calls the enhanced odds calculation."""
+    if len(players) != 2 or "" in players:
+        return (None, None)
+    return calculate_enhanced_singles_odds(players, singles_rank_df)
+
+def generate_ics_for_booking(row, plain_suggestion=""):
+    try:
+        summary = f"{SPORT_TYPE}: {row['match_type']} at {row['court_name']}"
+        dt_str = f"{row['date']} {row['time']}"
+        try:
+            dt_start = datetime.strptime(dt_str, "%Y-%m-%d %H:%M:%S")
+        except ValueError:
+            dt_start = datetime.strptime(dt_str, "%Y-%m-%d %H:%M")
+        dt_end = dt_start + timedelta(hours=1.5)
+        ics_format = "%Y%m%dT%H%M%S"
+        description = f"Patch Moint {SPORT_TYPE} Match\\n{plain_suggestion}"
+        ics_content = f"""BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Patch Moint League//EN
+BEGIN:VEVENT
+SUMMARY:{summary}
+DTSTART:{dt_start.strftime(ics_format)}
+DTEND:{dt_end.strftime(ics_format)}
+LOCATION:{row['court_name']}
+DESCRIPTION:{description}
+END:VEVENT
+END:VCALENDAR"""
+        return ics_content, None
+    except Exception as e:
+        return None, str(e)
+
+# ==============================================================================
+# END: ODDS CALCULATION FUNCTIONS
+# ==============================================================================
 
 def load_bookings():
     cid = st.session_state.current_chapter['id'] if st.session_state.current_chapter else None
@@ -2158,14 +2295,6 @@ with tabs[1]:
                             col.error("Super TB: Min 10 pts & Diff 2")
                             return None
                         return f"Tie Break {v1}-{v2}"
-                    elif sel == "Custom Pickleball Score (Win by 2)":
-                        c1, c2 = col.columns(2)
-                        v1 = c1.number_input("P1", min_value=0, max_value=99, value=11, key=f"custom_pb1_{k}_{pk}")
-                        v2 = c2.number_input("P2", min_value=0, max_value=99, value=9, key=f"custom_pb2_{k}_{pk}")
-                        if abs(v1 - v2) < 2 or max(v1, v2) < 11:
-                            col.error("Win by 2 & Min 11")
-                            return None
-                        return f"{v1}-{v2}"
                     return sel
 
                 s1 = get_final_score(s1_sel, sc1, 1)
@@ -2661,18 +2790,157 @@ with tabs[3]:
 
 with tabs[4]:
     st.header("Bookings")
+    available_players = sorted(st.session_state.players_df['name'].tolist()) if not st.session_state.players_df.empty else []
+    
+    # --- MATCH UP EXPANDER ---
+    with st.expander("Match up", expanded=False, icon="➡️"):
+        match_type_odds = st.radio("Select Match Type", ["Doubles", "Singles"], horizontal=True, key="matchup_type")
+
+        if match_type_odds == "Doubles":
+            t1p1 = st.selectbox("Team 1 - Player 1", [""] + available_players, key="matchup_doubles_t1p1")
+            t1p2 = st.selectbox("Team 1 - Player 2", [""] + available_players, key="matchup_doubles_t1p2")
+            t2p1 = st.selectbox("Team 2 - Player 1", [""] + available_players, key="matchup_doubles_t2p1")
+            t2p2 = st.selectbox("Team 2 - Player 2", [""] + available_players, key="matchup_doubles_t2p2")
+
+            if st.button("Match up", key="btn_matchup_doubles"):
+                st.subheader("Match Odds")
+                players_list = [t1p1, t1p2, t2p1, t2p2]
+                doubles_rank_df, _ = calculate_rankings(st.session_state.matches_df[st.session_state.matches_df['match_type'].isin(["Doubles", "Mixed Doubles"])])
+                if all(p in doubles_rank_df["Player"].values for p in players_list if p):
+                    pairing_text, team1_odds, team2_odds = suggest_balanced_pairing(players_list, doubles_rank_df)
+                    if pairing_text:
+                        st.markdown(pairing_text, unsafe_allow_html=True)
+                        st.write(f"Team 1: {team1_odds:.1f}% | Team 2: {team2_odds:.1f}%")
+                    else: st.info("No odds available for this combination.")
+                else: st.info("No odds available (one or more players have no doubles match history).")
+        else:  # Singles
+            p1 = st.selectbox("Player 1", [""] + available_players, key="matchup_singles_p1")
+            p2 = st.selectbox("Player 2", [""] + available_players, key="matchup_singles_p2")
+
+            if st.button("Match up", key="btn_matchup_singles"):
+                st.subheader("Match Odds")
+                if p1 and p2:
+                    singles_rank_df, _ = calculate_rankings(st.session_state.matches_df[st.session_state.matches_df['match_type']=="Singles"])
+                    if p1 in singles_rank_df["Player"].values and p2 in singles_rank_df["Player"].values:
+                        odds1, odds2 = suggest_singles_odds([p1, p2], singles_rank_df)
+                        st.write(f"Odds → {p1}: {odds1:.1f}% | {p2}: {odds2:.1f}%")
+                    else: st.info("No odds available (one or both players have no singles match history).")
+                else: st.warning("Please select both players.")
+
+    # --- BOOKING MANAGEMENT ---
     if st.session_state.can_write:
-        with st.expander("New Booking", expanded=False, icon="➡️"):
-            with st.form("nb"):
-                d = st.date_input("Date"); t = st.selectbox("Time", [f"{h}:00" for h in range(6, 23)])
-                court_names = [c['name'] for c in courts] if courts else []
-                c = st.selectbox("Court", court_names)
-                if st.form_submit_button("Book"):
-                    bid = str(uuid.uuid4())
-                    st.session_state.bookings_df = pd.concat([st.session_state.bookings_df, pd.DataFrame([{"booking_id": bid, "date": d.isoformat(), "time": f"{t}:00", "court_name": c, "chapter_id": st.session_state.current_chapter['id']}])], ignore_index=True)
-                    save_bookings(st.session_state.bookings_df); st.rerun()
-    if not st.session_state.bookings_df.empty:
-        st.dataframe(st.session_state.bookings_df[['date', 'time', 'court_name']], hide_index=True)
+        with st.expander("Add New Booking", expanded=False, icon="➡️"):
+            match_type_book = st.radio("Match Type", ["Doubles", "Singles"], index=0, key=f"new_booking_match_type_{st.session_state.form_key_suffix}")
+            
+            with st.form(key=f"add_booking_form_{st.session_state.form_key_suffix}"):
+                date = st.date_input("Booking Date *", key=f"new_booking_date_{st.session_state.form_key_suffix}")
+                hours = [f"{h:02d}:00" for h in range(6, 23)] + [f"{h:02d}:30" for h in range(6, 23)]
+                hours.sort()
+                time_sel = st.selectbox("Booking Time *", hours, key=f"new_booking_time_{st.session_state.form_key_suffix}")
+                
+                court_names_list = [c['name'] for c in courts] if courts else []
+                court = st.selectbox("Court Name *", [""] + court_names_list, key=f"court_{st.session_state.form_key_suffix}")
+                
+                if match_type_book == "Doubles":
+                    col1, col2 = st.columns(2)
+                    p1_b = col1.selectbox("Player 1", [""] + available_players, key=f"new_booking_t1p1_{st.session_state.form_key_suffix}")
+                    p2_b = col1.selectbox("Player 2", [""] + available_players, key=f"new_booking_t1p2_{st.session_state.form_key_suffix}")
+                    p3_b = col2.selectbox("Player 3", [""] + available_players, key=f"new_booking_t2p1_{st.session_state.form_key_suffix}")
+                    p4_b = col2.selectbox("Player 4", [""] + available_players, key=f"new_booking_t2p2_{st.session_state.form_key_suffix}")
+                else:
+                    p1_b = st.selectbox("Player 1", [""] + available_players, key=f"new_booking_s1p1_{st.session_state.form_key_suffix}")
+                    p3_b = st.selectbox("Player 2", [""] + available_players, key=f"new_booking_s1p2_{st.session_state.form_key_suffix}")
+                    p2_b = None; p4_b = None
+                
+                standby = st.selectbox("Standby Player", [""] + available_players, key=f"new_booking_standby_{st.session_state.form_key_suffix}")
+                screenshot = st.file_uploader("Booking Screenshot", type=["jpg", "png"], key=f"screenshot_{st.session_state.form_key_suffix}")
+                
+                if st.form_submit_button("Add Booking"):
+                    if not court or not date or not time_sel:
+                        st.error("Required fields missing")
+                    else:
+                        bid = str(uuid.uuid4())
+                        path = save_remote_image(screenshot, bid, "booking") if screenshot else ""
+                        new_booking = {
+                            "booking_id": bid, "date": date.isoformat(), "time": time_sel, "match_type": match_type_book,
+                            "court_name": court, "player1": p1_b, "player2": p2_b, "player3": p3_b, "player4": p4_b,
+                            "standby_player": standby, "screenshot_url": path, "chapter_id": st.session_state.current_chapter['id']
+                        }
+                        st.session_state.bookings_df = pd.concat([st.session_state.bookings_df, pd.DataFrame([new_booking])], ignore_index=True)
+                        save_bookings(st.session_state.bookings_df); st.success("Booking added!"); time.sleep(1); st.rerun()
+
+    st.markdown("---")
+    st.subheader("📅 Upcoming Bookings")
+    if st.session_state.bookings_df.empty:
+        st.info("No upcoming bookings found.")
+    else:
+        df_book = st.session_state.bookings_df.copy()
+        # Filter upcoming only
+        df_book['dt'] = pd.to_datetime(df_book['date'] + ' ' + df_book['time'])
+        df_book = df_book[df_book['dt'] >= datetime.now() - timedelta(hours=2)].sort_values('dt')
+        
+        if df_book.empty: st.info("No upcoming bookings.")
+        else:
+            court_map = {c['name']: c['url'] for c in courts}
+            doubles_rank_df, _ = calculate_rankings(st.session_state.matches_df[st.session_state.matches_df['match_type'].isin(["Doubles", "Mixed Doubles"])])
+            singles_rank_df, _ = calculate_rankings(st.session_state.matches_df[st.session_state.matches_df['match_type']=="Singles"])
+
+            for _, row in df_book.iterrows():
+                players = [p for p in [row['player1'], row['player2'], row['player3'], row['player4']] if p]
+                players_str = ", ".join([f"<span style='font-weight:bold; color:#ccff00;'>{p}</span>" for p in players]) if players else "No players"
+                standby_str = f"<span style='font-weight:bold; color:#ccff00;'>{row['standby_player']}</span>" if row['standby_player'] else "None"
+                
+                # Odds logic
+                pairing_suggestion = ""; plain_suggestion = ""
+                if row['match_type'] == "Doubles" and len(players) == 4:
+                    if all(p in doubles_rank_df["Player"].values for p in players):
+                        pairing_text, t1o, t2o = suggest_balanced_pairing(players, doubles_rank_df)
+                        pairing_suggestion = f"<div style='margin-top:5px; font-size:0.9em; border-top:1px solid rgba(255,255,255,0.1); padding-top:5px;'>{pairing_text} ({t1o:.1f}% vs {t2o:.1f}%)</div>"
+                        plain_suggestion = f"Odds: {t1o:.1f}% vs {t2o:.1f}%"
+                elif row['match_type'] == "Singles" and len(players) == 2:
+                    if all(p in singles_rank_df["Player"].values for p in players):
+                        o1, o2 = suggest_singles_odds(players, singles_rank_df)
+                        pairing_suggestion = f"<div style='margin-top:5px; font-size:0.9em; border-top:1px solid rgba(255,255,255,0.1); padding-top:5px;'>Odds: {players[0]} ({o1:.1f}%) vs {players[1]} ({o2:.1f}%)</div>"
+                        plain_suggestion = f"Odds: {players[0]} ({o1:.1f}%) vs {players[1]} ({o2:.1f}%)"
+
+                court_url = court_map.get(row['court_name'], "#")
+                
+                # WhatsApp Share
+                share_msg = f"*Game Booking:* Date: {row['date']} {row['time']} | Court: {row['court_name']} | Players: {', '.join(players)} | {plain_suggestion}"
+                wa_link = f"https://api.whatsapp.com/send?text={requests.utils.quote(share_msg)}"
+                
+                # ICS
+                ics_data, _ = generate_ics_for_booking(row, plain_suggestion)
+                ics_link = f"data:text/calendar;charset=utf-8,{requests.utils.quote(ics_data)}" if ics_data else "#"
+
+                booking_html = f"""
+                <div class="booking-row">
+                    <div style="display:flex; justify-content:space-between;">
+                        <span style="color:#ccff00; font-weight:bold;">{row['date']} at {row['time']}</span>
+                        <span style="font-size:0.8em; color:#aaa;">{row['match_type']}</span>
+                    </div>
+                    <div style="margin-top:5px;">Court: <a href="{court_url}" target="_blank" style="color:#ccff00;">{row['court_name']}</a></div>
+                    <div style="margin-top:5px; font-size:0.9em;">Players: {players_str}</div>
+                    <div style="font-size:0.8em; color:#aaa;">Standby: {standby_str}</div>
+                    {pairing_suggestion}
+                    <div style="margin-top:10px; display:flex; gap:15px;">
+                        <a href="{wa_link}" target="_blank">🟢 WhatsApp</a>
+                        <a href="{ics_link}" download="booking.ics">📅 Calendar</a>
+                    </div>
+                </div>
+                """
+                st.markdown(booking_html, unsafe_allow_html=True)
+                if row['screenshot_url']:
+                    with st.expander("View Screenshot"):
+                        st.image(row['screenshot_url'], use_container_width=True)
+
+    if st.session_state.is_admin and not st.session_state.bookings_df.empty:
+        with st.expander("Manage Existing Bookings"):
+            for idx, row in st.session_state.bookings_df.iterrows():
+                c1, c2 = st.columns([4, 1])
+                c1.write(f"{row['date']} {row['time']} - {row['court_name']}")
+                if c2.button("Delete", key=f"del_b_{row['booking_id']}"):
+                    delete_booking_from_db(row['booking_id']); st.rerun()
 
 with tabs[5]: display_hall_of_fame()
 
