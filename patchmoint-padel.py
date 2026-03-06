@@ -10,6 +10,7 @@ import os
 import base64
 import json
 import requests
+import urllib.parse
 import psycopg2
 from sqlalchemy import create_engine, text
 from psycopg2.extras import RealDictCursor, execute_values
@@ -2836,8 +2837,8 @@ with tabs[4]:
                 else: st.warning("Please select both players.")
 
     # --- BOOKING MANAGEMENT ---
-    if st.session_state.can_write:
-        with st.expander("Add New Booking", expanded=False, icon="➡️"):
+    with st.expander("Add New Booking", expanded=False, icon="➡️"):
+        if st.session_state.can_write:
             match_type_book = st.radio("Match Type", ["Doubles", "Singles"], index=0, key=f"new_booking_match_type_{st.session_state.form_key_suffix}")
             
             with st.form(key=f"add_booking_form_{st.session_state.form_key_suffix}"):
@@ -2876,6 +2877,8 @@ with tabs[4]:
                         }
                         st.session_state.bookings_df = pd.concat([st.session_state.bookings_df, pd.DataFrame([new_booking])], ignore_index=True)
                         save_bookings(st.session_state.bookings_df); st.success("Booking added!"); time.sleep(1); st.rerun()
+        else:
+            st.info("Please log in to add bookings.")
 
     st.markdown("---")
     st.subheader("📅 Upcoming Bookings")
@@ -2883,13 +2886,13 @@ with tabs[4]:
         st.info("No upcoming bookings found.")
     else:
         df_book = st.session_state.bookings_df.copy()
-        # Filter upcoming only
         df_book['dt'] = pd.to_datetime(df_book['date'] + ' ' + df_book['time'])
         df_book = df_book[df_book['dt'] >= datetime.now() - timedelta(hours=2)].sort_values('dt')
         
         if df_book.empty: st.info("No upcoming bookings.")
         else:
             court_map = {c['name']: c['url'] for c in courts}
+            # PRE-CALCULATE RANKINGS FOR ODDS
             doubles_rank_df, _ = calculate_rankings(st.session_state.matches_df[st.session_state.matches_df['match_type'].isin(["Doubles", "Mixed Doubles"])])
             singles_rank_df, _ = calculate_rankings(st.session_state.matches_df[st.session_state.matches_df['match_type']=="Singles"])
 
@@ -2898,52 +2901,74 @@ with tabs[4]:
                 players_str = ", ".join([f"<span style='font-weight:bold; color:#ccff00;'>{p}</span>" for p in players]) if players else "No players"
                 standby_str = f"<span style='font-weight:bold; color:#ccff00;'>{row['standby_player']}</span>" if row['standby_player'] else "None"
                 
-                # Odds logic
                 pairing_suggestion = ""; plain_suggestion = ""
-                if row['match_type'] == "Doubles" and len(players) == 4:
-                    if all(p in doubles_rank_df["Player"].values for p in players):
-                        pairing_text, t1o, t2o = suggest_balanced_pairing(players, doubles_rank_df)
-                        pairing_suggestion = f"<div style='margin-top:5px; font-size:0.9em; border-top:1px solid rgba(255,255,255,0.1); padding-top:5px;'>{pairing_text} ({t1o:.1f}% vs {t2o:.1f}%)</div>"
-                        plain_suggestion = f"Odds: {t1o:.1f}% vs {t2o:.1f}%"
-                elif row['match_type'] == "Singles" and len(players) == 2:
-                    if all(p in singles_rank_df["Player"].values for p in players):
-                        o1, o2 = suggest_singles_odds(players, singles_rank_df)
-                        pairing_suggestion = f"<div style='margin-top:5px; font-size:0.9em; border-top:1px solid rgba(255,255,255,0.1); padding-top:5px;'>Odds: {players[0]} ({o1:.1f}%) vs {players[1]} ({o2:.1f}%)</div>"
-                        plain_suggestion = f"Odds: {players[0]} ({o1:.1f}%) vs {players[1]} ({o2:.1f}%)"
+                try:
+                    if row['match_type'] == "Doubles" and len(players) == 4:
+                        rank_df = doubles_rank_df
+                        unranked = [p for p in players if p not in rank_df["Player"].values]
+                        if unranked:
+                            pairing_suggestion = f"<div>Odds unavailable: {', '.join(unranked)} unranked.</div>"
+                        else:
+                            all_p = []
+                            seen = set()
+                            for t1 in combinations(players, 2):
+                                t1_s = frozenset(t1)
+                                t2 = tuple(p for p in players if p not in t1)
+                                t2_s = frozenset(t2)
+                                if frozenset([t1_s, t2_s]) in seen: continue
+                                seen.add(frozenset([t1_s, t2_s]))
+                                s1 = sum(_calculate_performance_score(rank_df[rank_df['Player']==p].iloc[0], rank_df) for p in t1)
+                                s2 = sum(_calculate_performance_score(rank_df[rank_df['Player']==p].iloc[0], rank_df) for p in t2)
+                                o1 = (s1/(s1+s2))*100 if s1+s2>0 else 50
+                                all_p.append({'t1':t1, 't2':t2, 'o1':o1, 'o2':100-o1, 'diff':abs(s1-s2)})
+                            all_p.sort(key=lambda x: x['diff'])
+                            pairing_suggestion = "<div><strong>Recommended Matchups:</strong></div>"
+                            for idx, p in enumerate(all_p[:3], 1):
+                                pairing_suggestion += f"<div style='font-size:0.85em;'>Opt {idx}: {', '.join(p['t1'])} ({p['o1']:.1f}%) vs {', '.join(p['t2'])} ({p['o2']:.1f}%)</div>"
+                            plain_suggestion = f"Top Odds: {all_p[0]['o1']:.1f}% vs {all_p[0]['o2']:.1f}%"
+                    elif row['match_type'] == "Singles" and len(players) == 2:
+                        rank_df = singles_rank_df
+                        if all(p in rank_df["Player"].values for p in players):
+                            o1, o2 = suggest_singles_odds(players, rank_df)
+                            pairing_suggestion = f"<div><strong>Odds:</strong> {players[0]} ({o1:.1f}%) vs {players[1]} ({o2:.1f}%)</div>"
+                            plain_suggestion = f"Odds: {o1:.1f}% vs {o2:.1f}%"
+                except: pass
 
                 court_url = court_map.get(row['court_name'], "#")
-                
-                # WhatsApp Share
                 share_msg = f"*Game Booking:* Date: {row['date']} {row['time']} | Court: {row['court_name']} | Players: {', '.join(players)} | {plain_suggestion}"
-                wa_link = f"https://api.whatsapp.com/send?text={requests.utils.quote(share_msg)}"
-                
-                # ICS
+                wa_link = f"https://api.whatsapp.com/send?text={urllib.parse.quote(share_msg)}"
                 ics_data, _ = generate_ics_for_booking(row, plain_suggestion)
-                ics_link = f"data:text/calendar;charset=utf-8,{requests.utils.quote(ics_data)}" if ics_data else "#"
+                ics_link = f"data:text/calendar;charset=utf-8,{urllib.parse.quote(ics_data)}" if ics_data else "#"
 
                 booking_html = f"""
-                <div class="booking-row">
-                    <div style="display:flex; justify-content:space-between;">
-                        <span style="color:#ccff00; font-weight:bold;">{row['date']} at {row['time']}</span>
-                        <span style="font-size:0.8em; color:#aaa;">{row['match_type']}</span>
+                <div class="booking-row" style='background: rgba(255,255,255,0.05); padding:15px; border-radius:10px; margin-bottom:15px; border-left:4px solid #ccff00;'>
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <span style="color:#ccff00; font-weight:bold; font-size:1.1em;">{row['date']} at {row['time']}</span>
+                        <span style="font-size:0.8em; background:#ccff00; color:#000; padding:2px 8px; border-radius:4px; font-weight:bold;">{row['match_type']}</span>
                     </div>
-                    <div style="margin-top:5px;">Court: <a href="{court_url}" target="_blank" style="color:#ccff00;">{row['court_name']}</a></div>
-                    <div style="margin-top:5px; font-size:0.9em;">Players: {players_str}</div>
-                    <div style="font-size:0.8em; color:#aaa;">Standby: {standby_str}</div>
-                    {pairing_suggestion}
-                    <div style="margin-top:10px; display:flex; gap:15px;">
-                        <a href="{wa_link}" target="_blank">🟢 WhatsApp</a>
-                        <a href="{ics_link}" download="booking.ics">📅 Calendar</a>
+                    <div style="margin-top:8px;">🏟️ Court: <a href="{court_url}" target="_blank" style="color:#ccff00; text-decoration:none; font-weight:bold;">{row['court_name']}</a></div>
+                    <div style="margin-top:5px; font-size:0.95em;">👥 Players: {players_str}</div>
+                    <div style="font-size:0.85em; color:#aaa; margin-top:3px;">⏳ Standby: {standby_str}</div>
+                    <div style="margin-top:10px; padding-top:10px; border-top:1px solid rgba(255,255,255,0.1);">
+                        {pairing_suggestion}
+                    </div>
+                    <div style="margin-top:15px; display:flex; gap:20px; align-items:center;">
+                        <a href="{wa_link}" target="_blank" style="text-decoration:none; display:flex; align-items:center; gap:5px; color:#25D366; font-weight:bold;">
+                            <img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" width="20"> WhatsApp
+                        </a>
+                        <a href="{ics_link}" download="booking.ics" style="text-decoration:none; display:flex; align-items:center; gap:5px; color:#ccff00; font-weight:bold;">
+                            📅 Calendar
+                        </a>
                     </div>
                 </div>
                 """
                 st.markdown(booking_html, unsafe_allow_html=True)
                 if row['screenshot_url']:
-                    with st.expander("View Screenshot"):
+                    with st.expander("📸 View Screenshot", expanded=False, icon="➡️"):
                         st.image(row['screenshot_url'], use_container_width=True)
 
     if st.session_state.is_admin and not st.session_state.bookings_df.empty:
-        with st.expander("Manage Existing Bookings"):
+        with st.expander("Manage Existing Bookings", expanded=False, icon="➡️"):
             for idx, row in st.session_state.bookings_df.iterrows():
                 c1, c2 = st.columns([4, 1])
                 c1.write(f"{row['date']} {row['time']} - {row['court_name']}")
