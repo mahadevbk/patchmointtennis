@@ -2129,7 +2129,7 @@ with tabs[1]:
         .modern-match-card:hover {
             transform: translateY(-2px);
             box-shadow: 0 8px 15px rgba(0,0,0,0.4);
-            border-color: rgba(255, 95, 31, 0.4); /* Orange border on hover */
+            border-color: rgba(204, 255, 0, 0.4); /* Optic yellow border on hover */
         }
         .mmc-header {
             display: flex;
@@ -2164,12 +2164,12 @@ with tabs[1]:
             background: #222;
         }
         .mmc-winner-img {
-            border-color: #FF5F1F; /* Orange border for winner */
-            box-shadow: 0 0 15px rgba(255, 95, 31, 0.4);
+            border-color: #ccff00; /* Optic yellow border for winner */
+            box-shadow: 0 0 15px rgba(204, 255, 0, 0.4);
         }
         .mmc-tie-img {
-            border-color: #FFA500;
-            box-shadow: 0 0 15px rgba(255, 165, 0, 0.4);
+            border-color: #bbbbbb;
+            box-shadow: 0 0 15px rgba(187, 187, 187, 0.4);
         }
         .mmc-name {
             font-weight: bold;
@@ -2178,12 +2178,12 @@ with tabs[1]:
             line-height: 1.2;
         }
         .mmc-winner-text {
-            color: #FF5F1F; /* Orange text for winner */
-            text-shadow: 0 0 10px rgba(255, 95, 31, 0.2);
+            color: #ccff00; /* Optic yellow text for winner */
+            text-shadow: 0 0 10px rgba(204, 255, 0, 0.2);
         }
         .mmc-tie-text {
-            color: #FFA500;
-            text-shadow: 0 0 10px rgba(255, 165, 0, 0.2);
+            color: #bbbbbb;
+            text-shadow: 0 0 10px rgba(187, 187, 187, 0.2);
         }
         .mmc-vs-container {
             flex: 0 0 140px; /* Wider container for the score */
@@ -2195,7 +2195,7 @@ with tabs[1]:
         }
         .mmc-vs-label {
             font-size: 0.7em;
-            color: #ccff00;
+            color: #bbbbbb;
             font-weight: bold;
             margin-bottom: 2px;
             letter-spacing: 2px;
@@ -2203,10 +2203,10 @@ with tabs[1]:
         .mmc-score-main {
             font-size: 2.2em; /* BIGGER */
             font-weight: 900;
-            color: #FF5F1F; /* BRIGHT ORANGE */
+            color: #ccff00; /* Optic yellow */
             letter-spacing: 1px;
             line-height: 1.1;
-            text-shadow: 0 0 20px rgba(255, 95, 31, 0.3); /* GLOW */
+            text-shadow: 0 0 20px rgba(204, 255, 0, 0.3); /* GLOW */
             white-space: nowrap;
         }
         .mmc-footer {
@@ -2218,8 +2218,8 @@ with tabs[1]:
             border-top: 1px solid rgba(255,255,255,0.05);
         }
         .mmc-tag {
-            background: rgba(255, 95, 31, 0.15);
-            color: #FF5F1F;
+            background: rgba(204, 255, 0, 0.15);
+            color: #ccff00;
             padding: 2px 8px;
             border-radius: 4px;
             font-size: 0.75em;
@@ -2490,20 +2490,20 @@ with tabs[1]:
             <div class="modern-match-card">
                 <div class="mmc-header">
                     <div>📅 {row.date.strftime('%d %b %Y') if pd.notnull(row.date) else ''}</div>
-                    <div style="font-weight:bold; color:#FF5F1F;">{getattr(row, 'match_type', 'Match').upper()}</div>
+                    <div style="font-weight:bold; color:#ccff00;">{getattr(row, 'match_type', 'Match').upper()}</div>
                 </div>
                 <div class="mmc-body">
                     <div class="mmc-team">{left_html}</div>
                     <div class="mmc-vs-container">
                         <div class="mmc-score-main">{main_score}</div>
                         <div class="mmc-vs-label">{vs_label}</div>
-                        <div style="font-size:0.8em; color:#ccff00; margin-top:5px;">{scores_detail}</div>
+                        <div style="font-size:0.8em; color:#bbbbbb; margin-top:5px;">{scores_detail}</div>
                     </div>
                     <div class="mmc-team">{right_html}</div>
                 </div>
                 <div class="mmc-footer">
                     <div>{badges_html}</div>
-                    <div class="mmc-stat">Game Diff: <span style="color:#FF5F1F; font-weight:bold;">{game_diff}</span></div>
+                    <div class="mmc-stat">Game Diff: <span style="color:#ccff00; font-weight:bold;">{game_diff}</span></div>
                 </div>
             </div>
             """, unsafe_allow_html=True)
