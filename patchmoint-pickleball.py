@@ -161,19 +161,82 @@ st.markdown("""
             height: 100px;
             border: 3px solid #ccff00;
             border-radius: 12px;
-            overflow: hidden;
+            overflow: visible;
             display: flex;
             justify-content: center;
             align-items: center;
             background-color: #262626;
             box-shadow: 0 0 15px rgba(204, 255, 0, 0.4);
             margin: 0 auto;
+            position: relative;
         }
         .glow-square img {
             width: 100%;
             height: 100%;
-            object-fit: contain; /* Ensures the whole image fits without cropping */
-            padding: 5px; /* Creates a small gap between image and border */
+            object-fit: contain;
+            padding: 5px;
+            transition: transform 0.3s ease;
+            cursor: pointer;
+        }
+        .glow-square:hover img {
+            transform: scale(1.1);
+        }
+        /* Tooltip-like hover for full image */
+        .glow-square .full-img-hover {
+            display: none;
+            position: absolute;
+            top: -50px;
+            left: 110%;
+            z-index: 9999;
+            width: 250px;
+            height: 250px;
+            border: 3px solid #ccff00;
+            border-radius: 15px;
+            background-color: #1a1a1a;
+            box-shadow: 0 0 30px rgba(204, 255, 0, 0.8);
+            object-fit: contain;
+            pointer-events: none;
+        }
+        .glow-square:hover .full-img-hover {
+            display: block;
+        }
+        .mmc-avatar {
+            width: 100px;
+            height: 120px;
+            border-radius: 15%;
+            border: 2px solid #444;
+            object-fit: cover;
+            margin-bottom: 8px;
+            background: #222;
+            transition: transform 0.3s ease;
+            cursor: pointer;
+        }
+        .mmc-avatar:hover {
+            transform: scale(1.1);
+            z-index: 10;
+        }
+        .player-img-container {
+            position: relative;
+            display: inline-block;
+        }
+        .player-img-container .full-img-hover {
+            display: none;
+            position: absolute;
+            top: -150px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 9999;
+            width: 250px;
+            height: 250px;
+            border: 3px solid #ccff00;
+            border-radius: 15px;
+            background-color: #1a1a1a;
+            box-shadow: 0 0 30px rgba(204, 255, 0, 0.8);
+            object-fit: contain;
+            pointer-events: none;
+        }
+        .player-img-container:hover .full-img-hover {
+            display: block;
         }
 html, body, [class*="st-"], .stApp, h1, h2, h3, h4, h5, h6 {
     font-family: 'Turret Road', sans-serif !important;
@@ -872,12 +935,18 @@ def get_valid_scores():
         # Games to 15
         for i in range(14): scores.extend([f"15-{i}", f"{i}-15"])
         scores.extend(["16-14", "14-16", "17-15", "15-17"])
+        scores.append("Custom Pickleball Score (Win by 2)")
         return scores
     else:
         # Tennis / Padel / Pickleball (fallback) scores
         scores = ["6-0", "6-1", "6-2", "6-3", "6-4", "7-5", "7-6", "0-6", "1-6", "2-6", "3-6", "4-6", "5-7", "6-7"]
-        for i in range(10): scores.extend([f"Tie Break 7-{i}", f"Tie Break {i}-7"])
-        for i in range(6): scores.extend([f"Tie Break 10-{i}", f"Tie Break {i}-10"])
+        # Standard Tie Breaks
+        for i in range(7): scores.extend([f"Tie Break 7-{i}", f"Tie Break {i}-7"])
+        # Standard Super Tie Breaks
+        for i in range(10): scores.extend([f"Super Tie Break 10-{i}", f"Super Tie Break {i}-10"])
+        
+        scores.append("Custom Tie Break Entry")
+        scores.append("Custom Super Tie Break Entry")
         return scores
 
 def generate_match_id(matches_df, match_datetime):
@@ -1836,7 +1905,10 @@ with tabs[0]:
                     <div style="flex:1; background:rgba(255,255,255,0.08); border-radius:15px; border-bottom:4px solid {item['color']}; padding:15px; text-align:center; height:{item['height']}; display:flex; flex-direction:column; justify-content:center;">
                         <div style="font-size:1.5em; margin-bottom:5px;">{item['icon']}</div>
                         <div class="glow-square" style="border-color:{item['color']}; width:80px; height:80px; box-shadow: 0 0 10px {item['color']}66;">
-                            <img src="{get_img_src(p['Profile'])}">
+                            <a href="{get_img_src(p['Profile'])}" target="_blank">
+                                <img src="{get_img_src(p['Profile'])}">
+                                <img class="full-img-hover" src="{get_img_src(p['Profile'])}">
+                            </a>
                         </div>
                         <div style="color:white; font-weight:bold; font-size:0.9em; margin-top:10px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{p['Player']}</div>
                         <div style="color:{item['color']}; font-weight:bold; font-size:1.2em;">{p['Score']:.1f}</div>
@@ -1860,7 +1932,10 @@ with tabs[0]:
                         <div style="text-align:center;">
                             <div style="font-size:1.8em; font-weight:bold; color:#ccff00; line-height:1;">🏆 #{row['Rank']}</div>
                             <div class="glow-square" style="margin-top:8px;">
-                                <img src="{get_img_src(row['Profile'])}">
+                                <a href="{get_img_src(row['Profile'])}" target="_blank">
+                                    <img src="{get_img_src(row['Profile'])}">
+                                    <img class="full-img-hover" src="{get_img_src(row['Profile'])}">
+                                </a>
                             </div>
                             <div style="font-weight:bold; color:white; font-size:1.1em; margin-top:10px;">{row['Player']}</div>
                             <div style="color:#ccff00; font-size:1.1em; font-weight:bold;">{row['Score']:.2f} {cd_html}</div>
@@ -2103,7 +2178,43 @@ with tabs[1]:
                 
                 sc1, sc2, sc3 = st.columns(3)
                 s_list = [""] + get_valid_scores()
-                s1 = sc1.selectbox("Set 1", s_list, key=f"s1_{pk}"); s2 = sc2.selectbox("Set 2", s_list, key=f"s2_{pk}"); s3 = sc3.selectbox("Set 3", s_list, key=f"s3_{pk}")
+                s1_sel = sc1.selectbox("Set 1", s_list, key=f"s1_sel_{pk}")
+                s2_sel = sc2.selectbox("Set 2", s_list, key=f"s2_sel_{pk}")
+                s3_sel = sc3.selectbox("Set 3", s_list, key=f"s3_sel_{pk}")
+
+                def get_final_score(sel, col, k):
+                    if sel == "Custom Pickleball Score (Win by 2)":
+                        c1, c2 = col.columns(2)
+                        v1 = c1.number_input("P1", min_value=0, max_value=99, value=11, key=f"custom_pb1_{k}_{pk}")
+                        v2 = c2.number_input("P2", min_value=0, max_value=99, value=9, key=f"custom_pb2_{k}_{pk}")
+                        # Pickleball logic: One must be >= 11, and if > 11, diff must be 2. If 11, diff >= 2.
+                        mx = max(v1, v2)
+                        diff = abs(v1 - v2)
+                        if mx < 11 or (mx > 11 and diff != 2) or (mx == 11 and diff < 2):
+                            col.error("Invalid: Min 11 pts & Win by 2")
+                            return None
+                        return f"{v1}-{v2}"
+                    elif sel == "Custom Tie Break Entry":
+                        c1, c2 = col.columns(2)
+                        v1 = c1.number_input("P1", min_value=0, max_value=99, value=7, key=f"custom_tb1_{k}_{pk}")
+                        v2 = c2.number_input("P2", min_value=0, max_value=99, value=5, key=f"custom_tb2_{k}_{pk}")
+                        if abs(v1 - v2) < 2 or max(v1, v2) < 7:
+                            col.error("Tie Break: Min 7 pts & Diff 2")
+                            return None
+                        return f"Tie Break {v1}-{v2}"
+                    elif sel == "Custom Super Tie Break Entry":
+                        c1, c2 = col.columns(2)
+                        v1 = c1.number_input("P1", min_value=0, max_value=99, value=10, key=f"custom_stb1_{k}_{pk}")
+                        v2 = c2.number_input("P2", min_value=0, max_value=99, value=8, key=f"custom_stb2_{k}_{pk}")
+                        if abs(v1 - v2) < 2 or max(v1, v2) < 10:
+                            col.error("Super TB: Min 10 pts & Diff 2")
+                            return None
+                        return f"Tie Break {v1}-{v2}"
+                    return sel
+
+                s1 = get_final_score(s1_sel, sc1, 1)
+                s2 = get_final_score(s2_sel, sc2, 2)
+                s3 = get_final_score(s3_sel, sc3, 3)
                 
                 win_opts = ["Team 1", "Team 2"]
                 if config.get("allow_ties", False): win_opts.append("Tie")
@@ -2112,19 +2223,23 @@ with tabs[1]:
 
                 if st.button("Post Match", key=f"bp_{pk}"):
                     if s1 and (img or not is_img_required):
-                        mid = str(uuid.uuid4())
-                        path = save_remote_image(img, mid, "match") if img else ""
-                        new_row = {
-                            "match_id": mid, "date": md.strftime('%Y-%m-%d'), "match_type": final_match_type, 
-                            "team1_player1": t1p1, "team1_player2": t1p2, "team2_player1": t2p1, "team2_player2": t2p2, 
-                            "set1": s1, "set2": s2, "set3": s3, "winner": win, "match_image_url": path, 
-                            "chapter_id": st.session_state.current_chapter['id']
-                        }
-                        new_row_df = pd.DataFrame([new_row])
-                        save_matches(new_row_df) 
-                        st.session_state.matches_df = pd.concat([st.session_state.matches_df, new_row_df], ignore_index=True)
-                        st.session_state.match_post_key += 1
-                        st.success(f"Saved as {mt}"); time.sleep(1); st.rerun()
+                        # Validate that s1, s2, s3 are not None (failed custom validation)
+                        if s1 is None or (s2_sel != "" and s2 is None) or (s3_sel != "" and s3 is None):
+                            st.error("Please fix custom score errors.")
+                        else:
+                            mid = str(uuid.uuid4())
+                            path = save_remote_image(img, mid, "match") if img else ""
+                            new_row = {
+                                "match_id": mid, "date": md.strftime('%Y-%m-%d'), "match_type": final_match_type, 
+                                "team1_player1": t1p1, "team1_player2": t1p2, "team2_player1": t2p1, "team2_player2": t2p2, 
+                                "set1": s1, "set2": s2 if s2 else "", "set3": s3 if s3 else "", "winner": win, "match_image_url": path, 
+                                "chapter_id": st.session_state.current_chapter['id']
+                            }
+                            new_row_df = pd.DataFrame([new_row])
+                            save_matches(new_row_df) 
+                            st.session_state.matches_df = pd.concat([st.session_state.matches_df, new_row_df], ignore_index=True)
+                            st.session_state.match_post_key += 1
+                            st.success(f"Saved as {mt}"); time.sleep(1); st.rerun()
                     else: st.error("Score & Photo required")
 
     # --- MATCH HISTORY DISPLAY ---
@@ -2204,22 +2319,52 @@ with tabs[1]:
             
             if t1_p2_name:
                 t1_html = f"""<div style="display:flex; gap:5px; justify-content:center;">
-                                <img src="{get_p_img(t1_p1_name)}" class="mmc-avatar {t1_img_class}">
-                                <img src="{get_p_img(t1_p2_name)}" class="mmc-avatar {t1_img_class}">
+                                <div class="player-img-container">
+                                    <a href="{get_p_img(t1_p1_name)}" target="_blank">
+                                        <img src="{get_p_img(t1_p1_name)}" class="mmc-avatar {t1_img_class}">
+                                        <img class="full-img-hover" src="{get_p_img(t1_p1_name)}">
+                                    </a>
+                                </div>
+                                <div class="player-img-container">
+                                    <a href="{get_p_img(t1_p2_name)}" target="_blank">
+                                        <img src="{get_p_img(t1_p2_name)}" class="mmc-avatar {t1_img_class}">
+                                        <img class="full-img-hover" src="{get_p_img(t1_p2_name)}">
+                                    </a>
+                                </div>
                               </div>
                               <div class="mmc-name {t1_class}">{t1_p1_name}<br>& {t1_p2_name}</div>"""
             else:
-                t1_html = f"""<img src="{get_p_img(t1_p1_name)}" class="mmc-avatar {t1_img_class}">
+                t1_html = f"""<div class="player-img-container">
+                                <a href="{get_p_img(t1_p1_name)}" target="_blank">
+                                    <img src="{get_p_img(t1_p1_name)}" class="mmc-avatar {t1_img_class}">
+                                    <img class="full-img-hover" src="{get_p_img(t1_p1_name)}">
+                                </a>
+                              </div>
                               <div class="mmc-name {t1_class}">{t1_p1_name}</div>"""
 
             if t2_p2_name:
                 t2_html = f"""<div style="display:flex; gap:5px; justify-content:center;">
-                                <img src="{get_p_img(t2_p1_name)}" class="mmc-avatar {t2_img_class}">
-                                <img src="{get_p_img(t2_p2_name)}" class="mmc-avatar {t2_img_class}">
+                                <div class="player-img-container">
+                                    <a href="{get_p_img(t2_p1_name)}" target="_blank">
+                                        <img src="{get_p_img(t2_p1_name)}" class="mmc-avatar {t2_img_class}">
+                                        <img class="full-img-hover" src="{get_p_img(t2_p1_name)}">
+                                    </a>
+                                </div>
+                                <div class="player-img-container">
+                                    <a href="{get_p_img(t2_p2_name)}" target="_blank">
+                                        <img src="{get_p_img(t2_p2_name)}" class="mmc-avatar {t2_img_class}">
+                                        <img class="full-img-hover" src="{get_p_img(t2_p2_name)}">
+                                    </a>
+                                </div>
                               </div>
                               <div class="mmc-name {t2_class}">{t2_p1_name}<br>& {t2_p2_name}</div>"""
             else:
-                t2_html = f"""<img src="{get_p_img(t2_p1_name)}" class="mmc-avatar {t2_img_class}">
+                t2_html = f"""<div class="player-img-container">
+                                <a href="{get_p_img(t2_p1_name)}" target="_blank">
+                                    <img src="{get_p_img(t2_p1_name)}" class="mmc-avatar {t2_img_class}">
+                                    <img class="full-img-hover" src="{get_p_img(t2_p1_name)}">
+                                </a>
+                              </div>
                               <div class="mmc-name {t2_class}">{t2_p1_name}</div>"""
 
             # Determine display order: Winner on left
@@ -2287,7 +2432,7 @@ with tabs[1]:
             img_url = getattr(row, 'match_image_url', '')
             if img_url:
                 with st.expander("📷 View Match Photo", expanded=False, icon="➡️"):
-                    st.image(img_url, use_container_width=True)
+                    st.markdown(f'<a href="{img_url}" target="_blank"><img src="{img_url}" style="width:100%; border-radius:10px; cursor:pointer;"></a>', unsafe_allow_html=True)
 
             # Edit/Delete Logic
             can_edit_match = False
@@ -2466,7 +2611,10 @@ with tabs[2]:
                         <div style="text-align:center;">
                             <div style="font-size:1.8em; font-weight:bold; color:#ccff00; line-height:1;">🏆 #{s['Rank']}</div>
                             <div class="glow-square" style="margin-top:8px;">
-                                <img src="{get_img_src(s['Profile'])}">
+                                <a href="{get_img_src(s['Profile'])}" target="_blank">
+                                    <img src="{get_img_src(s['Profile'])}">
+                                    <img class="full-img-hover" src="{get_img_src(s['Profile'])}">
+                                </a>
                             </div>
                             <div style="font-weight:bold; color:white; font-size:1.1em; margin-top:10px;">{s['Player']}</div>
                             <div style="color:#ccff00; font-size:1.1em; font-weight:bold;">{s['Score']:.2f} {cd_html}</div>
@@ -2545,7 +2693,7 @@ with tabs[2]:
                 with st.container(border=True):
                     c1, c2 = st.columns([1, 4])
                     with c1:
-                        st.markdown(f'<div class="glow-square" style="width:80px; height:80px; margin:0 auto;"><img src="{img_src}"></div><div style="text-align:center; font-weight:bold; color:white; margin-top:5px; font-size:0.9em;">{p_name}</div>', unsafe_allow_html=True)
+                        st.markdown(f'<div class="glow-square" style="width:80px; height:80px; margin:0 auto;"><a href="{img_src}" target="_blank"><img src="{img_src}"><img class="full-img-hover" src="{img_src}"></a></div><div style="text-align:center; font-weight:bold; color:white; margin-top:5px; font-size:0.9em;">{p_name}</div>', unsafe_allow_html=True)
                     with c2:
                         st.info("No stats yet. Play a match to get started!")
             st.divider()
