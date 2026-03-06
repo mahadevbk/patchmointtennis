@@ -157,7 +157,7 @@ st.markdown("""
             height: 100px;
             border: 3px solid #ccff00;
             border-radius: 12px;
-            overflow: visible; /* Changed from hidden to allow hover enlargement if needed, but we will use a different hover strategy */
+            overflow: hidden;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -165,36 +165,15 @@ st.markdown("""
             box-shadow: 0 0 15px rgba(204, 255, 0, 0.4);
             margin: 0 auto;
             position: relative;
+            box-sizing: border-box;
         }
         .glow-square img {
             width: 100%;
             height: 100%;
             object-fit: contain;
             padding: 5px;
-            transition: transform 0.3s ease;
+            box-sizing: border-box;
             cursor: pointer;
-        }
-        .glow-square:hover img {
-            transform: scale(1.1);
-        }
-        /* Tooltip-like hover for full image */
-        .glow-square .full-img-hover {
-            display: none;
-            position: absolute;
-            top: -50px;
-            left: 110%;
-            z-index: 9999;
-            width: 250px;
-            height: 250px;
-            border: 3px solid #ccff00;
-            border-radius: 15px;
-            background-color: #1a1a1a;
-            box-shadow: 0 0 30px rgba(204, 255, 0, 0.8);
-            object-fit: contain;
-            pointer-events: none;
-        }
-        .glow-square:hover .full-img-hover {
-            display: block;
         }
         .mmc-avatar {
             width: 100px;
@@ -204,35 +183,17 @@ st.markdown("""
             object-fit: cover;
             margin-bottom: 8px;
             background: #222;
-            transition: transform 0.3s ease;
             cursor: pointer;
-        }
-        .mmc-avatar:hover {
-            transform: scale(1.1);
-            z-index: 10;
+            box-sizing: border-box;
         }
         .player-img-container {
             position: relative;
             display: inline-block;
-        }
-        .player-img-container .full-img-hover {
-            display: none;
-            position: absolute;
-            top: -150px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 9999;
-            width: 250px;
-            height: 250px;
-            border: 3px solid #ccff00;
-            border-radius: 15px;
-            background-color: #1a1a1a;
-            box-shadow: 0 0 30px rgba(204, 255, 0, 0.8);
-            object-fit: contain;
-            pointer-events: none;
-        }
-        .player-img-container:hover .full-img-hover {
-            display: block;
+            overflow: hidden;
+            border-radius: 15%;
+            width: 100px;
+            height: 120px;
+            box-sizing: border-box;
         }
 html, body, [class*="st-"], .stApp, h1, h2, h3, h4, h5, h6 {
     font-family: 'Turret Road', sans-serif !important;
@@ -1907,7 +1868,6 @@ with tabs[0]:
                         <div class="glow-square" style="border-color:{item['color']}; width:80px; height:80px; box-shadow: 0 0 10px {item['color']}66;">
                             <a href="{get_img_src(p['Profile'])}" target="_blank">
                                 <img src="{get_img_src(p['Profile'])}">
-                                <img class="full-img-hover" src="{get_img_src(p['Profile'])}">
                             </a>
                         </div>
                         <div style="color:white; font-weight:bold; font-size:0.9em; margin-top:10px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{p['Player']}</div>
@@ -1934,7 +1894,6 @@ with tabs[0]:
                             <div class="glow-square" style="margin-top:8px;">
                                 <a href="{get_img_src(row['Profile'])}" target="_blank">
                                     <img src="{get_img_src(row['Profile'])}">
-                                    <img class="full-img-hover" src="{get_img_src(row['Profile'])}">
                                 </a>
                             </div>
                             <div style="font-weight:bold; color:white; font-size:1.1em; margin-top:10px;">{row['Player']}</div>
@@ -2319,13 +2278,11 @@ with tabs[1]:
                                 <div class="player-img-container">
                                     <a href="{get_p_img(t1_p1_name)}" target="_blank">
                                         <img src="{get_p_img(t1_p1_name)}" class="mmc-avatar {t1_img_class}">
-                                        <img class="full-img-hover" src="{get_p_img(t1_p1_name)}">
                                     </a>
                                 </div>
                                 <div class="player-img-container">
                                     <a href="{get_p_img(t1_p2_name)}" target="_blank">
                                         <img src="{get_p_img(t1_p2_name)}" class="mmc-avatar {t1_img_class}">
-                                        <img class="full-img-hover" src="{get_p_img(t1_p2_name)}">
                                     </a>
                                 </div>
                               </div>
@@ -2334,7 +2291,6 @@ with tabs[1]:
                 t1_html = f"""<div class="player-img-container">
                                 <a href="{get_p_img(t1_p1_name)}" target="_blank">
                                     <img src="{get_p_img(t1_p1_name)}" class="mmc-avatar {t1_img_class}">
-                                    <img class="full-img-hover" src="{get_p_img(t1_p1_name)}">
                                 </a>
                               </div>
                               <div class="mmc-name {t1_class}">{t1_p1_name}</div>"""
@@ -2344,13 +2300,11 @@ with tabs[1]:
                                 <div class="player-img-container">
                                     <a href="{get_p_img(t2_p1_name)}" target="_blank">
                                         <img src="{get_p_img(t2_p1_name)}" class="mmc-avatar {t2_img_class}">
-                                        <img class="full-img-hover" src="{get_p_img(t2_p1_name)}">
                                     </a>
                                 </div>
                                 <div class="player-img-container">
                                     <a href="{get_p_img(t2_p2_name)}" target="_blank">
                                         <img src="{get_p_img(t2_p2_name)}" class="mmc-avatar {t2_img_class}">
-                                        <img class="full-img-hover" src="{get_p_img(t2_p2_name)}">
                                     </a>
                                 </div>
                               </div>
@@ -2359,7 +2313,6 @@ with tabs[1]:
                 t2_html = f"""<div class="player-img-container">
                                 <a href="{get_p_img(t2_p1_name)}" target="_blank">
                                     <img src="{get_p_img(t2_p1_name)}" class="mmc-avatar {t2_img_class}">
-                                    <img class="full-img-hover" src="{get_p_img(t2_p1_name)}">
                                 </a>
                               </div>
                               <div class="mmc-name {t2_class}">{t2_p1_name}</div>"""
@@ -2610,7 +2563,6 @@ with tabs[2]:
                             <div class="glow-square" style="margin-top:8px;">
                                 <a href="{get_img_src(s['Profile'])}" target="_blank">
                                     <img src="{get_img_src(s['Profile'])}">
-                                    <img class="full-img-hover" src="{get_img_src(s['Profile'])}">
                                 </a>
                             </div>
                             <div style="font-weight:bold; color:white; font-size:1.1em; margin-top:10px;">{s['Player']}</div>
@@ -2690,7 +2642,7 @@ with tabs[2]:
                 with st.container(border=True):
                     c1, c2 = st.columns([1, 4])
                     with c1:
-                        st.markdown(f'<div class="glow-square" style="width:80px; height:80px; margin:0 auto;"><a href="{img_src}" target="_blank"><img src="{img_src}"><img class="full-img-hover" src="{img_src}"></a></div><div style="text-align:center; font-weight:bold; color:white; margin-top:5px; font-size:0.9em;">{p_name}</div>', unsafe_allow_html=True)
+                        st.markdown(f'<div class="glow-square" style="width:80px; height:80px; margin:0 auto;"><a href="{img_src}" target="_blank"><img src="{img_src}"></a></div><div style="text-align:center; font-weight:bold; color:white; margin-top:5px; font-size:0.9em;">{p_name}</div>', unsafe_allow_html=True)
                     with c2:
                         st.info("No stats yet. Play a match to get started!")
             st.divider()
