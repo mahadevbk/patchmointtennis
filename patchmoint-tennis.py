@@ -903,7 +903,12 @@ def generate_match_id(matches_df, match_datetime):
         serial += 1
 
 def get_player_stats_template():
-    return {'wins': 0, 'losses': 0, 'ties': 0, 'matches': 0, 'games_won': 0, 'gd_sum': 0, 'clutch_wins': 0, 'clutch_matches': 0, 'gd_list': [], 'points': 0, 'singles_wins': 0, 'singles_matches': 0, 'doubles_wins': 0, 'doubles_matches': 0, 'trend': []}
+    return {
+        'wins': 0, 'losses': 0, 'ties': 0, 'matches': 0, 'games_won': 0, 'gd_sum': 0, 
+        'clutch_wins': 0, 'clutch_matches': 0, 'gd_list': [], 'points': 0, 
+        'singles_wins': 0, 'singles_matches': 0, 'doubles_wins': 0, 'doubles_matches': 0, 
+        'trend': [], 'giant_kills': 0, 'comebacks': 0, 'daily_matches': defaultdict(int), 'sets_won': 0
+    }
 
 @st.cache_data(show_spinner=False)
 def calculate_rankings(matches_to_rank):
@@ -1000,6 +1005,25 @@ def calculate_rankings(matches_to_rank):
         is_tie = (match_winner == "Tie")
         t1_won = (match_winner == "Team 1")
 
+        # --- New Stat Logic: Giant Killer, Comeback, Daily Matches ---
+        t1_elo_avg = sum(elo_ratings[p] for p in t1) / len(t1)
+        t2_elo_avg = sum(elo_ratings[p] for p in t2) / len(t2)
+        
+        # Giant Killer logic: Beat team with 100+ Elo advantage
+        is_giant_kill = False
+        if t1_won and (t2_elo_avg - t1_elo_avg) >= 100: is_giant_kill = True
+        elif (not t1_won and not is_tie) and (t1_elo_avg - t2_elo_avg) >= 100: is_giant_kill = True
+
+        # Comeback logic: Won match after losing 1st set
+        is_comeback = False
+        s1 = str(row.set1)
+        if '-' in s1:
+            try:
+                s1_p1, s1_p2 = map(int, s1.split('-'))
+                if t1_won and s1_p2 > s1_p1: is_comeback = True
+                elif (not t1_won and not is_tie) and s1_p1 > s1_p2: is_comeback = True
+            except: pass
+
         def update_elo(players, own_elo_avg, opp_elo_avg, actual_score):
             expected = 1 / (1 + 10 ** ((opp_elo_avg - own_elo_avg) / 400))
             elo_change = K_FACTOR * (actual_score - expected)
@@ -1014,13 +1038,28 @@ def calculate_rankings(matches_to_rank):
             for p in players:
                 utr_ratings[p] = max(UTR_MIN, min(UTR_MAX, utr_ratings[p] + utr_change))
 
-        def update_common_stats(players, games_won, total_games, result, match_type):
+        def update_common_stats(players, games_won, total_games, result, match_type, is_winner_team):
             for p in players:
                 stats[p]['matches'] += 1
                 stats[p]['games_won'] += games_won
                 stats[p]['gd_sum'] += (games_won - (total_games - games_won))
                 stats[p]['gd_list'].append(games_won - (total_games - games_won))
                 if is_clutch: stats[p]['clutch_matches'] += 1
+                
+                # Sets won tracking
+                for s_val in [row.set1, row.set2, row.set3]:
+                    if not s_val: continue
+                    try:
+                        pts = str(s_val).split('-')
+                        if is_winner_team and int(pts[0]) > int(pts[1]): stats[p]['sets_won'] += 1
+                        elif not is_winner_team and int(pts[1]) > int(pts[0]): stats[p]['sets_won'] += 1
+                    except: pass
+
+                # Daily matches
+                stats[p]['daily_matches'][str(row.date)] += 1
+
+                if is_winner_team and is_giant_kill: stats[p]['giant_kills'] += 1
+                if is_winner_team and is_comeback: stats[p]['comebacks'] += 1
 
                 if match_type == "Singles":
                     stats[p]['singles_matches'] += 1
@@ -1047,20 +1086,20 @@ def calculate_rankings(matches_to_rank):
                     stats[p]['trend'].append('T')
 
         if is_tie:
-            update_common_stats(t1, t1_total_games, total_match_games, 0.5, match_type)
-            update_common_stats(t2, t2_total_games, total_match_games, 0.5, match_type)
+            update_common_stats(t1, t1_total_games, total_match_games, 0.5, match_type, False)
+            update_common_stats(t2, t2_total_games, total_match_games, 0.5, match_type, False)
             update_elo(t1, t1_elo_avg, t2_elo_avg, 0.5); update_elo(t2, t2_elo_avg, t1_elo_avg, 0.5)
             update_utr(t1, t1_utr_avg, t2_utr_avg, t1_total_games / total_match_games)
             update_utr(t2, t2_utr_avg, t1_utr_avg, t2_total_games / total_match_games)
         elif t1_won:
-            update_common_stats(t1, t1_total_games, total_match_games, 1, match_type)
-            update_common_stats(t2, t2_total_games, total_match_games, 0, match_type)
+            update_common_stats(t1, t1_total_games, total_match_games, 1, match_type, True)
+            update_common_stats(t2, t2_total_games, total_match_games, 0, match_type, False)
             update_elo(t1, t1_elo_avg, t2_elo_avg, 1.0); update_elo(t2, t2_elo_avg, t1_elo_avg, 0.0)
             update_utr(t1, t1_utr_avg, t2_utr_avg, t1_total_games / total_match_games)
             update_utr(t2, t2_utr_avg, t1_utr_avg, t2_total_games / total_match_games)
         else:
-            update_common_stats(t1, t1_total_games, total_match_games, 0, match_type)
-            update_common_stats(t2, t2_total_games, total_match_games, 1, match_type)
+            update_common_stats(t1, t1_total_games, total_match_games, 0, match_type, False)
+            update_common_stats(t2, t2_total_games, total_match_games, 1, match_type, True)
             update_elo(t1, t1_elo_avg, t2_elo_avg, 0.0); update_elo(t2, t2_elo_avg, t1_elo_avg, 1.0)
             update_utr(t1, t1_utr_avg, t2_utr_avg, t1_total_games / total_match_games)
             update_utr(t2, t2_utr_avg, t1_utr_avg, t2_total_games / total_match_games)
@@ -1085,6 +1124,21 @@ def calculate_rankings(matches_to_rank):
             if consistency < 1.5: badges.append("🤖 Machine")
             if clutch_pct > 66 and s['clutch_matches'] >= 3: badges.append("🧊 Clutch")
             if (s['wins']/m_played) > 0.75: badges.append("🦁 Dominant")
+        
+        # New Badge Assignments
+        if s.get('giant_kills', 0) > 0: badges.append("🛡️ Giant Killer")
+        if s.get('comebacks', 0) > 0: badges.append("🔄 Comeback Kid")
+        if any(v >= 3 for v in s['daily_matches'].values()): badges.append("⛓️ Iron Player")
+        if s.get('sets_won', 0) >= 20: badges.append("🏆 Set Collector")
+        if m_played >= 50: badges.append("🎖️ Veteran")
+        
+        # Participation Badge (Played in last 7 days)
+        try:
+            if l_date:
+                last_dt = pd.to_datetime(l_date)
+                if (datetime.now() - last_dt).days <= 7:
+                    badges.append("🌱 Participation")
+        except: pass
 
         score_elo = round(elo_ratings[p], 1)
         current_utr = int(round(utr_ratings[p]))
