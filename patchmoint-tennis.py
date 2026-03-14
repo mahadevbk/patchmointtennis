@@ -2946,6 +2946,7 @@ with tabs[3]:
              with cols[i%3]: st.markdown(f"""<div class="court-card"><h4>{c.get('name')}</h4><a href="{c.get('url')}" target="_blank">Map</a></div>""", unsafe_allow_html=True)
 
 with tabs[4]:
+    
     st.header("Bookings")
     available_players = sorted(st.session_state.players_df['name'].tolist()) if not st.session_state.players_df.empty else []
 
@@ -3038,6 +3039,7 @@ with tabs[4]:
     else:
         df_book = st.session_state.bookings_df.copy()
         df_book['dt'] = pd.to_datetime(df_book['date'] + ' ' + df_book['time'])
+        # Filter to show only future bookings (up to 2 hours old)
         df_book = df_book[df_book['dt'] >= datetime.now() - timedelta(hours=2)].sort_values('dt')
         
         if df_book.empty:
@@ -3049,17 +3051,16 @@ with tabs[4]:
 
             for _, row in df_book.iterrows():
                 players = [p for p in [row['player1'], row['player2'], row['player3'], row['player4']] if p]
-                players_str = ", ".join([f"<span style='font-weight:bold; color:#ccff00;'>{p}</span>" for p in players]) if players else "No players"
-                standby_str = f"<span style='font-weight:bold; color:#ccff00;'>{row['standby_player']}</span>" if row['standby_player'] else "None"
+                players_str = ", ".join([f"<span style='font-weight:bold; color:#ccff00;'>{p}</span>" for p in players])
+                standby_val = row['standby_player'] if row['standby_player'] else "None"
+                standby_str = f"<span style='font-weight:bold; color:#ccff00;'>{standby_val}</span>"
                 
-                # --- Odds Logic ---
                 pairing_suggestion = ""
                 plain_suggestion = ""
                 try:
                     if row['match_type'] == "Doubles" and len(players) == 4:
                         rank_df = doubles_rank_df
-                        unranked = [p for p in players if p not in rank_df["Player"].values]
-                        if not unranked:
+                        if all(p in rank_df["Player"].values for p in players):
                             all_p = []
                             seen = set()
                             for t1 in combinations(players, 2):
@@ -3084,36 +3085,37 @@ with tabs[4]:
                             o1, o2 = suggest_singles_odds(players, rank_df)
                             plain_suggestion = f"Odds: {o1:.1f}% vs {o2:.1f}%"
                             pairing_suggestion = f"<div style='margin-top:10px; padding-top:10px; border-top:1px solid rgba(255,255,255,0.1);'><strong>Odds:</strong> {players[0]} ({o1:.1f}%) vs {players[1]} ({o2:.1f}%)</div>"
-                except: pass
+                except: 
+                    pairing_suggestion = ""
 
                 court_url = court_map.get(row['court_name'], "#")
                 share_msg = f"*Game Booking:* Date: {row['date']} {row['time']} | Court: {row['court_name']} | Players: {', '.join(players)} | {plain_suggestion}"
                 wa_link = f"https://api.whatsapp.com/send?text={urllib.parse.quote(share_msg)}"
                 ics_data, _ = generate_ics_for_booking(row, plain_suggestion)
+                # URL encode the entire data string to prevent it from breaking the HTML parser
                 ics_link = f"data:text/calendar;charset=utf-8,{urllib.parse.quote(ics_data)}" if ics_data else "#"
 
-                # --- RENDER CARD ---
-                booking_html = f"""
-                <div style="background: rgba(255,255,255,0.05); padding:15px; border-radius:10px; margin-bottom:15px; border-left:4px solid #ccff00;">
-                    <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <span style="color:#ccff00; font-weight:bold; font-size:1.1em;">{row['date']} at {row['time']}</span>
-                        <span style="font-size:0.8em; background:#ccff00; color:#000; padding:2px 8px; border-radius:4px; font-weight:bold;">{row['match_type']}</span>
-                    </div>
-                    <div style="margin-top:8px;">🏟️ Court: <a href="{court_url}" target="_blank" style="color:#ccff00; text-decoration:none; font-weight:bold;">{row['court_name']}</a></div>
-                    <div style="margin-top:5px; font-size:0.95em;">👥 Players: {players_str}</div>
-                    <div style="font-size:0.85em; color:#aaa; margin-top:3px;">⏳ Standby: {standby_str}</div>
-                    {pairing_suggestion}
-                    <div style="margin-top:15px; display:flex; gap:20px; align-items:center;">
-                        <a href="{wa_link}" target="_blank" style="text-decoration:none; display:flex; align-items:center; gap:5px; color:#25D366; font-weight:bold;">
-                            <img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" width="20"> WhatsApp
-                        </a>
-                        <a href="{ics_link}" download="booking.ics" style="text-decoration:none; display:flex; align-items:center; gap:5px; color:#ccff00; font-weight:bold;">
-                            📅 Calendar
-                        </a>
-                    </div>
-                </div>
-                """
-                st.markdown(booking_html, unsafe_allow_html=True)
+                # --- RENDER WITH ABSOLUTE MINIMAL NESTING TO PREVENT CODE LEAK ---
+                booking_card = f"""
+    <div style="background: rgba(255,255,255,0.05); padding:15px; border-radius:10px; margin-bottom:15px; border-left:4px solid #ccff00; font-family: sans-serif;">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span style="color:#ccff00; font-weight:bold; font-size:1.1em;">{row['date']} at {row['time']}</span>
+            <span style="font-size:0.8em; background:#ccff00; color:#000; padding:2px 8px; border-radius:4px; font-weight:bold;">{row['match_type']}</span>
+        </div>
+        <div style="margin-top:8px;">🏟️ Court: <a href="{court_url}" target="_blank" style="color:#ccff00; text-decoration:none; font-weight:bold;">{row['court_name']}</a></div>
+        <div style="margin-top:5px; font-size:0.95em;">👥 Players: {players_str}</div>
+        <div style="font-size:0.85em; color:#aaa; margin-top:3px;">⏳ Standby: {standby_str}</div>
+        {pairing_suggestion}
+        <div style="margin-top:15px; display:flex; gap:20px; align-items:center; border-top: 1px solid rgba(255,255,255,0.1); padding-top:10px;">
+            <a href="{wa_link}" target="_blank" style="text-decoration:none; display:flex; align-items:center; gap:5px; color:#25D366; font-weight:bold; font-size:0.9em;">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" width="18"> WhatsApp
+            </a>
+            <a href="{ics_link}" download="booking.ics" style="text-decoration:none; display:flex; align-items:center; gap:5px; color:#ccff00; font-weight:bold; font-size:0.9em;">
+                📅 Calendar
+            </a>
+        </div>
+    </div>"""
+                st.markdown(booking_card, unsafe_allow_html=True)
                 
                 if row['screenshot_url']:
                     with st.expander("📸 View Screenshot", expanded=False):
@@ -3121,10 +3123,11 @@ with tabs[4]:
 
     # --- ADMIN MANAGEMENT ---
     if st.session_state.is_admin and not st.session_state.bookings_df.empty:
-        with st.expander("Manage Existing Bookings", expanded=False, icon="➡️"):
+        st.markdown("---")
+        with st.expander("Manage Existing Bookings", expanded=False, icon="🗑️"):
             for idx, row in st.session_state.bookings_df.iterrows():
                 c1, c2 = st.columns([4, 1])
-                c1.write(f"{row['date']} {row['time']} - {row['court_name']}")
+                c1.write(f"**{row['date']} {row['time']}** - {row['court_name']}")
                 if c2.button("Delete", key=f"del_b_{row['booking_id']}"):
                     delete_booking_from_db(row['booking_id'])
                     st.rerun()
