@@ -2962,7 +2962,7 @@ with tabs[4]:
             if st.button("Match up", key="btn_matchup_doubles"):
                 st.subheader("Match Odds")
                 players_list = [t1p1, t1p2, t2p1, t2p2]
-                doubles_rank_df, _ = calculate_rankings(st.session_state.matches_df[st.session_state.matches_df['match_type'].isin(["Doubles", "Mixed Doubles"])])
+                doubles_rank_df = calculate_rankings(st.session_state.matches_df[st.session_state.matches_df['match_type'].isin(["Doubles", "Mixed Doubles"])])
                 if all(p in doubles_rank_df["Player"].values for p in players_list if p):
                     pairing_text, team1_odds, team2_odds = suggest_balanced_pairing(players_list, doubles_rank_df)
                     if pairing_text:
@@ -2977,7 +2977,7 @@ with tabs[4]:
             if st.button("Match up", key="btn_matchup_singles"):
                 st.subheader("Match Odds")
                 if p1 and p2:
-                    singles_rank_df, _ = calculate_rankings(st.session_state.matches_df[st.session_state.matches_df['match_type']=="Singles"])
+                    singles_rank_df = calculate_rankings(st.session_state.matches_df[st.session_state.matches_df['match_type']=="Singles"])
                     if p1 in singles_rank_df["Player"].values and p2 in singles_rank_df["Player"].values:
                         odds1, odds2 = suggest_singles_odds([p1, p2], singles_rank_df)
                         st.write(f"Odds → {p1}: {odds1:.1f}% | {p2}: {odds2:.1f}%")
