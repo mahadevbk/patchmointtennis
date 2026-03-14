@@ -3039,7 +3039,6 @@ with tabs[4]:
     else:
         df_book = st.session_state.bookings_df.copy()
         df_book['dt'] = pd.to_datetime(df_book['date'] + ' ' + df_book['time'])
-        # Filter to show only future bookings (up to 2 hours old)
         df_book = df_book[df_book['dt'] >= datetime.now() - timedelta(hours=2)].sort_values('dt')
         
         if df_book.empty:
@@ -3053,7 +3052,6 @@ with tabs[4]:
                 players = [p for p in [row['player1'], row['player2'], row['player3'], row['player4']] if p]
                 players_str = ", ".join([f"<span style='font-weight:bold; color:#ccff00;'>{p}</span>" for p in players])
                 standby_val = row['standby_player'] if row['standby_player'] else "None"
-                standby_str = f"<span style='font-weight:bold; color:#ccff00;'>{standby_val}</span>"
                 
                 pairing_suggestion = ""
                 plain_suggestion = ""
@@ -3092,29 +3090,29 @@ with tabs[4]:
                 share_msg = f"*Game Booking:* Date: {row['date']} {row['time']} | Court: {row['court_name']} | Players: {', '.join(players)} | {plain_suggestion}"
                 wa_link = f"https://api.whatsapp.com/send?text={urllib.parse.quote(share_msg)}"
                 ics_data, _ = generate_ics_for_booking(row, plain_suggestion)
-                # URL encode the entire data string to prevent it from breaking the HTML parser
                 ics_link = f"data:text/calendar;charset=utf-8,{urllib.parse.quote(ics_data)}" if ics_data else "#"
 
-                # --- RENDER WITH ABSOLUTE MINIMAL NESTING TO PREVENT CODE LEAK ---
+                # IMPORTANT: The HTML block below is left-aligned to avoid Markdown code block formatting
                 booking_card = f"""
-    <div style="background: rgba(255,255,255,0.05); padding:15px; border-radius:10px; margin-bottom:15px; border-left:4px solid #ccff00; font-family: sans-serif;">
-        <div style="display:flex; justify-content:space-between; align-items:center;">
-            <span style="color:#ccff00; font-weight:bold; font-size:1.1em;">{row['date']} at {row['time']}</span>
-            <span style="font-size:0.8em; background:#ccff00; color:#000; padding:2px 8px; border-radius:4px; font-weight:bold;">{row['match_type']}</span>
-        </div>
-        <div style="margin-top:8px;">🏟️ Court: <a href="{court_url}" target="_blank" style="color:#ccff00; text-decoration:none; font-weight:bold;">{row['court_name']}</a></div>
-        <div style="margin-top:5px; font-size:0.95em;">👥 Players: {players_str}</div>
-        <div style="font-size:0.85em; color:#aaa; margin-top:3px;">⏳ Standby: {standby_str}</div>
-        {pairing_suggestion}
-        <div style="margin-top:15px; display:flex; gap:20px; align-items:center; border-top: 1px solid rgba(255,255,255,0.1); padding-top:10px;">
-            <a href="{wa_link}" target="_blank" style="text-decoration:none; display:flex; align-items:center; gap:5px; color:#25D366; font-weight:bold; font-size:0.9em;">
-                <img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" width="18"> WhatsApp
-            </a>
-            <a href="{ics_link}" download="booking.ics" style="text-decoration:none; display:flex; align-items:center; gap:5px; color:#ccff00; font-weight:bold; font-size:0.9em;">
-                📅 Calendar
-            </a>
-        </div>
-    </div>"""
+    <div style="background: rgba(255,255,255,0.05); padding:15px; border-radius:10px; margin-bottom:15px; border-left:4px solid #ccff00;">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+    <span style="color:#ccff00; font-weight:bold; font-size:1.1em;">{row['date']} at {row['time']}</span>
+    <span style="font-size:0.8em; background:#ccff00; color:#000; padding:2px 8px; border-radius:4px; font-weight:bold;">{row['match_type']}</span>
+    </div>
+    <div style="margin-top:8px;">🏟️ Court: <a href="{court_url}" target="_blank" style="color:#ccff00; text-decoration:none; font-weight:bold;">{row['court_name']}</a></div>
+    <div style="margin-top:5px; font-size:0.95em;">👥 Players: {players_str}</div>
+    <div style="font-size:0.85em; color:#aaa; margin-top:3px;">⏳ Standby: <span style="font-weight:bold; color:#ccff00;">{standby_val}</span></div>
+    {pairing_suggestion}
+    <div style="margin-top:15px; display:flex; gap:20px; align-items:center;">
+    <a href="{wa_link}" target="_blank" style="text-decoration:none; display:flex; align-items:center; gap:5px; color:#25D366; font-weight:bold;">
+    <img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" width="20"> WhatsApp
+    </a>
+    <a href="{ics_link}" download="booking.ics" style="text-decoration:none; display:flex; align-items:center; gap:5px; color:#ccff00; font-weight:bold;">
+    📅 Calendar
+    </a>
+    </div>
+    </div>
+    """
                 st.markdown(booking_card, unsafe_allow_html=True)
                 
                 if row['screenshot_url']:
@@ -3132,6 +3130,9 @@ with tabs[4]:
                     delete_booking_from_db(row['booking_id'])
                     st.rerun()
 
+
+
+                
 with tabs[5]: display_hall_of_fame()
 
 if st.session_state.is_admin:
