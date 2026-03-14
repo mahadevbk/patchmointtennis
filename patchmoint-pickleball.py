@@ -393,6 +393,23 @@ DEFAULT_AVATAR = "https://raw.githubusercontent.com/mahadevbk/patchmointtennis/m
 # --- Session State Init ---
 if 'current_chapter' not in st.session_state:
     st.session_state.current_chapter = None
+
+# Handle Direct URL Chapter Selection
+if st.session_state.current_chapter is None and "chapter" in st.query_params:
+    chapter_id = st.query_params["chapter"]
+    try:
+        conn = get_connection()
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute("SELECT * FROM chapters WHERE id = %s", (chapter_id,))
+            row = cur.fetchone()
+        conn.close()
+        if row:
+            st.session_state.current_chapter = {'id': row['id'], 'name': row['name']}
+            st.session_state.chapter_config = json.loads(row['config']) if row['config'] else {}
+            st.session_state.is_admin = False
+            st.session_state.can_write = False
+            st.rerun()
+    except: pass
 if 'is_admin' not in st.session_state:
     st.session_state.is_admin = False
 if 'can_write' not in st.session_state:
@@ -1972,7 +1989,10 @@ try:
 except: chap_data = pd.DataFrame()
 
 # Use the LOGO_URL directly in main app
-st.markdown(f'<div style="text-align: left;"><img src="{LOGO_URL}" style="height:50px; margin-bottom: 10px;"></div>', unsafe_allow_html=True)
+st.markdown(f'<div style="text-align: left;"><img src="{LOGO_URL}" style="height:50px; margin-bottom: 5px;"></div>', unsafe_allow_html=True)
+chapter_id = st.session_state.current_chapter['id']
+app_url = f"https://patchmoint-{SPORT_TYPE.lower()}.streamlit.app/?chapter={chapter_id}"
+st.markdown(f'<div style="text-align: left; font-size: 0.8em; color: #666; margin-bottom: 15px;">Direct URL: <a href="{app_url}" target="_blank" style="color: #666; text-decoration: none;">{app_url}</a></div>', unsafe_allow_html=True)
 
 if not chap_data.empty and chap_data.iloc[0]['title_image_url']:
     img_path = chap_data.iloc[0]['title_image_url']
@@ -2602,6 +2622,9 @@ with tabs[2]:
             new_p = st.text_input("New Name")
             gend = st.selectbox("Gender (Optional)", ["", "Male", "Female"])
             
+            # Allow Admin to set a custom password
+            custom_pw = st.text_input("Custom Password (Optional)", placeholder="Leave blank for random", type="password")
+            
             # Check if new_p already exists to determine if it's a new player or a potential duplicate check for the UI
             # For the purpose of this form, we assume 'new_p' is a new player until added
             
@@ -2625,7 +2648,7 @@ with tabs[2]:
                         if initial_dupr_input is not None and player_has_played:
                             st.warning(f"Initial DUPR can only be set for players who have not played any matches. '{new_p}' has played matches.")
                         else:
-                            pw = str(uuid.uuid4().hex)[:8]
+                            pw = custom_pw if custom_pw else str(uuid.uuid4().hex)[:8]
                             final_gender = gend if gend else None
                             new_player_data = {
                                 "name": new_p,
