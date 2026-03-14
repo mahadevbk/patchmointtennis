@@ -2617,6 +2617,60 @@ with tabs[1]:
 
 with tabs[2]:
     st.header("Player Profile")
+    
+    # --- Edit My Profile (For Logged-in Players) ---
+    if st.session_state.get('logged_in_player'):
+        me = st.session_state.logged_in_player
+        if not st.session_state.players_df.empty:
+            my_row_matches = st.session_state.players_df[st.session_state.players_df['name'] == me]
+            if not my_row_matches.empty:
+                my_row_index = my_row_matches.index[0]
+                my_row = st.session_state.players_df.loc[my_row_index]
+                
+                with st.expander(f"👤 Edit My Profile ({me})", expanded=False, icon="➡️"):
+                    with st.form(key="edit_my_profile_form"):
+                        # Profile Image
+                        new_img = st.file_uploader("Update Profile Image", type=["jpg", "png"], key="my_profile_img")
+                        
+                        # Gender
+                        my_current_gend = my_row.get('gender', '')
+                        gender_options = ["", "Male", "Female"]
+                        my_gend_idx = gender_options.index(my_current_gend) if my_current_gend in gender_options else 0
+                        my_new_gend = st.selectbox("My Gender", options=gender_options, index=my_gend_idx, key="my_profile_gender")
+                        
+                        # Password
+                        my_new_pass = st.text_input("Change My Password", placeholder="Leave blank to keep current", type="password", key="my_profile_pass")
+                        
+                        if st.form_submit_button("Update My Profile", type="primary"):
+                            my_has_changed = False
+                            
+                            # Update Image
+                            if new_img is not None:
+                                my_path = save_remote_image(new_img, me, "profile")
+                                if my_path:
+                                    st.session_state.players_df.at[my_row_index, 'profile_image_url'] = my_path
+                                    my_has_changed = True
+                            
+                            # Update Gender
+                            if my_new_gend != my_current_gend:
+                                st.session_state.players_df.at[my_row_index, 'gender'] = my_new_gend if my_new_gend else None
+                                my_has_changed = True
+                                
+                            if my_has_changed:
+                                save_players(st.session_state.players_df)
+                                st.toast("Profile updated successfully!")
+                                
+                            # Update Password
+                            if my_new_pass:
+                                if update_player_password(me, my_new_pass):
+                                    st.toast("Password updated successfully!")
+                                else:
+                                    st.error("Failed to update password.")
+                                    
+                            if my_has_changed or my_new_pass:
+                                time.sleep(0.5)
+                                st.rerun()
+
     if st.session_state.is_admin:
         with st.expander("Manage Players", expanded=False, icon="➡️"):
             new_p = st.text_input("New Name")
@@ -2690,6 +2744,12 @@ with tabs[2]:
                         # Admin status
                         is_p_admin = st.checkbox("Player is Admin", value=row.get('is_admin', False))
 
+                        # Gender Edit
+                        current_gend = row.get('gender', '')
+                        gender_options = ["", "Male", "Female"]
+                        gend_idx = gender_options.index(current_gend) if current_gend in gender_options else 0
+                        new_gend = st.selectbox("Gender", options=gender_options, index=gend_idx, key=f"eg_{sel}")
+
                         # Password reset
                         new_pass = st.text_input("Reset Password", placeholder="Leave blank to keep current")
 
@@ -2722,12 +2782,17 @@ with tabs[2]:
                                 st.session_state.players_df.at[row_index, 'is_admin'] = is_p_admin
                                 has_changed = True
 
-                            # 4. Save player changes to DB
+                            # 4. Update Gender
+                            if new_gend != current_gend:
+                                st.session_state.players_df.at[row_index, 'gender'] = new_gend if new_gend else None
+                                has_changed = True
+
+                            # 5. Save player changes to DB
                             if has_changed:
                                 save_players(st.session_state.players_df)
                                 st.toast(f"Player {sel} updated!")
                             
-                            # 5. Update Password
+                            # 6. Update Password
                             if new_pass:
                                 update_player_password(sel, new_pass)
                                 st.toast(f"Password for {sel} updated.")
