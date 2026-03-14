@@ -3138,13 +3138,28 @@ if st.session_state.is_admin:
         with st.expander("Manage player roles and passwords", expanded=True, icon="➡️"):
             if not st.session_state.players_df.empty:
                 # Password Reset
-                st.markdown("#### Generate New Password")
+                st.markdown("#### Manage Player Password")
                 players = st.session_state.players_df["name"].tolist()
                 selected_player = st.selectbox("Select Player", players, key="player_select_for_password")
-                if st.button("Generate New Password"):
+                
+                new_pw_input = st.text_input("New Password", placeholder="Enter manual password", key="new_pw_manual")
+                
+                col_p1, col_p2 = st.columns(2)
+                
+                if col_p1.button("Set Manual Password", use_container_width=True):
+                    if new_pw_input:
+                        if update_player_password(selected_player, new_pw_input):
+                            st.success(f"Password for {selected_player} updated to: `{new_pw_input}`")
+                            load_players() # Refresh player data
+                        else:
+                            st.error("Failed to update password.")
+                    else:
+                        st.warning("Please enter a password first.")
+
+                if col_p2.button("Generate Random Password", use_container_width=True):
                     new_password = str(uuid.uuid4().hex)[:8]
                     if update_player_password(selected_player, new_password):
-                        st.success(f"New password for {selected_player}: `{new_password}`")
+                        st.success(f"New random password for {selected_player}: `{new_password}`")
                         load_players() # Refresh player data
                     else:
                         st.error("Failed to update password.")
