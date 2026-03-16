@@ -1411,7 +1411,7 @@ END:VCALENDAR"""
 
 def load_bookings():
     cid = st.session_state.current_chapter['id'] if st.session_state.current_chapter else None
-    df = fetch_data(BOOKINGS_TABLE, cid)
+    df = fetch_data(BOOKINGS_TABLE, cid).copy()
     cols = ['booking_id', 'date', 'time', 'match_type', 'court_name', 'player1', 'player2', 'player3', 'player4', 'standby_player', 'screenshot_url', 'chapter_id']
     for c in cols: 
         if c not in df.columns: df[c] = None
