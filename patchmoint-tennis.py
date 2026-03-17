@@ -991,7 +991,13 @@ def calculate_rankings(matches_to_rank):
             s_str = str(s)
             t1_g, t2_g = 0, 0
             
-            if "Tie Break" in s_str:
+            if "Super Tie Break" in s_str:
+                is_clutch = True
+                nums = [int(x) for x in re.findall(r'\d+', s_str)]
+                if len(nums) >= 2:
+                    if nums[0] > nums[1]: t1_g, t2_g = 1, 0
+                    else: t1_g, t2_g = 0, 1
+            elif "Tie Break" in s_str:
                 is_clutch = True
                 nums = [int(x) for x in re.findall(r'\d+', s_str)]
                 if len(nums) >= 2:
@@ -2383,7 +2389,7 @@ with tabs[1]:
                         if abs(v1 - v2) < 2 or max(v1, v2) < 10:
                             col.error("Super TB: Min 10 pts & Diff 2")
                             return None
-                        return f"Tie Break {v1}-{v2}"
+                        return f"Super Tie Break {v1}-{v2}"
                     return sel
 
                 s1 = get_final_score(s1_sel, sc1, 1)
@@ -2448,27 +2454,36 @@ with tabs[1]:
                 if s:
                     sets_played += 1
                     s_str = str(s)
-                    
                     g1, g2 = 0, 0
-                    if "Tie Break" in s_str:
-                         nums = re.findall(r'\d+', s_str)
-                         if len(nums) >= 2:
-                             g1_tb, g2_tb = int(nums[0]), int(nums[1])
-                             if g1_tb > g2_tb: 
-                                 g1, g2 = 7, 6
-                                 t1_sets += 1
-                             else: 
-                                 g1, g2 = 6, 7
-                                 t2_sets += 1
-                             set_scores_data.append({"g1": g1, "g2": g2, "is_tb": True, "g1_tb": g1_tb, "g2_tb": g2_tb})
+                    is_tb = False
+                    is_stb = False
+                    
+                    if "Super Tie Break" in s_str:
+                        is_stb = True
+                        nums = [int(x) for x in re.findall(r'\d+', s_str)]
+                        if len(nums) >= 2:
+                            p1_pts, p2_pts = nums[0], nums[1]
+                            if p1_pts > p2_pts: g1, g2 = 1, 0
+                            else: g1, g2 = 0, 1
+                            set_scores_data.append({"g1": g1, "g2": g2, "is_tb": False, "is_stb": True, "p1_pts": p1_pts, "p2_pts": p2_pts})
+                    elif "Tie Break" in s_str:
+                        is_tb = True
+                        nums = [int(x) for x in re.findall(r'\d+', s_str)]
+                        if len(nums) >= 2:
+                            p1_pts, p2_pts = nums[0], nums[1]
+                            if p1_pts > p2_pts: g1, g2 = 7, 6
+                            else: g1, g2 = 6, 7
+                            set_scores_data.append({"g1": g1, "g2": g2, "is_tb": True, "is_stb": False, "p1_pts": p1_pts, "p2_pts": p2_pts})
                     elif '-' in s_str:
                         try:
                             parts = s_str.split('-')
                             g1, g2 = int(parts[0]), int(parts[1])
-                            if g1 > g2: t1_sets += 1
-                            elif g2 > g1: t2_sets += 1
-                            set_scores_data.append({"g1": g1, "g2": g2, "is_tb": False})
+                            set_scores_data.append({"g1": g1, "g2": g2, "is_tb": False, "is_stb": False})
                         except: pass
+                    
+                    if g1 > g2: t1_sets += 1
+                    elif g2 > g1: t2_sets += 1
+                    
                     t1_games_total += g1
                     t2_games_total += g2
 
@@ -2552,18 +2567,15 @@ with tabs[1]:
                 vs_label = "TIE"
                 flip_score = False
 
-            # Re-orient scores relative to displayed sides
+            # Re-orient scores relative to displayed sides (Match Winner leads)
             final_scores_list = []
             for item in set_scores_data:
-                if flip_score:
-                    lg, rg = item['g2'], item['g1']
-                    if item['is_tb']: detail = f"{lg}-{rg} (Tie Break {item['g2_tb']}-{item['g1_tb']})"
-                    else: detail = f"{lg}-{rg}"
-                else:
-                    lg, rg = item['g1'], item['g2']
-                    if item['is_tb']: detail = f"{lg}-{rg} (Tie Break {item['g1_tb']}-{item['g2_tb']})"
-                    else: detail = f"{lg}-{rg}"
-                final_scores_list.append(detail)
+                lg, rg = (item['g2'], item['g1']) if flip_score else (item['g1'], item['g2'])
+                base_score = f"{lg}-{rg}"
+                if item.get('is_tb') or item.get('is_stb'):
+                    ltb, rtb = (item['p2_pts'], item['p1_pts']) if flip_score else (item['p1_pts'], item['p2_pts'])
+                    base_score += f" (TB {ltb}-{rtb})"
+                final_scores_list.append(base_score)
 
             # Format Score String (with line breaks if 3 sets to keep it readable)
             if len(final_scores_list) == 3:
